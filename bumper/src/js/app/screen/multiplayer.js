@@ -23,6 +23,11 @@ app.screen.multiplayer = app.screenManager.invent({
     busy: false,
     netListeners: null,
     mode: 'chill',
+    // Deathmatch round duration in seconds. Host-pickable; broadcast to
+    // clients so their lobby UI mirrors the choice. Filled in onEnter
+    // from content.game.deathmatchDefaultDuration() once the engine is
+    // available — `onEnter` runs after content/ has loaded.
+    duration: 180,
   },
   onReady: function () {
     const root = this.rootElement
@@ -35,22 +40,30 @@ app.screen.multiplayer = app.screenManager.invent({
     this.elLobbyStatus = root.querySelector('.a-multiplayer--lobbyStatus')
     this.elPeers       = root.querySelector('.a-multiplayer--peers')
     this.elStart       = root.querySelector('.a-multiplayer--start')
-    this.elModeRow     = root.querySelector('.a-multiplayer--modeRow')
-    this.elModeChill   = root.querySelector('.a-multiplayer--modeChill')
-    this.elModeArcade  = root.querySelector('.a-multiplayer--modeArcade')
+    this.elModeFieldset     = root.querySelector('.a-multiplayer--modeFieldset')
+    this.elDurationFieldset = root.querySelector('.a-multiplayer--durationFieldset')
 
     // Restore last name from storage.
     const data = app.storage.get('bumper') || {}
     if (data.lastName) this.elName.value = data.lastName
 
-    root.addEventListener('click', (e) => {
-      const modeBtn = e.target.closest('button[data-mode]')
-      if (modeBtn) {
-        if (app.net && app.net.role && app.net.role() === 'host') {
-          this.setMode(modeBtn.dataset.mode)
-        }
-        return
+    // Radio-input change handlers. Only the host writes mode/duration —
+    // a non-host fieldset is `disabled` (which itself blocks input
+    // changes), but we double-guard on role here too in case the
+    // fieldset's disabled flag races a state update.
+    root.addEventListener('change', (e) => {
+      if (!(e.target instanceof HTMLInputElement)) return
+      const role = app.net && app.net.role && app.net.role()
+      if (role !== 'host') return
+      if (e.target.name === 'mp-mode') {
+        this.setMode(e.target.value)
+      } else if (e.target.name === 'mp-duration') {
+        const seconds = parseInt(e.target.value, 10)
+        if (Number.isFinite(seconds)) this.setDuration(seconds)
       }
+    })
+
+    root.addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-action]')
       if (!btn) return
       const action = btn.dataset.action
@@ -88,6 +101,15 @@ app.screen.multiplayer = app.screenManager.invent({
     }
     this.detachNetListeners()
     this.state.mode = 'chill'
+    // Restore the host's last-picked deathmatch duration from storage
+    // (defaults to engine's default if absent or invalid).
+    const stored = app.storage.get('bumper') || {}
+    const allowed = (content.game && content.game.deathmatchDurations)
+      ? content.game.deathmatchDurations()
+      : [180, 600, 900]
+    this.state.duration = allowed.includes(stored.lastDmDuration)
+      ? stored.lastDmDuration
+      : (content.game && content.game.deathmatchDefaultDuration ? content.game.deathmatchDefaultDuration() : 180)
 
     // Deep-link: if the page was opened with ?room=CODE (e.g. from a
     // copied invite link), prefill the join form. Strip the param after
@@ -146,35 +168,65 @@ app.screen.multiplayer = app.screenManager.invent({
     app.utility.menuNav.handle(this.rootElement)
   },
 
-  // ---- Mode (chill / arcade) management — host-authoritative ----
+  // ---- Mode (chill / arcade / deathmatch) management — host-authoritative ----
+  // No local live-region announcement: the screen reader already
+  // announces the radio's own checked state. Clients DO get a spoken
+  // notice when they receive the broadcast, since their radio flips
+  // programmatically (no native announcement on a non-user change).
   setMode: function (mode, {silent = false} = {}) {
-    const next = mode === 'arcade' ? 'arcade' : 'chill'
+    const next = normalizeMode(mode)
     if (this.state.mode === next && !silent) return
     this.state.mode = next
     this.renderModeRow()
-    if (!silent) {
-      const label = app.i18n.t(next === 'arcade' ? 'mp.modeArcade' : 'mp.modeChill')
-      content.announcer.say(app.i18n.t('mp.modeSelected', {mode: label}), 'polite')
+    if (!silent && app.net && app.net.role && app.net.role() === 'host') {
       // Tell clients about the new mode so their lobby UI follows along.
-      if (app.net && app.net.role && app.net.role() === 'host') {
-        try { app.net.broadcast({type: 'mode', mode: next}) } catch (e) {}
-      }
+      // Send the duration alongside so a brand-new client reading the
+      // mode broadcast also catches up on the round length in one go.
+      try { app.net.broadcast({type: 'mode', mode: next, duration: this.state.duration}) } catch (e) {}
     }
   },
+  // Deathmatch round duration. Same announcement policy as setMode —
+  // the host's screen reader handles the radio change natively, only
+  // clients need the live-region notice when the host changes it.
+  // Persisted so the host doesn't have to re-pick each session.
+  setDuration: function (seconds, {silent = false} = {}) {
+    const allowed = content.game.deathmatchDurations()
+    if (!allowed.includes(seconds)) return
+    if (this.state.duration === seconds && !silent) return
+    this.state.duration = seconds
+    this.renderModeRow()
+    app.storage.set('bumper', {...(app.storage.get('bumper') || {}), lastDmDuration: seconds})
+    if (!silent && app.net && app.net.role && app.net.role() === 'host') {
+      try { app.net.broadcast({type: 'duration', duration: seconds}) } catch (e) {}
+    }
+  },
+  // Mode picker is a fieldset with radio inputs (chill / arcade /
+  // deathmatch). Visible to host (interactive) and clients (read-only
+  // via the disabled fieldset, which mirrors the host's pick). The
+  // duration fieldset is rendered alongside since its visibility
+  // depends on the selected mode.
   renderModeRow: function () {
-    if (!this.elModeRow) return
+    if (!this.elModeFieldset) return
     const role = app.net && app.net.role && app.net.role()
     const isHost = role === 'host'
-    // Show the row to host (interactive) and to clients (read-only —
-    // they see which mode the host has picked but their click is no-op).
-    this.elModeRow.hidden = !role
-    if (this.elModeChill) {
-      this.elModeChill.setAttribute('aria-pressed', this.state.mode === 'chill' ? 'true' : 'false')
-      this.elModeChill.disabled = !isHost
+    this.elModeFieldset.hidden = !role
+    this.elModeFieldset.disabled = !isHost
+    for (const input of this.elModeFieldset.querySelectorAll('input[name="mp-mode"]')) {
+      input.checked = input.value === this.state.mode
     }
-    if (this.elModeArcade) {
-      this.elModeArcade.setAttribute('aria-pressed', this.state.mode === 'arcade' ? 'true' : 'false')
-      this.elModeArcade.disabled = !isHost
+    this.renderDurationRow()
+  },
+  // Round-length fieldset: visible only when deathmatch is selected.
+  // Disabled for clients (`<fieldset disabled>` propagates to the inner
+  // radios automatically).
+  renderDurationRow: function () {
+    if (!this.elDurationFieldset) return
+    const role = app.net && app.net.role && app.net.role()
+    const isHost = role === 'host'
+    this.elDurationFieldset.hidden = !role || this.state.mode !== 'deathmatch'
+    this.elDurationFieldset.disabled = !isHost
+    for (const input of this.elDurationFieldset.querySelectorAll('input[name="mp-duration"]')) {
+      input.checked = parseInt(input.value, 10) === this.state.duration
     }
   },
 
@@ -207,11 +259,11 @@ app.screen.multiplayer = app.screenManager.invent({
     listeners.peerJoin = ({name}) => {
       content.sounds.peerJoin()
       content.announcer.say(app.i18n.t('mp.peerJoined', {name}), 'polite')
-      // Replay the current mode to the new peer so its lobby UI reflects
-      // the host's choice. broadcast hits everyone, which is fine — the
-      // already-up-to-date peers just no-op the redundant message.
+      // Replay the current mode + duration to the new peer so its lobby
+      // UI reflects the host's choice. broadcast hits everyone, which is
+      // fine — already-up-to-date peers no-op the redundant message.
       if (app.net.role() === 'host') {
-        try { app.net.broadcast({type: 'mode', mode: self.state.mode}) } catch (e) {}
+        try { app.net.broadcast({type: 'mode', mode: self.state.mode, duration: self.state.duration}) } catch (e) {}
       }
     }
     listeners.peerLeave = ({name}) => {
@@ -230,10 +282,29 @@ app.screen.multiplayer = app.screenManager.invent({
     listeners.message = ({msg}) => {
       if (!msg) return
       if (msg.type === 'mode' && app.net.role() === 'client') {
-        self.state.mode = msg.mode === 'arcade' ? 'arcade' : 'chill'
+        self.state.mode = normalizeMode(msg.mode)
+        // The host bundles the current duration along with mode broadcasts
+        // so a late-joining client catches up on both at once. A standalone
+        // duration message arrives via the 'duration' branch below.
+        if (typeof msg.duration === 'number') {
+          const allowed = content.game.deathmatchDurations()
+          if (allowed.includes(msg.duration)) self.state.duration = msg.duration
+        }
         self.renderModeRow()
-        const label = app.i18n.t(self.state.mode === 'arcade' ? 'mp.modeArcade' : 'mp.modeChill')
+        const label = app.i18n.t(modeLabelKey(self.state.mode))
         content.announcer.say(app.i18n.t('mp.clientModeSelected', {mode: label}), 'polite')
+        return
+      }
+      if (msg.type === 'duration' && app.net.role() === 'client') {
+        const allowed = content.game.deathmatchDurations()
+        if (allowed.includes(msg.duration)) {
+          self.state.duration = msg.duration
+          self.renderModeRow()
+          content.announcer.say(
+            app.i18n.t('mp.clientDurationSelected', {label: durationLabel(msg.duration)}),
+            'polite',
+          )
+        }
         return
       }
       if (msg.type !== 'start') return
@@ -243,7 +314,8 @@ app.screen.multiplayer = app.screenManager.invent({
         role: 'client',
         controllers: msg.controllers,
         selfId: msg.selfId,
-        mode: msg.mode || 'chill',
+        mode: normalizeMode(msg.mode),
+        duration: msg.duration,
       })
     }
 
@@ -394,7 +466,8 @@ app.screen.multiplayer = app.screenManager.invent({
     const selfController = controllers.find((c) => c.peerId === hostPeerId)
     const selfId = selfController ? selfController.id : controllers[0].id
 
-    const mode = this.state.mode === 'arcade' ? 'arcade' : 'chill'
+    const mode = normalizeMode(this.state.mode)
+    const duration = this.state.duration
 
     // Tell each client their own car id and the full controllers list.
     for (const c of controllers) {
@@ -404,6 +477,7 @@ app.screen.multiplayer = app.screenManager.invent({
         selfId: c.id,
         controllers: stripPeerIds(controllers),
         mode,
+        duration,
       })
     }
 
@@ -413,6 +487,7 @@ app.screen.multiplayer = app.screenManager.invent({
       controllers,                   // host keeps peerIds for input routing
       selfId,
       mode,
+      duration,
     })
   },
 
@@ -460,6 +535,30 @@ app.screen.multiplayer = app.screenManager.invent({
     }
   },
 })
+
+// Normalize an arbitrary mode string to one of the three supported modes.
+// Anything unknown falls back to chill (defensive: keeps the lobby usable
+// if a future build sends a mode this peer doesn't recognise).
+function normalizeMode(mode) {
+  if (mode === 'arcade') return 'arcade'
+  if (mode === 'deathmatch') return 'deathmatch'
+  return 'chill'
+}
+
+function modeLabelKey(mode) {
+  if (mode === 'arcade') return 'mp.modeArcade'
+  if (mode === 'deathmatch') return 'mp.modeDeathmatch'
+  return 'mp.modeChill'
+}
+
+// Human-readable label for a duration in seconds. The lobby buttons
+// have their own visible labels (data-i18n), but spoken announcements
+// like "duration set to 10 minutes" use this so the unit is always
+// pronounced — minutes only, since every option is a whole multiple.
+function durationLabel(seconds) {
+  const minutes = Math.round((seconds || 0) / 60)
+  return app.i18n.t(minutes === 1 ? 'mp.durationLabel1' : 'mp.durationLabelN', {minutes})
+}
 
 function spellOut(code) {
   // Read the room code one character at a time so screen readers

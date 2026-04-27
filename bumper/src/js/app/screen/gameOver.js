@@ -37,12 +37,15 @@ app.screen.gameOver = app.screenManager.invent({
     const score = e.score || 0
     const best = e.best || 0
     const youWon = !!e.youWon
+    const isDm = e.mode === 'deathmatch'
     const t = app.i18n.t
 
     root.querySelector('.a-gameOver--title').textContent =
       t(youWon ? 'gameOver.titleWin' : 'gameOver.titleLose')
     root.querySelector('.a-gameOver--result').textContent =
-      t(youWon ? 'gameOver.resultWin' : 'gameOver.resultLose')
+      t(youWon
+          ? (isDm ? 'gameOver.resultWinDm' : 'gameOver.resultWin')
+          : (isDm ? 'gameOver.resultLoseDm' : 'gameOver.resultLose'))
     root.querySelector('.a-gameOver--scoreValue').textContent = String(score)
     root.querySelector('.a-gameOver--bestValue').textContent = String(best)
 
@@ -58,8 +61,12 @@ app.screen.gameOver = app.screenManager.invent({
       for (const s of standings) {
         const li = document.createElement('li')
         const isYou = e.selfId != null && s.id === e.selfId
-        const isWinner = !s.eliminated
-        li.dataset.status = isWinner ? 'winner' : 'eliminated'
+        // Three states: winner > eliminated > ranked. Deathmatch non-
+        // winners fall through to "ranked" (no tag) because nobody was
+        // permanently eliminated — they were just outscored.
+        const isWinner = !!s.winner
+        const isEliminated = !isWinner && !!s.eliminated
+        li.dataset.status = isWinner ? 'winner' : isEliminated ? 'eliminated' : 'ranked'
         if (isYou) li.dataset.self = '1'
 
         const nameEl = document.createElement('span')
@@ -70,8 +77,12 @@ app.screen.gameOver = app.screenManager.invent({
 
         const scoreEl = document.createElement('span')
         scoreEl.className = 'a-gameOver--standingScore'
-        const tagText = isWinner ? t('gameOver.standingTagWinner') : t('gameOver.standingTagOut')
-        scoreEl.textContent = `${s.score}  ${tagText}`
+        const tagText = isWinner
+          ? t('gameOver.standingTagWinner')
+          : isEliminated
+            ? t('gameOver.standingTagOut')
+            : ''
+        scoreEl.textContent = tagText ? `${s.score}  ${tagText}` : String(s.score)
 
         li.appendChild(nameEl)
         li.appendChild(scoreEl)
@@ -97,8 +108,12 @@ app.screen.gameOver = app.screenManager.invent({
         const who = (e.selfId != null && s.id === e.selfId)
           ? t('gameOver.standingNameYou', {label: s.label})
           : s.label
-        const tag = !s.eliminated ? t('gameOver.standingTagWinner') : t('gameOver.standingTagOut')
-        return `${place}. ${who}, ${s.score}, ${tag}`
+        const tag = s.winner
+          ? t('gameOver.standingTagWinner')
+          : s.eliminated
+            ? t('gameOver.standingTagOut')
+            : ''
+        return tag ? `${place}. ${who}, ${s.score}, ${tag}` : `${place}. ${who}, ${s.score}`
       }).join('. ')
       content.announcer.say(t('gameOver.standingsAnnounce', {list: spoken}), 'polite')
     }

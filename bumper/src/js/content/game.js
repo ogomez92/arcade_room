@@ -7,8 +7,11 @@
  * from received peer messages).
  *
  * Modes:
- *   chill  — classic bumper cars, no pickups
- *   arcade — adds pickups (health/shield/bullets/mine), bullets, mines
+ *   chill      — classic bumper cars, no pickups
+ *   arcade     — adds pickups (health/shield/bullets/mine), bullets, mines
+ *   deathmatch — multiplayer-only; eliminations respawn after a fixed
+ *                delay; round ends on a fixed time limit; winner is the
+ *                car with the highest score at time-out
  *
  * Multiplayer model:
  *   role === 'host'   — runs full physics, broadcasts snapshots, applies
@@ -41,6 +44,12 @@ content.game = (() => {
     lastSweepAt = 0,
     aiCount = 0,
     mode = 'chill',
+    // Deathmatch round-end clock (engine.time domain). 0 outside deathmatch.
+    roundEndsAt = 0,
+    // Host-side respawn queue: [{carId, at}]. Drained per frame in update().
+    respawnQueue = [],
+    // Deathmatch time-warning marks already announced this round.
+    dmWarnedSec = new Set(),
     // Local-player bullet-cooldown clock. Mirrors the host-authoritative
     // canFire gate in content.bullets, but lets us play the denial
     // sound immediately without a round-trip. Reset each round.
@@ -62,6 +71,26 @@ content.game = (() => {
     // (client) interpolation targets: carId -> {x, y, h, vx, vy, t}
     remoteTargets = new Map()
 
+  // Deathmatch tuning. Round duration is host-configurable in the lobby;
+  // the default is used when no duration is supplied to start().
+  const DEATHMATCH_DEFAULT_DURATION = 180
+  // Round-duration options the lobby exposes (seconds). Kept here so the
+  // lobby and the round logic share one source of truth for what's valid.
+  const DEATHMATCH_DURATIONS = [180, 600, 900]
+  const DEATHMATCH_RESPAWN_DELAY = 3
+  // Spoken time-remaining warnings (seconds before round end). Each fires
+  // exactly once per round.
+  const DM_WARN_MARKS = [60, 30, 10]
+
+  // Modes that ship with the arcade item layer (pickups, bullets, mines,
+  // shields, boosts, teleports). Anything checking "do cars get an
+  // inventory / does the picker manager run / can hotkeys fire weapons"
+  // should call this rather than comparing against `'arcade'` directly,
+  // so deathmatch lights up the same systems.
+  function hasItems() {
+    return mode === 'arcade' || mode === 'deathmatch'
+  }
+
   // Events whose payloads are forwarded to clients in each snapshot. Each
   // entry must be JSON-serializable (no Car refs — use IDs).
   const NETWORKED_EVENTS = [
@@ -82,6 +111,10 @@ content.game = (() => {
     'mineDetonated',
     'boostActivated',
     'teleportUsed',
+    // Deathmatch: respawn after the fixed delay. Networked so every peer
+    // hard-snaps the car position, plays the SFX at the new spot, and
+    // announces.
+    'carRespawned',
     // Horn — both modes (chill + arcade). Hold-to-honk: one event on
     // press, another on release. Each peer maintains a per-car spatial
     // voice so listeners can locate who's honking.
@@ -108,6 +141,23 @@ content.game = (() => {
     elapsed: () => elapsed,
     mode: () => mode,
     isArcade: () => mode === 'arcade',
+    isDeathmatch: () => mode === 'deathmatch',
+    // True for any mode that runs the arcade item layer (currently
+    // arcade + deathmatch). Use this to gate hotkeys and inventory
+    // readouts; use isArcade() only for things specific to classic
+    // arcade (e.g. mode-name announcements).
+    hasItems: () => hasItems(),
+    // Seconds until the deathmatch round ends. Returns null outside
+    // deathmatch (so a HUD readout can render "—" instead of 0).
+    roundTimeRemaining: () => {
+      if (mode !== 'deathmatch' || !roundEndsAt) return null
+      return Math.max(0, roundEndsAt - engine.time())
+    },
+    // The set of round durations the lobby exposes (seconds), and the
+    // default. Both the multiplayer screen and any future single-player
+    // surface should read these instead of hardcoding a list.
+    deathmatchDurations: () => DEATHMATCH_DURATIONS.slice(),
+    deathmatchDefaultDuration: () => DEATHMATCH_DEFAULT_DURATION,
     pickups: () => pickupsMgr,
     bullets: () => bulletsMgr,
     mines: () => minesMgr,
@@ -141,26 +191,80 @@ content.game = (() => {
     if (!car) return
     content.sounds.eliminate(car.position)
     const killer = byCarId ? cars.find((c) => c.id === byCarId) : null
+    const isDm = mode === 'deathmatch'
     if (car === playerCar) {
-      content.announcer.say(app.i18n.t('ann.youKilledBy'), 'assertive')
-      // Auto-bind the listener to a surviving car so the player can
-      // keep watching the round instead of being stuck at their dead
-      // position. Announces the new POV ("Watching X.").
-      autoSpectate({announce: true})
+      if (isDm) {
+        // No spectator hop in deathmatch — we'll be back in a few seconds.
+        content.announcer.say(
+          app.i18n.t('ann.youDmRespawnIn', {seconds: DEATHMATCH_RESPAWN_DELAY}),
+          'assertive',
+        )
+      } else {
+        content.announcer.say(app.i18n.t('ann.youKilledBy'), 'assertive')
+        // Auto-bind the listener to a surviving car so the player can
+        // keep watching the round instead of being stuck at their dead
+        // position. Announces the new POV ("Watching X.").
+        autoSpectate({announce: true})
+      }
     } else {
       const youKilled = killer && killer === playerCar
-      const text = youKilled
-        ? app.i18n.t('ann.youKilledOther', {label: car.label})
-        : app.i18n.t('ann.otherKilled', {label: car.label})
+      let text
+      if (youKilled) {
+        text = app.i18n.t('ann.youKilledOther', {label: car.label})
+      } else {
+        text = isDm
+          ? app.i18n.t('ann.otherDmDown', {label: car.label})
+          : app.i18n.t('ann.otherKilled', {label: car.label})
+      }
       content.announcer.say(text, 'assertive')
       if (role !== 'client' && killer) {
         killer.score = (killer.score || 0) + 50
       }
-      // If we were spectating this car, hop to the next survivor.
-      if (car === spectatorCar) {
+      // Spectator hop only matters in modes where eliminations are final.
+      if (!isDm && car === spectatorCar) {
         autoSpectate({announce: true})
       }
     }
+    // Host queues the respawn for deathmatch. Skip leavers (peerLeave
+    // sets car.forfeited = true so a disconnected peer stays gone).
+    if (isDm && role !== 'client' && !car.forfeited) {
+      respawnQueue.push({carId, at: engine.time() + DEATHMATCH_RESPAWN_DELAY})
+    }
+  })
+
+  // Deathmatch respawn. Networked so every peer hard-snaps the car
+  // position, plays the SFX at the new spot, and announces. The host's
+  // authoritative snapshot will sync health/eliminated soon after, but
+  // we apply state locally too so audio is in sync immediately.
+  content.events.on('carRespawned', ({carId, x, y, heading}) => {
+    if (!running) return
+    const car = cars.find((c) => c.id === carId)
+    if (!car) return
+    car.position.x = x
+    car.position.y = y
+    car.velocity.x = 0
+    car.velocity.y = 0
+    car.angularVelocity = 0
+    car.heading = heading
+    car.health = car.maxHealth
+    car.eliminated = false
+    car.scrapeSpeed = 0
+    car.lastHitBy = null
+    car.input.throttle = 0
+    car.input.steering = 0
+    if (role === 'client') {
+      remoteTargets.set(carId, {x, y, h: heading, vx: 0, vy: 0, t: engine.time()})
+    }
+    if (car === playerCar) {
+      // Sync the listener to the new spot before the SFX so the whoosh
+      // sounds like it's happening to us, not across the arena.
+      engine.position.setVector({x, y, z: 0})
+      engine.position.setEuler({yaw: heading})
+      content.announcer.say(app.i18n.t('ann.youRespawn'), 'assertive')
+    } else {
+      content.announcer.say(app.i18n.t('ann.otherRespawn', {label: car.label}), 'polite')
+    }
+    content.sounds.teleport({x, y})
   })
 
   content.events.on('carHit', (ev) => {
@@ -251,6 +355,10 @@ content.game = (() => {
             }),
             'assertive',
           )
+        } else if (mode === 'deathmatch' && playerCar.eliminated) {
+          // Suppressed: the carEliminated subscriber already announced
+          // "you are down, respawning in N seconds." Saying "you got hit,
+          // 0 health" right after would clobber that critical respawn cue.
         } else {
           content.announcer.say(
             app.i18n.t('ann.youGotHit', {
@@ -322,7 +430,7 @@ content.game = (() => {
     // The screen's onRoundOver callback dispatches the 'over' transition,
     // which calls onExit → content.game.end({silent: true}). So we don't
     // call end() here; the screen owns the transition path.
-    if (api.onRoundOver) api.onRoundOver({youWon, score, standings, selfId})
+    if (api.onRoundOver) api.onRoundOver({youWon, score, standings, selfId, mode})
   })
 
   // ---- Arcade event wiring (subscribed once; no-ops if mode != arcade)
@@ -335,7 +443,7 @@ content.game = (() => {
   //     resolved {dealt, granted} so clients announce identical numbers.
   //   `pickupApplied` is networked; subscribers do audio + announcer only.
   content.events.on('pickupGrabbed', ({pickupId, type, carId}) => {
-    if (mode !== 'arcade') return
+    if (!hasItems()) return
     if (role === 'client') return
     const car = cars.find((c) => c.id === carId)
     if (!car) return
@@ -360,14 +468,14 @@ content.game = (() => {
   })
 
   content.events.on('pickupApplied', ({pickupType, carId, dealt, granted}) => {
-    if (mode !== 'arcade') return
+    if (!hasItems()) return
     const car = cars.find((c) => c.id === carId)
     if (!car) return
     applyPickup(car, pickupType, {dealt, granted})
   })
 
   content.events.on('bulletHit', ({ownerId, victimId, damage, direct, x, y}) => {
-    if (mode !== 'arcade') return
+    if (!hasItems()) return
     const owner = cars.find((c) => c.id === ownerId)
     const victim = cars.find((c) => c.id === victimId)
     if (!victim) return
@@ -398,7 +506,7 @@ content.game = (() => {
   })
 
   content.events.on('bulletDodged', ({ownerId, targetId}) => {
-    if (mode !== 'arcade') return
+    if (!hasItems()) return
     const owner = cars.find((c) => c.id === ownerId)
     const target = cars.find((c) => c.id === targetId)
     if (!target) return
@@ -412,7 +520,7 @@ content.game = (() => {
   })
 
   content.events.on('bulletFired', ({ownerId, targetId}) => {
-    if (mode !== 'arcade') return
+    if (!hasItems()) return
     const owner = cars.find((c) => c.id === ownerId)
     if (!owner || owner === playerCar) return
     const target = cars.find((c) => c.id === targetId)
@@ -428,7 +536,7 @@ content.game = (() => {
   })
 
   content.events.on('minePlaced', ({ownerId}) => {
-    if (mode !== 'arcade') return
+    if (!hasItems()) return
     const owner = cars.find((c) => c.id === ownerId)
     if (!owner) return
     if (owner === playerCar) {
@@ -440,7 +548,7 @@ content.game = (() => {
 
   // Explosion SFX for mines fires once on detonation, on every peer.
   content.events.on('mineDetonated', ({x, y}) => {
-    if (mode !== 'arcade') return
+    if (!hasItems()) return
     if (x == null || y == null) return
     content.sounds.explosion({x, y}, 1)
   })
@@ -449,7 +557,7 @@ content.game = (() => {
   // everyone hears the launch SFX and the announcement, and the local
   // boostUntil is mirrored on clients for HUD/voice purposes.
   content.events.on('boostActivated', ({carId, until}) => {
-    if (mode !== 'arcade') return
+    if (!hasItems()) return
     const car = cars.find((c) => c.id === carId)
     if (!car) return
     if (role === 'client') car.boostUntil = until
@@ -474,7 +582,7 @@ content.game = (() => {
   //   - The car's position is snapped to the new spot so the listener
   //     pivot moves cleanly without lerping across the arena.
   content.events.on('teleportUsed', ({carId, fromX, fromY, toX, toY}) => {
-    if (mode !== 'arcade') return
+    if (!hasItems()) return
     const car = cars.find((c) => c.id === carId)
     if (!car) return
     car.position.x = toX
@@ -503,7 +611,7 @@ content.game = (() => {
   })
 
   content.events.on('mineHit', ({ownerId, victimId, damage}) => {
-    if (mode !== 'arcade') return
+    if (!hasItems()) return
     const victim = cars.find((c) => c.id === victimId)
     if (!victim) return
     const dmg = Math.max(1, Math.round(damage))
@@ -656,13 +764,15 @@ content.game = (() => {
    *      this peer. If omitted, the first 'player'-typed controller
    *      is used (single-player default).
    */
-  function start({aiOpponents, mode: requestedMode = 'chill', controllers, selfId = null} = {}) {
+  function start({aiOpponents, mode: requestedMode = 'chill', controllers, selfId = null, duration = null} = {}) {
     end({silent: true})
     paused = false
     elapsed = 0
     aiCount = 0
 
-    mode = requestedMode === 'arcade' ? 'arcade' : 'chill'
+    mode = requestedMode === 'arcade' ? 'arcade'
+         : requestedMode === 'deathmatch' ? 'deathmatch'
+         : 'chill'
 
     let list
     if (Array.isArray(controllers) && controllers.length > 0) {
@@ -708,7 +818,7 @@ content.game = (() => {
         profileIndex,
         position: {x: points[i].x, y: points[i].y},
         heading: points[i].heading,
-        arcade: mode === 'arcade',
+        arcade: hasItems(),
       })
       car.score = 0
       // For announcements about the local player, we still want their
@@ -726,7 +836,7 @@ content.game = (() => {
     playerCar = cars.find((c) => c.controller === 'player') || null
     spectatorCar = null
     targeting = playerCar ? content.targeting.create(api) : null
-    if (mode === 'arcade') {
+    if (hasItems()) {
       pickupsMgr = content.pickups.createManager(api)
       bulletsMgr = content.bullets.createManager(api)
       minesMgr = content.mines.createManager(api)
@@ -745,6 +855,18 @@ content.game = (() => {
     heartbeatNextAt = engine.time() + 1
     lastSweepAt = engine.time()
 
+    // Deathmatch round clock + per-round respawn state.
+    respawnQueue = []
+    dmWarnedSec = new Set()
+    // Round duration in deathmatch is host-picked. Validate against the
+    // known options; fall back to the default for anything we don't
+    // recognise (defensive — keeps old clients usable if a future build
+    // ships an option this peer doesn't know yet).
+    const dmDuration = (typeof duration === 'number' && DEATHMATCH_DURATIONS.includes(duration))
+      ? duration
+      : DEATHMATCH_DEFAULT_DURATION
+    roundEndsAt = mode === 'deathmatch' ? engine.time() + dmDuration : 0
+
     content.events.emit('roundStart', {carCount: list.length, mode})
     content.sounds.roundStart()
 
@@ -754,11 +876,18 @@ content.game = (() => {
       const myColorId = playerCar ? content.carEngine.profileName(playerCar.profileIndex) : null
       const colorLine = myColorId ? t('ann.youAreColor', {color: t('color.' + myColorId)}) : ''
       const isArcade = mode === 'arcade'
+      const isDm = mode === 'deathmatch'
       const key = others === 1
-        ? (isArcade ? 'ann.mpRound1Arcade' : 'ann.mpRound1')
-        : (isArcade ? 'ann.mpRoundNArcade' : 'ann.mpRoundN')
+        ? (isDm ? 'ann.mpRound1Deathmatch' : isArcade ? 'ann.mpRound1Arcade' : 'ann.mpRound1')
+        : (isDm ? 'ann.mpRoundNDeathmatch' : isArcade ? 'ann.mpRoundNArcade' : 'ann.mpRoundN')
+      // Duration is host-picked. The deathmatch round-start template
+      // includes {durationLabel}; chill/arcade templates ignore the var.
+      const dmMin = Math.round(dmDuration / 60)
+      const durationLabel = dmMin === 1
+        ? t('ann.durationLabel1')
+        : t('ann.durationLabelN', {minutes: dmMin})
       content.announcer.say(
-        t(key, {count: others, colorLine}),
+        t(key, {count: others, colorLine, durationLabel}),
         'assertive',
       )
     } else if (aiCount === 0) {
@@ -800,6 +929,9 @@ content.game = (() => {
     pendingEvents = []
     remoteInputs.clear()
     remoteTargets.clear()
+    respawnQueue = []
+    dmWarnedSec = new Set()
+    roundEndsAt = 0
     // Tear down any horn voices still running (someone holding Space
     // when the round ended, or the screen is about to change).
     content.sounds.stopAllHorns()
@@ -900,8 +1032,8 @@ content.game = (() => {
         })
       } else if (msg.type === 'action') {
         // Client→host action. Host runs the action against the
-        // requesting peer's car. Horn works in both modes; the rest
-        // are arcade-only so they sit behind the mode gate.
+        // requesting peer's car. Horn works in every mode; weapon
+        // actions sit behind hasItems() (arcade + deathmatch).
         if (role !== 'host' || !running) return
         const carId = peerIdToCarId.get(peerId)
         const car = carId ? cars.find((c) => c.id === carId) : null
@@ -910,7 +1042,7 @@ content.game = (() => {
           content.events.emit('hornStart', {carId: car.id})
         } else if (msg.action === 'hornStop') {
           content.events.emit('hornStop', {carId: car.id})
-        } else if (mode === 'arcade') {
+        } else if (hasItems()) {
           if (msg.action === 'fireBullet' && bulletsMgr) {
             bulletsMgr.fire(car, msg.nudge || 'center')
           } else if (msg.action === 'placeMine' && minesMgr) {
@@ -932,7 +1064,11 @@ content.game = (() => {
       if (!carId) return
       const car = cars.find((c) => c.id === carId)
       if (!car || car.eliminated) return
-      // Leaver forfeits — eliminate their car so the round can resolve.
+      // Leaver forfeits — mark the car so the deathmatch respawn loop
+      // skips it (without this, a disconnected player's ghost would
+      // keep popping back into the arena every 3 seconds).
+      car.forfeited = true
+      // Eliminate their car so the round can resolve.
       // Also kill their horn voice if they were honking when they bailed,
       // otherwise the loop keeps playing forever (no hornStop incoming).
       content.events.emit('hornStop', {carId})
@@ -1017,8 +1153,9 @@ content.game = (() => {
       if (cd.bu != null) car.boostUntil = cd.bu
     }
 
-    // Reconcile arcade managers with host's authoritative item lists.
-    if (mode === 'arcade') {
+    // Reconcile item-layer managers with host's authoritative item
+    // lists (arcade + deathmatch).
+    if (hasItems()) {
       if (pickupsMgr && pickupsMgr.applyRemoteItems) pickupsMgr.applyRemoteItems(snap.pickups || [])
       if (bulletsMgr && bulletsMgr.applyRemoteItems) bulletsMgr.applyRemoteItems(snap.bullets || [])
       if (minesMgr   && minesMgr.applyRemoteItems)   minesMgr.applyRemoteItems(snap.mines || [])
@@ -1048,9 +1185,29 @@ content.game = (() => {
 
   // ---- Main update -------------------------------------------------------
 
+  // Spoken time warnings for deathmatch. Runs on every peer (host +
+  // client) off its own roundEndsAt — perspective-symmetric audio.
+  // Each mark fires exactly once per round (dmWarnedSec is reset in
+  // start() and end()).
+  function maybeAnnounceDeathmatchWarnings() {
+    if (mode !== 'deathmatch' || !roundEndsAt) return
+    const remain = roundEndsAt - engine.time()
+    for (const sec of DM_WARN_MARKS) {
+      if (remain <= sec && !dmWarnedSec.has(sec)) {
+        dmWarnedSec.add(sec)
+        const key = sec === 60 ? 'ann.dmWarn60'
+                  : sec === 30 ? 'ann.dmWarn30'
+                  : 'ann.dmWarn10'
+        content.announcer.say(app.i18n.t(key), 'assertive')
+      }
+    }
+  }
+
   function update(delta) {
     if (!running || paused) return
     elapsed += delta
+
+    maybeAnnounceDeathmatchWarnings()
 
     if (role === 'client') {
       updateClient(delta)
@@ -1090,7 +1247,7 @@ content.game = (() => {
         const bShare = ev.aggressor === b ? aggShare : vicShare
 
         let aBlocked = false, bBlocked = false
-        if (mode === 'arcade') {
+        if (hasItems()) {
           if (!a.eliminated && content.car.consumeShield(a)) {
             aBlocked = true
             content.sounds.shieldBlock({x: ev.x, y: ev.y})
@@ -1176,9 +1333,50 @@ content.game = (() => {
       }
     }
 
-    // Round-end check. Triggers any time we drop to ≤1 living car AND
-    // the round started with more than one car (i.e., not pure sandbox).
-    if (cars.length > 1) {
+    // Deathmatch: drain the respawn queue and check the time-based
+    // round-end before the elimination-based path below (which would
+    // otherwise fire on every car going down). Time warnings are
+    // already fired in maybeAnnounceDeathmatchWarnings() above (shared
+    // host/client) so every peer hears them off its own clock.
+    if (mode === 'deathmatch') {
+      if (respawnQueue.length) {
+        const now = engine.time()
+        // Walk back-to-front so we can splice in place.
+        for (let i = respawnQueue.length - 1; i >= 0; i--) {
+          if (now >= respawnQueue[i].at) {
+            const carId = respawnQueue[i].carId
+            respawnQueue.splice(i, 1)
+            respawnCar(carId)
+          }
+        }
+      }
+      if (roundEndsAt && engine.time() >= roundEndsAt && cars.length > 0) {
+        // Build standings sorted by score descending; winner is the top
+        // scorer (ties resolve to the first car in the list — kept simple).
+        const sorted = cars.slice().sort((a, b) => (b.score || 0) - (a.score || 0))
+        const winner = sorted[0] || null
+        const winnerId = winner ? winner.id : null
+        // In deathmatch nobody is permanently eliminated — they were
+        // outscored, not killed off. Only forfeited (disconnected) cars
+        // get the "out" tag. The `winner` flag is what the gameOver
+        // template uses to crown the top scorer.
+        const standings = sorted.map((c) => ({
+          id: c.id,
+          label: c.realLabel || c.label,
+          score: c.score || 0,
+          eliminated: !!c.forfeited,
+          winner: c === winner,
+        }))
+        if (role === 'host') {
+          pendingEvents.push({type: 'roundEnd', winnerId, standings})
+          flushSnapshot()
+        }
+        content.events.emit('roundEnd', {winnerId, standings})
+        return
+      }
+    } else if (cars.length > 1) {
+      // Chill / arcade: triggers any time we drop to ≤1 living car AND
+      // the round started with more than one car (i.e., not pure sandbox).
       const alive = cars.filter((c) => !c.eliminated)
       if (alive.length <= 1) {
         const winner = alive[0] || null
@@ -1202,6 +1400,7 @@ content.game = (() => {
           label: c.realLabel || c.label,
           score: c.score || 0,
           eliminated: !!c.eliminated,
+          winner: c === winner,
         })).sort((a, b) => {
           if (a.id === winnerId && b.id !== winnerId) return -1
           if (b.id === winnerId && a.id !== winnerId) return 1
@@ -1331,11 +1530,36 @@ content.game = (() => {
     try { app.net && app.net.broadcast && app.net.broadcast(snap) } catch (e) {}
   }
 
-  // ---- Public live-region helpers (F1, F2, F3, F4, Q) -------------------
+  // ---- Public live-region helpers (F1, F2, F3, F4, F6, Q) --------------
 
   function announceScore() {
     if (!running) return
     content.announcer.say(app.i18n.t('ann.score', {score: api.getScore()}), 'polite')
+  }
+  // F6: time remaining. Deathmatch only; other modes have no clock so the
+  // readout falls back to "no time limit." Phrased as min/sec (or just
+  // seconds under a minute) so screen readers say something natural.
+  function announceTimeRemaining() {
+    if (!running) return
+    if (mode !== 'deathmatch' || !roundEndsAt) {
+      content.announcer.say(app.i18n.t('ann.noTimeLimit'), 'polite')
+      return
+    }
+    const total = Math.max(0, Math.ceil(roundEndsAt - engine.time()))
+    const min = Math.floor(total / 60)
+    const sec = total % 60
+    const t = app.i18n.t
+    let text
+    if (min === 0) {
+      text = sec === 1 ? t('ann.timeRemainingSec1') : t('ann.timeRemainingSecN', {seconds: sec})
+    } else if (sec === 0) {
+      text = min === 1 ? t('ann.timeRemainingMin1') : t('ann.timeRemainingMinN', {minutes: min})
+    } else {
+      const minPart = min === 1 ? t('ann.timeRemainingMin1Bare') : t('ann.timeRemainingMinNBare', {minutes: min})
+      const secPart = sec === 1 ? t('ann.timeRemainingSec1Bare') : t('ann.timeRemainingSecNBare', {seconds: sec})
+      text = t('ann.timeRemainingMinSec', {minPart, secPart})
+    }
+    content.announcer.say(text, 'polite')
   }
   function announceHealth() {
     if (!running || !playerCar) return
@@ -1357,7 +1581,7 @@ content.game = (() => {
   }
   function announceInventory() {
     if (!running || !playerCar) return
-    if (mode !== 'arcade' || !playerCar.inventory) {
+    if (!hasItems() || !playerCar.inventory) {
       content.announcer.say(app.i18n.t('ann.noInventoryChill'), 'polite')
       return
     }
@@ -1382,7 +1606,7 @@ content.game = (() => {
 
   function announcePickups() {
     if (!running || !playerCar) return
-    if (mode !== 'arcade' || !pickupsMgr) {
+    if (!hasItems() || !pickupsMgr) {
       content.announcer.say(app.i18n.t('ann.noPickupsChill'), 'polite')
       return
     }
@@ -1424,7 +1648,7 @@ content.game = (() => {
   }
 
   function fireBullet(nudge = 'center') {
-    if (mode !== 'arcade' || !playerCar || playerCar.eliminated) return false
+    if (!hasItems() || !playerCar || playerCar.eliminated) return false
     if (!playerCar.inventory || playerCar.inventory.bullets <= 0) return false
 
     // Local cooldown gate — mirrors content.bullets.config.fireCooldown.
@@ -1451,7 +1675,7 @@ content.game = (() => {
     return fired
   }
   function placeMine() {
-    if (mode !== 'arcade' || !playerCar) return false
+    if (!hasItems() || !playerCar) return false
     if (role === 'client') {
       if (!playerCar.inventory || playerCar.inventory.mines <= 0) return false
       try { app.net && app.net.sendToHost && app.net.sendToHost({type: 'action', action: 'placeMine'}) } catch (e) {}
@@ -1461,7 +1685,7 @@ content.game = (() => {
     return minesMgr.place(playerCar)
   }
   function useBoost() {
-    if (mode !== 'arcade' || !playerCar || playerCar.eliminated) return false
+    if (!hasItems() || !playerCar || playerCar.eliminated) return false
     if (role === 'client') {
       if (!playerCar.inventory || playerCar.inventory.boosts <= 0) return false
       try { app.net && app.net.sendToHost && app.net.sendToHost({type: 'action', action: 'useBoost'}) } catch (e) {}
@@ -1470,7 +1694,7 @@ content.game = (() => {
     return activateBoost(playerCar)
   }
   function useTeleport() {
-    if (mode !== 'arcade' || !playerCar || playerCar.eliminated) return false
+    if (!hasItems() || !playerCar || playerCar.eliminated) return false
     if (role === 'client') {
       if (!playerCar.inventory || playerCar.inventory.teleports <= 0) return false
       try { app.net && app.net.sendToHost && app.net.sendToHost({type: 'action', action: 'useTeleport'}) } catch (e) {}
@@ -1564,6 +1788,28 @@ content.game = (() => {
     return true
   }
 
+  // Host-side: revive an eliminated car at a safe random spot. Emits
+  // `carRespawned` so every peer applies the same position+state. The
+  // local subscriber (above) handles the actual mutation and SFX.
+  function respawnCar(carId) {
+    const car = cars.find((c) => c.id === carId)
+    if (!car) return
+    if (car.forfeited) return
+    if (!car.eliminated) return
+    const dest = findTeleportDestination(car)
+    if (!dest) {
+      // Couldn't find a clear spot this frame — try again next frame by
+      // re-queueing with a tiny delay. With 6 cars the arena is huge
+      // relative to clearance, so this is mostly a defensive fallback.
+      respawnQueue.push({carId, at: engine.time() + 0.5})
+      return
+    }
+    const heading = Math.atan2(-dest.y, -dest.x)
+    content.events.emit('carRespawned', {
+      carId, x: dest.x, y: dest.y, heading,
+    })
+  }
+
   return Object.assign(api, {
     start,
     end,
@@ -1575,6 +1821,7 @@ content.game = (() => {
     announceCarsLeft,
     announceInventory,
     announcePickups,
+    announceTimeRemaining,
     sweep,
     fireBullet,
     bulletCooldownRemaining,

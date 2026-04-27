@@ -104,7 +104,7 @@ content.ai = (() => {
      *   - else → small bonus per type, weighted by inverse distance
      */
     function pickPickup() {
-      if (!game.isArcade || !game.isArcade()) return null
+      if (!game.hasItems || !game.hasItems()) return null
       const mgr = game.pickups && game.pickups()
       if (!mgr) return null
       const items = mgr.items
@@ -296,7 +296,7 @@ content.ai = (() => {
      * Try to use bullets / mines if we have any. Called every frame.
      */
     function maybeUseItems() {
-      if (!game.isArcade || !game.isArcade()) return
+      if (!game.hasItems || !game.hasItems()) return
       if (!car.inventory) return
       const t = engine.time()
 
@@ -472,7 +472,7 @@ content.ai = (() => {
 
         // Arcade pickup pursuit: re-pick periodically and divert toward
         // the chosen pickup if it's notably closer than our combat target.
-        if (game.isArcade && game.isArcade() && pickupRetargetTimer > 0.6) {
+        if (game.hasItems && game.hasItems() && pickupRetargetTimer > 0.6) {
           pickupTarget = pickPickup()
           pickupRetargetTimer = 0
         }

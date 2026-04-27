@@ -218,7 +218,7 @@ content.targeting = (() => {
      * don't double-pulse.
      */
     function updatePickupLock(player) {
-      if (!game.isArcade || !game.isArcade()) return
+      if (!game.hasItems || !game.hasItems()) return
       const mgr = game.pickups && game.pickups()
       if (!mgr) return
 

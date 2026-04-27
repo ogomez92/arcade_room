@@ -46,3 +46,41 @@
   cursor: not-allowed;
   opacity: 0.5;
 }
+
+.a-multiplayer--modeFieldset,
+.a-multiplayer--durationFieldset {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.75rem auto;
+  padding: 0.5rem 1rem 0.75rem;
+  width: min(28em, 90vw);
+}
+  .a-multiplayer--modeFieldset legend,
+  .a-multiplayer--durationFieldset legend {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    opacity: 0.85;
+    padding: 0 0.4em;
+    text-transform: uppercase;
+  }
+  .a-multiplayer--modeFieldset label,
+  .a-multiplayer--durationFieldset label {
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    gap: 0.6em;
+    padding: 0.25em 0.4em;
+  }
+  .a-multiplayer--modeFieldset label:focus-within,
+  .a-multiplayer--durationFieldset label:focus-within {
+    background: rgba(0, 255, 200, 0.08);
+    border-radius: 0.3rem;
+  }
+  .a-multiplayer--modeFieldset[disabled] label,
+  .a-multiplayer--durationFieldset[disabled] label {
+    cursor: default;
+    opacity: 0.7;
+  }

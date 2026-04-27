@@ -36,9 +36,10 @@
         <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
           <p class="u-screenReader" data-i18n="game.instructions">
             Arrow keys drive. Q is a targeting sweep of opponents.
-            In arcade mode, W sweeps pickups, A S D fire bullets,
-            F drops a mine, G activates a speed burst, and F3 reads
-            your inventory. Press Escape to pause.
+            In arcade and deathmatch, W sweeps pickups, A S D fire
+            bullets, F drops a mine, G activates a speed burst,
+            H teleports, and F3 reads your inventory. F6 reads the
+            remaining time in deathmatch. Press Escape to pause.
           </p>
           <div class="a-game--hud" aria-hidden="true">
             <div class="a-game--health"><span data-i18n="game.health">Health: </span><span class="a-game--healthValue">100</span></div>
@@ -59,11 +60,11 @@
               <li data-i18n-html="help.controlSteer"><kbd>Left</kbd> <kbd>Right</kbd> — steer</li>
               <li data-i18n-html="help.controlSweep"><kbd>Q</kbd> — announce all nearby cars and their bearing</li>
               <li data-i18n-html="help.controlHorn"><kbd>Space</kbd> — honk the horn (heard by other players from your position)</li>
-              <li data-i18n-html="help.controlReadouts"><kbd>F1</kbd> score · <kbd>F2</kbd> cars left · <kbd>F4</kbd> health</li>
+              <li data-i18n-html="help.controlReadouts"><kbd>F1</kbd> score · <kbd>F2</kbd> cars left · <kbd>F4</kbd> health · <kbd>F6</kbd> time remaining</li>
               <li data-i18n-html="help.controlEscape"><kbd>Escape</kbd> — pause / back</li>
               <li data-i18n-html="help.controlConfirm"><kbd>Enter</kbd> / <kbd>Space</kbd> — confirm in menus</li>
             </ul>
-            <p data-i18n="help.wasdNote">WASD is reserved for arcade-mode actions (see below) so it
+            <p data-i18n="help.wasdNote">WASD is reserved for item-mode actions (see below) so it
             does nothing while driving in chill mode. Use the arrow keys.</p>
             <h2 data-i18n="help.howSounds">How it sounds</h2>
             <p data-i18n="help.sounds1">Each car has its own engine sound, located in space.
@@ -76,10 +77,11 @@
             When your health hits zero, your car is out — but the round
             continues so you can listen to the rest.</p>
             <h2 data-i18n="help.goal">Goal</h2>
-            <p data-i18n="help.goalText">Be the last car running. Damage you deal scores points;
-            so do eliminations and surviving the round.</p>
-            <h2 data-i18n="help.arcade">Arcade mode</h2>
-            <p data-i18n="help.arcadeIntro">Arcade mode adds pickups scattered around the arena.
+            <p data-i18n="help.goalText">In chill and arcade, be the last car running. In
+            deathmatch, score the most points before the timer runs
+            out. Damage you deal scores points; so do eliminations.</p>
+            <h2 data-i18n="help.arcade">Arcade and deathmatch items</h2>
+            <p data-i18n="help.arcadeIntro">Both arcade and deathmatch put pickups around the arena.
             Each pickup loops a distinctive sound at its position so you
             can navigate to it. Drive over a pickup to grab it.</p>
             <ul>
@@ -90,7 +92,7 @@
               <li data-i18n-html="help.pickupSpeed"><strong>Speed burst</strong> — fast revving whir. Press <kbd>G</kbd> to use one. Doubles your top speed and acceleration for 3 seconds — perfect for chasing down or ramming someone.</li>
               <li data-i18n-html="help.pickupTeleport"><strong>Teleport</strong> — shimmering high warble. Press <kbd>H</kbd> to use one. Snaps you to a random open spot in the arena, well clear of any wall — handy for breaking out of a corner trap.</li>
             </ul>
-            <p data-i18n="help.arcadeHotkeysIntro">Arcade-only hotkeys:</p>
+            <p data-i18n="help.arcadeHotkeysIntro">Item-mode hotkeys (arcade and deathmatch):</p>
             <ul>
               <li data-i18n-html="help.hotkeyW"><kbd>W</kbd> — sweep all pickups on the field with bearing and range</li>
               <li data-i18n-html="help.hotkeyASD"><kbd>A</kbd> / <kbd>S</kbd> / <kbd>D</kbd> — fire a bullet (left / center / right nudge)</li>
@@ -100,6 +102,16 @@
               <li data-i18n-html="help.hotkeyF3"><kbd>F3</kbd> — read your inventory</li>
             </ul>
             <p data-i18n="help.aiNote">AI cars also grab pickups and use them — listen for the announcements.</p>
+            <h2 data-i18n="help.deathmatch">Deathmatch (multiplayer-only)</h2>
+            <p data-i18n="help.deathmatchIntro">Deathmatch adds the full item layer (pickups, bullets,
+            mines, shields, speed bursts, teleports) but eliminations
+            are not final: a downed car respawns at a random open spot
+            after three seconds with full health. The round ends on a
+            host-picked timer (three, ten, or fifteen minutes); winner
+            is the car with the highest score at time-out.</p>
+            <p data-i18n="help.deathmatchTime">Press <kbd>F6</kbd> at any time to hear the round time
+            remaining. Spoken warnings also fire at one minute, thirty
+            seconds, and ten seconds before time-out.</p>
           </div>
           <ul class="c-menu--list">
             <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
@@ -143,7 +155,7 @@
         <section class="c-screen c-menu a-multiplayer" tabindex="-1" data-i18n-attr="aria-label:mp.aria">
           <h1 class="c-menu--title a-multiplayer--title" data-i18n="mp.title">Multiplayer</h1>
           <p class="c-menu--subtitle a-multiplayer--subtitle" data-i18n="mp.subtitle">
-            2 to 6 players. Peer-to-peer over the internet. Chill mode (no pickups).
+            2 to 6 players. Peer-to-peer over the internet. Choose chill, arcade, or deathmatch in the lobby.
           </p>
 
           <div class="a-multiplayer--home">
@@ -178,10 +190,18 @@
             </p>
             <p class="c-menu--prose a-multiplayer--lobbyStatus" role="status" aria-live="polite"></p>
             <ul class="c-menu--list a-multiplayer--peers"></ul>
-            <ul class="c-menu--list a-multiplayer--modeRow" hidden>
-              <li><button class="c-menu--button a-multiplayer--modeChill" data-mode="chill" data-i18n="mp.modeChill">Chill mode</button></li>
-              <li><button class="c-menu--button a-multiplayer--modeArcade" data-mode="arcade" data-i18n="mp.modeArcade">Arcade mode</button></li>
-            </ul>
+            <fieldset class="a-multiplayer--modeFieldset" hidden>
+              <legend data-i18n="mp.modeLegend">Game mode</legend>
+              <label><input type="radio" name="mp-mode" value="chill" /> <span data-i18n="mp.modeChill">Chill mode</span></label>
+              <label><input type="radio" name="mp-mode" value="arcade" /> <span data-i18n="mp.modeArcade">Arcade mode</span></label>
+              <label><input type="radio" name="mp-mode" value="deathmatch" /> <span data-i18n="mp.modeDeathmatch">Deathmatch</span></label>
+            </fieldset>
+            <fieldset class="a-multiplayer--durationFieldset" hidden>
+              <legend data-i18n="mp.durationLegend">Round length</legend>
+              <label><input type="radio" name="mp-duration" value="180" /> <span data-i18n="mp.duration3">3 min</span></label>
+              <label><input type="radio" name="mp-duration" value="600" /> <span data-i18n="mp.duration10">10 min</span></label>
+              <label><input type="radio" name="mp-duration" value="900" /> <span data-i18n="mp.duration15">15 min</span></label>
+            </fieldset>
             <ul class="c-menu--list">
               <li><button class="c-menu--button a-multiplayer--copyLink" data-action="copyLink" data-i18n="mp.copyLink">Copy link</button></li>
               <li><button class="c-menu--button a-multiplayer--start" data-action="start" hidden data-i18n="mp.start">Start round</button></li>

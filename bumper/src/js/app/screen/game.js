@@ -19,7 +19,7 @@ app.screen.game = app.screenManager.invent({
     this.elScore  = this.rootElement.querySelector('.a-game--scoreValue')
     this.elCars   = this.rootElement.querySelector('.a-game--carsValue')
 
-    content.game.setOnRoundOver(({youWon, score, standings, selfId}) => {
+    content.game.setOnRoundOver(({youWon, score, standings, selfId, mode}) => {
       // Persist personal best (single-player only — MP scores reset).
       let best = score
       if (!this.state.multiplayer) {
@@ -31,7 +31,7 @@ app.screen.game = app.screenManager.invent({
       app.screenManager.dispatch('over', {
         youWon, score, best,
         multiplayer: this.state.multiplayer,
-        standings, selfId,
+        standings, selfId, mode,
       })
     })
 
@@ -64,6 +64,13 @@ app.screen.game = app.screenManager.invent({
         content.game.announceHealth()
         return
       }
+      // F6: deathmatch time remaining. Falls back to "no time limit"
+      // outside deathmatch so the key has a defined response everywhere.
+      if (e.code === 'F6') {
+        e.preventDefault()
+        content.game.announceTimeRemaining()
+        return
+      }
       if (e.code === 'KeyQ') {
         e.preventDefault()
         content.game.sweep()
@@ -92,8 +99,8 @@ app.screen.game = app.screenManager.invent({
         return
       }
 
-      // Arcade-only actions. Edge-triggered (skip auto-repeat).
-      if (!content.game.isArcade()) return
+      // Item-layer actions (arcade + deathmatch). Edge-triggered.
+      if (!content.game.hasItems()) return
       if (e.repeat) return
 
       const player = content.game.player()
@@ -162,7 +169,9 @@ app.screen.game = app.screenManager.invent({
   },
   onEnter: function (e = {}) {
     // FSM merges dispatch data into the enter event payload.
-    this.state.mode = e.mode === 'arcade' ? 'arcade' : 'chill'
+    this.state.mode = e.mode === 'arcade' ? 'arcade'
+                    : e.mode === 'deathmatch' ? 'deathmatch'
+                    : 'chill'
     this.state.multiplayer = !!e.role
 
     if (e.role) {
@@ -173,6 +182,7 @@ app.screen.game = app.screenManager.invent({
         controllers: e.controllers,
         selfId: e.selfId,
         mode: this.state.mode,
+        duration: e.duration,
       })
       this.attachNetWatchdog()
     } else {

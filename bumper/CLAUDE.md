@@ -9,7 +9,7 @@ A blind-accessible, audio-first bumper-cars arena built on
 Every game-state change is conveyed through synthesized 3D audio plus an
 ARIA live region — no visual information is required to play.
 
-Two game modes ship from the same engine:
+Three game modes ship from the same engine:
 
 - **Chill** — classic bumper cars. Damage on contact, last car wins.
 - **Arcade** — adds pickups (health, shield, bullets, mine, speed
@@ -21,6 +21,25 @@ Two game modes ship from the same engine:
   threaded through `content.game.start` (which accepts either
   `{aiOpponents, mode}` for single-player or `{controllers, selfId,
   mode}` for multiplayer; see "Multiplayer" below).
+- **Deathmatch** (multiplayer-only) — full arcade item layer
+  (pickups, bullets, mines, shields, boosts, teleports — see Arcade
+  above) but eliminations are not final: a downed car respawns at a
+  random safe spot after `DEATHMATCH_RESPAWN_DELAY` seconds (default
+  3) with full health, fresh inventory state preserved (the score and
+  current shield/bullet/mine counts persist across respawns) and
+  zeroed velocity. The round ends on a host-picked timer
+  (`DEATHMATCH_DURATIONS = [180, 600, 900]`, default
+  `DEATHMATCH_DEFAULT_DURATION = 180`) instead of last-car-standing;
+  winner is the highest-scoring car at time-out. Host picks the
+  duration in the lobby (3 / 10 / 15 min buttons that show only when
+  deathmatch is selected); the choice is broadcast to clients on
+  change and re-broadcast on `peerJoin`, and rides along in the
+  `start` message. Score model is the same per-bump formula plus +50
+  per kill — no end-of-round survivor/eliminated bonus. Spoken time
+  warnings fire at 60 / 30 / 10 seconds remaining (assertive); F6 is
+  the F-key readout for time remaining (works for everyone, not just
+  the host). All constants live at the top of `content.game` in the
+  `DEATHMATCH_*` block.
 
 Design rationale, physics constants, AI rules, and scoring formulas
 all live in [docs/GDD.md](docs/GDD.md). Read it before tuning gameplay.
@@ -249,7 +268,8 @@ target) so the listener pivot doesn't lerp across the arena.
   `setUseTts(true)`.
 - The game screen registers window-level `keydown` for HUD readout keys:
   `F1` = score, `F2` = cars remaining, `F3` = inventory (arcade),
-  `F4` = health, `Q` = opponent sweep. All call into
+  `F4` = health, `F6` = deathmatch time remaining (announces "no time
+  limit" outside deathmatch), `Q` = opponent sweep. All call into
   `content.game.announce*()` / `content.game.sweep()` and are gated on
   `app.screenManager.is('game')`.
 - Arcade-only hotkeys (also window-level keydown, edge-triggered via
@@ -273,10 +293,13 @@ multiplayer screen.
 
 ## Multiplayer
 
-Multiplayer (2–6 players) supports both **chill** and **arcade**. The
-host picks the mode in the lobby (toggle buttons next to peers list)
-and broadcasts `{type:'mode', mode}`; the choice rides along in the
-`start` message and is what `content.game.start` runs.
+Multiplayer (2–6 players) supports **chill**, **arcade**, and
+**deathmatch**. The host picks the mode in the lobby (toggle buttons
+next to peers list) and broadcasts `{type:'mode', mode}`; the choice
+rides along in the `start` message and is what `content.game.start`
+runs. Single-player exposes only chill and arcade — deathmatch is
+multiplayer-only because its time-based round end and respawn loop
+don't make sense against a single AI list.
 
 - **Transport.** [PeerJS](https://peerjs.com/) loaded via CDN
   (`public/index.html`). Free public broker
@@ -437,6 +460,42 @@ and broadcasts `{type:'mode', mode}`; the choice rides along in the
   assume `playerCar.profileIndex` is the slot index — on a non-host
   peer it's been remapped. Identity in announcements comes from
   `realLabel` (chosen name), not `profileIndex`.
+- **`isArcade()` vs `hasItems()`.** `content.game.isArcade()` returns
+  true *only* in classic arcade mode. `content.game.hasItems()` is the
+  one to use for any check about the item layer (inventory exists,
+  pickups manager runs, weapon hotkeys fire, shields can absorb
+  damage) because it's also true in deathmatch. The remaining
+  `isArcade()` call sites are for the things that *are* arcade-
+  specific: announce-key selection (e.g. `ann.mpRound1Arcade` vs
+  `ann.mpRound1Deathmatch`) and the sandbox flavour text. If you add
+  a new item-related feature, gate it behind `hasItems()`, not
+  `isArcade()`.
+- **Deathmatch round-end is time-based, not elimination-based.** The
+  `update()` round-end check has two branches: `mode === 'deathmatch'`
+  fires when `engine.time() >= roundEndsAt`; everything else uses the
+  `cars.length > 1 && alive.length <= 1` rule. Don't unify them — a
+  deathmatch round with one survivor must continue (the others will
+  respawn). Standings carry a `winner: c === winner` flag (the
+  gameOver template uses it to crown the top scorer regardless of
+  mode); deathmatch sets `eliminated: !!c.forfeited` so only
+  disconnected peers get the "out" tag — everyone else just shows
+  their score, since they weren't permanently eliminated.
+- **Deathmatch respawn loop and `car.forfeited`.** On `carEliminated`,
+  the host pushes the dead car into `respawnQueue` (delay
+  `DEATHMATCH_RESPAWN_DELAY` seconds). When a peer disconnects mid-
+  round, `peerLeave` sets `car.forfeited = true` *before* killing the
+  car, and both the queue-add path and `respawnCar` skip forfeited
+  cars — without this, a disconnected player's ghost would keep
+  popping back into the arena every 3 seconds. The forfeited flag is
+  host-only state; clients never see it (their snapshot just shows
+  the car as permanently `eliminated`).
+- **`carRespawned` is networked.** It carries `{carId, x, y, heading}`
+  and is added to `NETWORKED_EVENTS`. The subscriber hard-snaps
+  position + zeroes velocity + resets health on every peer, mirroring
+  the listener-pivot fast-path used by `teleportUsed`. The next
+  snapshot will overwrite the same state authoritatively, but the
+  immediate local apply is what makes the respawn SFX play at the
+  right place instead of lerping across the arena.
 
 ## Documentation
 
