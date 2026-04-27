@@ -57,6 +57,25 @@ app.controls = (() => {
 
       return this
     },
+    /**
+     * Snapshot the current input state into the cache without producing
+     * any deltas, and clear pending deltas. Used by the screen manager
+     * after a transition so a key still held from the previous screen
+     * (e.g. Enter on the Back button that triggered the transition)
+     * isn't misread as "newly pressed" on the new screen's first frame
+     * — which would otherwise cause that screen's first focusable
+     * button to get auto-clicked.
+     */
+    consume: function () {
+      const mappings = app.controls.mappings
+      uiCache = {
+        ...app.controls.gamepad.ui(mappings),
+        ...app.controls.keyboard.ui(mappings),
+        ...app.controls.mouse.ui(mappings),
+      }
+      uiDelta = {}
+      return this
+    },
   }
 })()
 

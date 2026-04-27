@@ -415,7 +415,12 @@ content.ghosts = (() => {
     }
   }
 
+  // Debug toggle: Ctrl+Alt+D in-game flips this. Frozen ghosts skip update,
+  // collision check, and audio entirely — Pac-Man can roam without dying.
+  let disabled = false
+
   function update(delta) {
+    if (disabled) return
     const lvl = content.game.state.level
 
     // Update Cruise Elroy state from current dot count.
@@ -489,6 +494,8 @@ content.ghosts = (() => {
     getAll: () => ghosts,
     getGhost,
     consume,
+    setDisabled: (v) => { disabled = !!v },
+    isDisabled: () => disabled,
     NAMES,
   }
 })()

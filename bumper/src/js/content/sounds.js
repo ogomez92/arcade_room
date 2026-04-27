@@ -100,6 +100,53 @@ content.sounds = (() => {
     disconnectAfter(ear.left, t0 + dur + 0.2, ear)
   }
 
+  /**
+   * Distant-feeling wall thud for *other* cars hitting a wall. Lower
+   * fundamental and a low-pass-filtered noise burst so it reads as
+   * "something happened over there" rather than "I just hit something."
+   * Spatialised at the wall-hit position; relies on the binaural pan
+   * to convey direction.
+   */
+  function wallThud(position, severity = 0.5) {
+    const t0 = now()
+    const dur = 0.40
+    const ear = playSpatial(position, () => {
+      const c = ctx()
+      const out = c.createGain()
+      out.gain.value = 0
+
+      // Sub thump — lower than collision() so it doesn't compete with
+      // the listener's own hits.
+      const osc = c.createOscillator()
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(80 + 25 * severity, t0)
+      osc.frequency.exponentialRampToValueAtTime(28, t0 + dur)
+      osc.connect(out)
+      osc.start(t0)
+      osc.stop(t0 + dur + 0.05)
+
+      // Muffled noise burst (lowpass kept low — others' bumps shouldn't
+      // be bright/in-your-face).
+      const buf = engine.buffer.whiteNoise({channels: 1, duration: dur})
+      const src = c.createBufferSource()
+      src.buffer = buf
+      const nf = c.createBiquadFilter()
+      nf.type = 'lowpass'
+      nf.frequency.setValueAtTime(700 + 400 * severity, t0)
+      nf.frequency.exponentialRampToValueAtTime(150, t0 + dur)
+      const ng = c.createGain()
+      ng.gain.value = 0
+      envelope(ng.gain, t0, 0.005, 0.03, dur - 0.035, 0.35 * severity + 0.15)
+      src.connect(nf).connect(ng).connect(out)
+      src.start(t0)
+
+      // Lower overall peak than collision() so distant bumps stay subtle.
+      envelope(out.gain, t0, 0.005, 0.04, dur - 0.045, engine.fn.clamp(0.18 + severity * 0.45, 0.18, 0.7))
+      return out
+    })
+    disconnectAfter(ear.left, t0 + dur + 0.2, ear)
+  }
+
   function wallScrape(position, speed) {
     // Short tick on demand — a continuous version is built in content.car.
     const t0 = now()
@@ -255,6 +302,180 @@ content.sounds = (() => {
 
   function uiFocus()    { uiTick(800, 0.18, 0.05) }
   function uiBack()     { uiTick(500, 0.22, 0.07) }
+
+  /**
+   * Lobby cue: a peer joined the room. Two-note ascending blip — short,
+   * unobtrusive, distinct from `uiFocus` so it reads as "something
+   * happened" rather than "you focused something".
+   */
+  function peerJoin() {
+    const c = ctx()
+    const t0 = now()
+    const out = c.createGain()
+    out.gain.value = 0
+    out.connect(engine.mixer.output())
+    ;[660, 990].forEach((f, i) => {
+      const o = c.createOscillator()
+      o.type = 'sine'
+      o.frequency.value = f
+      const g = c.createGain()
+      g.gain.value = 0
+      o.connect(g).connect(out)
+      const start = t0 + i * 0.09
+      envelope(g.gain, start, 0.005, 0.04, 0.08, 0.4)
+      o.start(start)
+      o.stop(start + 0.16)
+    })
+    out.gain.value = 1
+    setTimeout(() => { try { out.disconnect() } catch (e) {} }, 500)
+  }
+
+  /**
+   * Lobby cue: a peer left the room. Mirror of `peerJoin` — two-note
+   * descending blip so the user can tell join from leave at a glance.
+   */
+  function peerLeave() {
+    const c = ctx()
+    const t0 = now()
+    const out = c.createGain()
+    out.gain.value = 0
+    out.connect(engine.mixer.output())
+    ;[660, 440].forEach((f, i) => {
+      const o = c.createOscillator()
+      o.type = 'sine'
+      o.frequency.value = f
+      const g = c.createGain()
+      g.gain.value = 0
+      o.connect(g).connect(out)
+      const start = t0 + i * 0.09
+      envelope(g.gain, start, 0.005, 0.04, 0.08, 0.4)
+      o.start(start)
+      o.stop(start + 0.16)
+    })
+    out.gain.value = 1
+    setTimeout(() => { try { out.disconnect() } catch (e) {} }, 500)
+  }
+
+  /**
+   * Hold-to-honk horn voices, one per honking car. Each voice owns its
+   * own binaural ear so the listener hears every honk panned to the
+   * honker's position.
+   *
+   * Sustained — no tremolo / no beep loop. Hold Space and you get a
+   * continuous "beeeeeeep" until release. Timbre is intentionally
+   * obnoxious: two detuned saw oscillators around a 400 Hz fundamental
+   * (the classic car-horn pitch) plus a fifth on top for harmonic bite,
+   * passed through a mild lowpass to keep it from being ear-shredding.
+   * Sounds like a leaning-on-the-horn taxi driver, not a toy beep.
+   *
+   * Volumes are deliberately capped low so even a full lobby of trolls
+   * can't drown out gameplay-critical cues (collisions, announcer).
+   *
+   * Lifecycle: `startHorn(carId)` / `stopHorn(carId)`. Idempotent — a
+   * second start while already running is a no-op (snapshot replays
+   * after the local immediate-start are harmless), and a stop on an
+   * unknown id is also a no-op. `updateHornsSpatial` reposes the binaural
+   * ear each frame; `stopAllHorns` is the round-end / disconnect cleanup.
+   */
+  const hornVoices = new Map()  // carId -> {ear, out, voices}
+
+  function startHorn(carId) {
+    if (hornVoices.has(carId)) return
+    const c = ctx()
+    const t0 = now()
+
+    const ear = engine.ear.binaural.create()
+    ear.to(engine.mixer.output())
+
+    // Master gain — fast attack so the honk is on its feet within ~15 ms,
+    // capped at 0.18 so a stack of horns can't bury collision cues.
+    const out = c.createGain()
+    out.gain.setValueAtTime(0, t0)
+    out.gain.linearRampToValueAtTime(0.18, t0 + 0.015)
+
+    // Lowpass off the very high partials. Saws at 400 Hz with a stack of
+    // partials get harsh past 3-4 kHz — keep the bite, drop the dental drill.
+    const lp = c.createBiquadFilter()
+    lp.type = 'lowpass'
+    lp.frequency.value = 2400
+    lp.Q.value = 0.7
+    lp.connect(out)
+
+    // Two detuned sawtooth oscillators around 400 Hz produce slow beating
+    // (~2 Hz) — that "stuck horn" warble that real car horns have because
+    // their two reeds are tuned slightly apart on purpose.
+    const sawA = c.createOscillator()
+    sawA.type = 'sawtooth'
+    sawA.frequency.value = 396
+    const sawB = c.createOscillator()
+    sawB.type = 'sawtooth'
+    sawB.frequency.value = 404
+    const sawGain = c.createGain()
+    sawGain.gain.value = 0.55
+    sawA.connect(sawGain)
+    sawB.connect(sawGain)
+    sawGain.connect(lp)
+
+    // A square at the perfect-fifth above adds the bright "honnnnk"
+    // bite without making the fundamental feel any higher-pitched.
+    const fifth = c.createOscillator()
+    fifth.type = 'square'
+    fifth.frequency.value = 600
+    const fifthGain = c.createGain()
+    fifthGain.gain.value = 0.18
+    fifth.connect(fifthGain).connect(lp)
+
+    ear.from(out)
+
+    sawA.start(t0)
+    sawB.start(t0)
+    fifth.start(t0)
+
+    hornVoices.set(carId, {ear, out, voices: [sawA, sawB, fifth]})
+  }
+
+  function stopHorn(carId) {
+    const v = hornVoices.get(carId)
+    if (!v) return
+    hornVoices.delete(carId)
+    const t = ctx().currentTime
+    // Quick ramp-down — long enough to avoid a click, short enough that
+    // a tap-release feels instant.
+    v.out.gain.cancelScheduledValues(t)
+    v.out.gain.setValueAtTime(v.out.gain.value, t)
+    v.out.gain.linearRampToValueAtTime(0, t + 0.025)
+    setTimeout(() => {
+      for (const o of v.voices) { try { o.stop() } catch (e) {} }
+      try { v.out.disconnect() } catch (e) {}
+      try { v.ear.destroy() } catch (e) {}
+    }, 90)
+  }
+
+  /**
+   * Reposition active horn voices in listener-local space. Called once
+   * per frame from content.game.updateAudioStage (host + client). Pass
+   * a `getCarPosition(carId)` so the caller can resolve ids without
+   * sounds.js holding a reference to the cars list.
+   */
+  function updateHornsSpatial(getCarPosition, listenerPos, listenerYaw) {
+    if (!hornVoices.size) return
+    const cos = Math.cos(-listenerYaw), sin = Math.sin(-listenerYaw)
+    for (const [carId, voice] of hornVoices) {
+      const pos = getCarPosition(carId)
+      if (!pos) continue
+      const dx = pos.x - listenerPos.x
+      const dy = pos.y - listenerPos.y
+      voice.ear.update({
+        x: dx * cos - dy * sin,
+        y: dx * sin + dy * cos,
+        z: 0,
+      })
+    }
+  }
+
+  function stopAllHorns() {
+    for (const carId of [...hornVoices.keys()]) stopHorn(carId)
+  }
 
   function roundStart() {
     const t0 = now()
@@ -721,9 +942,16 @@ content.sounds = (() => {
     scoring,
     buzzer,
     wallScrape,
+    wallThud,
     eliminate,
     uiFocus,
     uiBack,
+    peerJoin,
+    peerLeave,
+    startHorn,
+    stopHorn,
+    updateHornsSpatial,
+    stopAllHorns,
     roundStart,
     roundEnd,
     heartbeat,

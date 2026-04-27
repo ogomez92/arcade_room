@@ -55,7 +55,10 @@ app.screen.multiplayer = app.screenManager.invent({
       if (!btn) return
       const action = btn.dataset.action
       if (action === 'host') return this.doHost()
-      if (action === 'joinForm') return this.setView('joinForm')
+      if (action === 'joinForm') {
+        if (!this.requireName()) return
+        return this.setView('joinForm')
+      }
       if (action === 'cancel') return this.setView('home')
       if (action === 'join') return this.doJoin()
       if (action === 'start') return this.doStart()
@@ -202,6 +205,7 @@ app.screen.multiplayer = app.screenManager.invent({
 
     listeners.lobby = (peers) => self.renderLobby(peers)
     listeners.peerJoin = ({name}) => {
+      content.sounds.peerJoin()
       content.announcer.say(app.i18n.t('mp.peerJoined', {name}), 'polite')
       // Replay the current mode to the new peer so its lobby UI reflects
       // the host's choice. broadcast hits everyone, which is fine — the
@@ -210,7 +214,10 @@ app.screen.multiplayer = app.screenManager.invent({
         try { app.net.broadcast({type: 'mode', mode: self.state.mode}) } catch (e) {}
       }
     }
-    listeners.peerLeave = ({name}) => content.announcer.say(app.i18n.t('mp.peerLeft', {name}), 'polite')
+    listeners.peerLeave = ({name}) => {
+      content.sounds.peerLeave()
+      content.announcer.say(app.i18n.t('mp.peerLeft', {name}), 'polite')
+    }
     listeners.error = ({message}) => {
       if (message) content.announcer.say(message, 'assertive')
     }
@@ -251,11 +258,31 @@ app.screen.multiplayer = app.screenManager.invent({
     this.state.netListeners = null
   },
 
+  // ---- Name guard ----
+  // A name is required to host or join; the lobby identifies peers by name
+  // and the round announcer reads it aloud, so empty/whitespace names would
+  // make the audio surface ambiguous. Returns the trimmed name, or null
+  // (after buzzing + announcing + focusing the name input) if invalid.
+  requireName: function () {
+    const name = (this.elName.value || '').trim()
+    if (!name) {
+      content.sounds.bulletDenied()
+      content.announcer.say(app.i18n.t('mp.enterName'), 'assertive')
+      // Name input lives on the home view; switch back if we're elsewhere
+      // so focus actually lands on a visible field.
+      if (this.state.view !== 'home') this.setView('home')
+      else this.elName.focus()
+      return null
+    }
+    return name
+  },
+
   // ---- Host flow ----
   doHost: async function () {
     if (this.state.busy) return
+    const name = this.requireName()
+    if (!name) return
     this.state.busy = true
-    const name = (this.elName.value || '').trim() || app.i18n.t('label.host')
     app.storage.set('bumper', {...(app.storage.get('bumper') || {}), lastName: name})
     content.announcer.say(app.i18n.t('mp.creating'), 'polite')
     try {
@@ -286,7 +313,10 @@ app.screen.multiplayer = app.screenManager.invent({
       this.elCode.focus()
       return
     }
-    const name = (this.elName.value || '').trim() || app.i18n.t('label.player')
+    // Defense-in-depth: the home → joinForm transition is also gated on
+    // requireName(), but the deep-link path can land directly on joinForm.
+    const name = this.requireName()
+    if (!name) return
     app.storage.set('bumper', {...(app.storage.get('bumper') || {}), lastName: name})
 
     this.state.busy = true

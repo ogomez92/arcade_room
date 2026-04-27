@@ -18,7 +18,7 @@
  */
 content.pickups = (() => {
   const config = {
-    pickupRadius: 0.7,         // collide radius for grabbing
+    pickupRadius: 0.9,         // collide radius for grabbing
     spawnIntervalMin: 4,       // seconds between spawn attempts
     spawnIntervalMax: 7,
     maxConcurrent: 5,          // simultaneous pickups in arena
@@ -71,35 +71,33 @@ content.pickups = (() => {
     const out = c.createGain()
     out.gain.value = 0
 
-    // A slow tinkling chime: high harmonics gated by an LFO.
-    const carrier = c.createOscillator()
-    carrier.type = 'sine'
-    carrier.frequency.value = 1760
-    const harmonic = c.createOscillator()
-    harmonic.type = 'sine'
-    harmonic.frequency.value = 2637
-    const harmonicGain = c.createGain()
-    harmonicGain.gain.value = 0.45
+    // Soft bell-like ping that repeats every 1.2 s — restorative, calm,
+    // out of the 2-3 kHz fatigue band the old voice sat in. Three sines
+    // tuned as fundamental + perfect-fifth + octave produce a warm chime;
+    // a percussive amplitude envelope on the master gain (scheduled by a
+    // JS-side timer) gives each cycle a soft bell strike with a long
+    // exponential decay back to silence.
+    const fundamental = c.createOscillator()
+    fundamental.type = 'sine'
+    fundamental.frequency.value = 660           // E5
 
-    const lfo = c.createOscillator()
-    lfo.type = 'sine'
-    lfo.frequency.value = 1.6
-    const lfoShape = c.createGain()
-    lfoShape.gain.value = 0.5
-    const lfoOffset = c.createConstantSource()
-    lfoOffset.offset.value = 0.5
-    lfo.connect(lfoShape)
+    const fifth = c.createOscillator()
+    fifth.type = 'sine'
+    fifth.frequency.value = 990                 // B5
+    const fifthGain = c.createGain()
+    fifthGain.gain.value = 0.45
 
-    const gateGain = c.createGain()
-    gateGain.gain.value = 0
-    lfoShape.connect(gateGain.gain)
-    lfoOffset.connect(gateGain.gain)
+    const octave = c.createOscillator()
+    octave.type = 'sine'
+    octave.frequency.value = 1320               // E6 — gentle shimmer
+    const octaveGain = c.createGain()
+    octaveGain.gain.value = 0.18
 
-    carrier.connect(gateGain)
-    harmonic.connect(harmonicGain).connect(gateGain)
-    gateGain.connect(out)
+    fundamental.connect(out)
+    fifth.connect(fifthGain).connect(out)
+    octave.connect(octaveGain).connect(out)
 
-    const muffle = attachMuffler(c, out, [carrier, harmonic])
+    const muffle = attachMuffler(c, out, [fundamental, fifth, octave])
 
     // Match the non-self car engine attenuation (50 m max, cubic falloff)
     // so pickups only become present when you're close, like other cars.
@@ -112,25 +110,41 @@ content.pickups = (() => {
     ear.from(muffle.input)
     ear.to(engine.mixer.output())
 
-    carrier.start()
-    harmonic.start()
-    lfo.start()
-    lfoOffset.start()
+    fundamental.start()
+    fifth.start()
+    octave.start()
 
-    out.gain.linearRampToValueAtTime(0.18, c.currentTime + 0.3)
+    // Percussive ping envelope: 12 ms attack, exponential decay that
+    // runs right up to the next ping so the loop is back-to-back with
+    // no audible silence. JS-side setInterval re-arms the audio-clock
+    // schedule each cycle; cancelScheduledValues at the start prevents
+    // events from accumulating if the timer ever fires twice in quick
+    // succession.
+    const PEAK = 0.20
+    const CYCLE_MS = 600
+    const DECAY_END = 0.58       // seconds — just shy of next cycle's attack
+    function schedulePing() {
+      const t = c.currentTime
+      out.gain.cancelScheduledValues(t)
+      out.gain.setValueAtTime(0, t)
+      out.gain.linearRampToValueAtTime(PEAK, t + 0.012)
+      out.gain.exponentialRampToValueAtTime(0.0001, t + DECAY_END)
+    }
+    schedulePing()
+    const pingTimer = setInterval(schedulePing, CYCLE_MS)
 
     return {
       ear,
       applyBehind: muffle.applyBehind,
       destroy() {
+        clearInterval(pingTimer)
         const t = engine.time()
         out.gain.cancelScheduledValues(t)
         out.gain.linearRampToValueAtTime(0, t + 0.15)
         setTimeout(() => {
-          try { carrier.stop() } catch (e) {}
-          try { harmonic.stop() } catch (e) {}
-          try { lfo.stop() } catch (e) {}
-          try { lfoOffset.stop() } catch (e) {}
+          try { fundamental.stop() } catch (e) {}
+          try { fifth.stop() } catch (e) {}
+          try { octave.stop() } catch (e) {}
           try { out.disconnect() } catch (e) {}
           try { ear.destroy() } catch (e) {}
         }, 250)
@@ -699,9 +713,29 @@ content.pickups = (() => {
     }
   }
 
+  /**
+   * Spin up a pickup loop voice for `durationMs` ms with the listener
+   * sitting right on top of it (full-volume, centred). Used by the
+   * "Learn the sounds" screen so players can preview what each pickup
+   * actually sounds like sitting on the ground — not the one-shot
+   * acquisition chime, which is a different sound.
+   */
+  function previewVoice(type, durationMs = 2500) {
+    const factory = VOICE_FACTORY[type]
+    if (!factory) return
+    const voice = factory({x: 0, y: 0})
+    if (voice && voice.ear) {
+      voice.ear.update({x: 0, y: 0, z: 0})
+    }
+    setTimeout(() => {
+      try { voice.destroy() } catch (e) {}
+    }, durationMs)
+  }
+
   return {
     config,
     TYPES,
     createManager,
+    previewVoice,
   }
 })()

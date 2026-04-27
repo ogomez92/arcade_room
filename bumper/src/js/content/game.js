@@ -39,7 +39,11 @@ content.game = (() => {
     // Local-player bullet-cooldown clock. Mirrors the host-authoritative
     // canFire gate in content.bullets, but lets us play the denial
     // sound immediately without a round-trip. Reset each round.
-    playerLastFireAt = -Infinity
+    playerLastFireAt = -Infinity,
+    // Hold-to-honk state for the local player. `isLocalHonking` mirrors
+    // the Space-key down state so we don't fire duplicate hornStart
+    // events on keyboard auto-repeat.
+    isLocalHonking = false
 
   // ---- Multiplayer state -------------------------------------------------
 
@@ -73,6 +77,11 @@ content.game = (() => {
     'mineDetonated',
     'boostActivated',
     'teleportUsed',
+    // Horn — both modes (chill + arcade). Hold-to-honk: one event on
+    // press, another on release. Each peer maintains a per-car spatial
+    // voice so listeners can locate who's honking.
+    'hornStart',
+    'hornStop',
   ]
 
   const api = {
@@ -241,10 +250,26 @@ content.game = (() => {
     return app.i18n.t('ann.shieldsLeftN', {count: n})
   }
 
+  // Horn — both modes. Hold-to-honk: each peer keeps a per-car
+  // spatial voice that's updated each frame from updateAudioStage.
+  // Idempotent: a duplicate start (e.g. local immediate-start + the
+  // host's snapshot echo) is a no-op in sounds.js.
+  content.events.on('hornStart', ({carId}) => {
+    if (!running || !carId) return
+    if (!cars.find((c) => c.id === carId)) return
+    content.sounds.startHorn(carId)
+  })
+  content.events.on('hornStop', ({carId}) => {
+    if (!carId) return
+    content.sounds.stopHorn(carId)
+  })
+
   content.events.on('carWallHit', (ev) => {
     if (!running) return
     const car = cars.find((c) => c.id === ev.carId)
     if (!car) return
+    const x = ev.x != null ? ev.x : car.position.x
+    const y = ev.y != null ? ev.y : car.position.y
     if (car === playerCar) {
       content.announcer.say(app.i18n.t('ann.youHitWall', {damage: Math.round(ev.damage)}), 'assertive')
       app.haptics.enqueue({
@@ -252,10 +277,13 @@ content.game = (() => {
         strongMagnitude: engine.fn.clamp(ev.impact / 6, 0.15, 0.9),
         weakMagnitude: 0.2,
       })
+      content.sounds.collision({x, y}, engine.fn.clamp(ev.impact / 5, 0.1, 0.85))
+    } else {
+      // Distinct softer/muffled thud for other peers hitting walls so the
+      // listener can distinguish "I bumped" from "they bumped over there"
+      // — same playSpatial path so the binaural pan still conveys where.
+      content.sounds.wallThud({x, y}, engine.fn.clamp(ev.impact / 5, 0.1, 0.85))
     }
-    const x = ev.x != null ? ev.x : car.position.x
-    const y = ev.y != null ? ev.y : car.position.y
-    content.sounds.collision({x, y}, engine.fn.clamp(ev.impact / 5, 0.1, 0.85))
   })
 
   content.events.on('roundEnd', ({winnerId, standings}) => {
@@ -301,14 +329,19 @@ content.game = (() => {
       case 'speed':   if (car.inventory) car.inventory.boosts++; break
       case 'teleport': if (car.inventory) car.inventory.teleports++; break
     }
-    content.events.emit('pickupApplied', {pickupId, type, carId, dealt, granted})
+    // Use `pickupType` rather than `type` — the networked-event capture
+    // spreads payload onto `{type: eventName, ...payload}`, so a payload
+    // field named `type` would clobber the event name and the client's
+    // replay would emit a phantom 'bullets'/'health'/... event with no
+    // subscribers (silent picker bug).
+    content.events.emit('pickupApplied', {pickupId, pickupType: type, carId, dealt, granted})
   })
 
-  content.events.on('pickupApplied', ({type, carId, dealt, granted}) => {
+  content.events.on('pickupApplied', ({pickupType, carId, dealt, granted}) => {
     if (mode !== 'arcade') return
     const car = cars.find((c) => c.id === carId)
     if (!car) return
-    applyPickup(car, type, {dealt, granted})
+    applyPickup(car, pickupType, {dealt, granted})
   })
 
   content.events.on('bulletHit', ({ownerId, victimId, damage, direct, x, y}) => {
@@ -683,6 +716,7 @@ content.game = (() => {
     pendingEvents = []
     snapshotAccum = 0
     playerLastFireAt = -Infinity
+    isLocalHonking = false
 
     running = true
     heartbeatNextAt = engine.time() + 1
@@ -742,6 +776,10 @@ content.game = (() => {
     pendingEvents = []
     remoteInputs.clear()
     remoteTargets.clear()
+    // Tear down any horn voices still running (someone holding Space
+    // when the round ended, or the screen is about to change).
+    content.sounds.stopAllHorns()
+    isLocalHonking = false
   }
 
   function setPaused(v) {
@@ -781,21 +819,27 @@ content.game = (() => {
           t: engine.time(),
         })
       } else if (msg.type === 'action') {
-        // Client→host action: fire bullet, place mine. Host runs the
-        // action against the requesting peer's car.
+        // Client→host action. Host runs the action against the
+        // requesting peer's car. Horn works in both modes; the rest
+        // are arcade-only so they sit behind the mode gate.
         if (role !== 'host' || !running) return
-        if (mode !== 'arcade') return
         const carId = peerIdToCarId.get(peerId)
         const car = carId ? cars.find((c) => c.id === carId) : null
         if (!car || car.eliminated) return
-        if (msg.action === 'fireBullet' && bulletsMgr) {
-          bulletsMgr.fire(car, msg.nudge || 'center')
-        } else if (msg.action === 'placeMine' && minesMgr) {
-          minesMgr.place(car)
-        } else if (msg.action === 'useBoost') {
-          activateBoost(car)
-        } else if (msg.action === 'useTeleport') {
-          activateTeleport(car)
+        if (msg.action === 'hornStart') {
+          content.events.emit('hornStart', {carId: car.id})
+        } else if (msg.action === 'hornStop') {
+          content.events.emit('hornStop', {carId: car.id})
+        } else if (mode === 'arcade') {
+          if (msg.action === 'fireBullet' && bulletsMgr) {
+            bulletsMgr.fire(car, msg.nudge || 'center')
+          } else if (msg.action === 'placeMine' && minesMgr) {
+            minesMgr.place(car)
+          } else if (msg.action === 'useBoost') {
+            activateBoost(car)
+          } else if (msg.action === 'useTeleport') {
+            activateTeleport(car)
+          }
         }
       } else if (msg.type === 'snap') {
         applyHostSnapshot(msg)
@@ -809,6 +853,9 @@ content.game = (() => {
       const car = cars.find((c) => c.id === carId)
       if (!car || car.eliminated) return
       // Leaver forfeits — eliminate their car so the round can resolve.
+      // Also kill their horn voice if they were honking when they bailed,
+      // otherwise the loop keeps playing forever (no hornStop incoming).
+      content.events.emit('hornStop', {carId})
       content.car.applyDamage(car, car.health + 1, null)
       content.announcer.say(app.i18n.t('ann.leaverForfeit', {label: car.realLabel || car.label}), 'assertive')
     })
@@ -1061,9 +1108,15 @@ content.game = (() => {
         // Build standings (winner first, then by score descending) so
         // every peer can render the same leaderboard. Plain JSON so it
         // survives serialization in the snapshot.
+        //
+        // Use `realLabel` (chosen name), not `label`. `label` is the
+        // host's per-listener view: the host's own car has label "You",
+        // and shipping that to clients makes every peer render the host
+        // as "You" — colliding with the gameOver screen's own "(you)"
+        // decoration on the local-player slot.
         const standings = cars.slice().map((c) => ({
           id: c.id,
-          label: c.label,
+          label: c.realLabel || c.label,
           score: c.score || 0,
           eliminated: !!c.eliminated,
         })).sort((a, b) => {
@@ -1167,6 +1220,17 @@ content.game = (() => {
         eliminated: car.eliminated,
       })
     }
+    // Reposition any active horn voices in listener-local space. The
+    // closure resolves carId → world position out of the current cars
+    // array so sounds.js doesn't need a reference to it.
+    content.sounds.updateHornsSpatial(
+      (carId) => {
+        const c = cars.find((c) => c.id === carId)
+        return c ? c.position : null
+      },
+      playerCar.position,
+      playerCar.heading,
+    )
   }
 
   function flushSnapshot() {
@@ -1324,6 +1388,42 @@ content.game = (() => {
     return activateTeleport(playerCar)
   }
 
+  // Horn (hold Space). Plays in both chill and arcade. Each peer keeps
+  // a spatial voice per honking car; start/stop ride the event bus so
+  // every peer follows along. Cooldown is the natural 100 ms beep
+  // period of the tremolo — no extra debounce, the user wanted to be
+  // able to "go crazy with the horn".
+  function startHonk() {
+    if (!playerCar || playerCar.eliminated) return false
+    if (isLocalHonking) return true   // ignore keyboard auto-repeat
+    isLocalHonking = true
+    if (role === 'client') {
+      try { app.net && app.net.sendToHost && app.net.sendToHost({type: 'action', action: 'hornStart'}) } catch (e) {}
+      // Fire locally too so the honker hears their own beep without
+      // waiting for the host's snapshot echo. The startHorn call is
+      // idempotent, so the echo is a no-op when it arrives.
+      content.events.emit('hornStart', {carId: playerCar.id})
+      return true
+    }
+    // Host or single-player: emit through the bus; the NETWORKED_EVENTS
+    // capture pushes it into pendingEvents so clients hear it too.
+    content.events.emit('hornStart', {carId: playerCar.id})
+    return true
+  }
+
+  function stopHonk() {
+    if (!isLocalHonking) return
+    isLocalHonking = false
+    const carId = playerCar ? playerCar.id : null
+    if (!carId) return
+    if (role === 'client') {
+      try { app.net && app.net.sendToHost && app.net.sendToHost({type: 'action', action: 'hornStop'}) } catch (e) {}
+      content.events.emit('hornStop', {carId})
+      return
+    }
+    content.events.emit('hornStop', {carId})
+  }
+
   function activateBoost(car) {
     if (!car || car.eliminated) return false
     if (!car.inventory || car.inventory.boosts <= 0) return false
@@ -1392,6 +1492,8 @@ content.game = (() => {
     activateBoost,
     useTeleport,
     activateTeleport,
+    startHonk,
+    stopHonk,
     setOnRoundOver: (fn) => { api.onRoundOver = fn },
     setRole,
     applyHostSnapshot,

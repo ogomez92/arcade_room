@@ -69,6 +69,14 @@ app.screen.game = app.screenManager.invent({
         content.game.sweep()
         return
       }
+      // Horn — hold-to-honk. Auto-repeat keydowns are ignored inside
+      // startHonk (it tracks the local "is honking" flag), so all the
+      // handler does is suppress the browser's default Space-scroll.
+      if (e.code === 'Space') {
+        e.preventDefault()
+        content.game.startHonk()
+        return
+      }
 
       // Arcade-only actions. Edge-triggered (skip auto-repeat).
       if (!content.game.isArcade()) return
@@ -123,6 +131,19 @@ app.screen.game = app.screenManager.invent({
           content.announcer.say(app.i18n.t('game.noTeleports'), 'polite')
         }
       }
+    })
+
+    // Horn release — hold-to-honk needs a keyup partner. We also stop
+    // on `blur` so a Space held while alt-tabbing or focusing another
+    // window doesn't leave the horn stuck on with no way to release it.
+    window.addEventListener('keyup', (e) => {
+      if (e.code !== 'Space') return
+      if (!content.game.isRunning()) return
+      if (!app.screenManager.is('game')) return
+      content.game.stopHonk()
+    })
+    window.addEventListener('blur', () => {
+      if (content.game.isRunning()) content.game.stopHonk()
     })
   },
   onEnter: function (e = {}) {

@@ -28,12 +28,16 @@ app.screen.learnSounds = app.screenManager.invent({
       {key: 'learn.wallScrape', play: () => content.sounds.wallScrape({x: 0, y: 0}, 3)},
       {key: 'learn.elimination', play: () => content.sounds.eliminate({x: 0, y: 0})},
       {key: 'learn.heartbeat', play: () => content.sounds.heartbeat()},
-      {key: 'learn.pickupHealth', play: () => content.sounds.pickupHealth({x: 0, y: 0})},
-      {key: 'learn.pickupShield', play: () => content.sounds.pickupShield({x: 0, y: 0})},
-      {key: 'learn.pickupBullets', play: () => content.sounds.pickupBullets({x: 0, y: 0})},
-      {key: 'learn.pickupMine', play: () => content.sounds.pickupMine({x: 0, y: 0})},
-      {key: 'learn.pickupSpeed', play: () => content.sounds.pickupSpeed({x: 0, y: 0})},
-      {key: 'learn.pickupTeleport', play: () => content.sounds.pickupTeleport({x: 0, y: 0})},
+      // Pickup *loops* — the continuous sound each pickup makes sitting
+      // on the ground waiting to be grabbed, not the one-shot chime
+      // played when you actually drive over it. The loop is what the
+      // player needs to learn to navigate to.
+      {key: 'learn.pickupHealth', play: () => content.pickups.previewVoice('health')},
+      {key: 'learn.pickupShield', play: () => content.pickups.previewVoice('shield')},
+      {key: 'learn.pickupBullets', play: () => content.pickups.previewVoice('bullets')},
+      {key: 'learn.pickupMine', play: () => content.pickups.previewVoice('mine')},
+      {key: 'learn.pickupSpeed', play: () => content.pickups.previewVoice('speed')},
+      {key: 'learn.pickupTeleport', play: () => content.pickups.previewVoice('teleport')},
       {key: 'learn.teleport', play: () => content.sounds.teleport({x: 0, y: 0})},
       {key: 'learn.boostActivated', play: () => content.sounds.boostActivated({x: 0, y: 0})},
       {key: 'learn.boostExpired', play: () => content.sounds.boostExpired({x: 0, y: 0})},

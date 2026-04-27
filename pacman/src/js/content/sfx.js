@@ -40,20 +40,132 @@ content.sfx = (() => {
     src.start(t0); src.stop(t0 + dur + 0.05)
   }
 
+  // ---- Chomp ("waka-waka") ----
+  // Each pellet eaten plays one syllable, alternating: chompA = "wa" (lower
+  // vowel that slides up), chompB = "ka" (higher pitch + brief /k/ stop +
+  // tighter envelope). Both syllables scale their duration with Pac-Man's
+  // current tile speed: the period between pellets equals one tile crossing
+  // (= one footstep), and ka is ~half that period — so cranking the speed
+  // (in-game 1-9 keys) makes the waka tighter, not just more frequent.
+  // The vowel-like color comes from a sawtooth fed through a high-Q
+  // bandpass tuned to a vowel formant (~720 Hz for "ah", ~1180 Hz for the
+  // brighter "eh/ka" vowel).
+  function pacmanTilePeriod() {
+    if (content.pacman && content.pacman.getSpeed) {
+      return 1 / Math.max(1, content.pacman.getSpeed())
+    }
+    return 1 / 6.4 // L1 cruise default ≈ 8 t/s × 0.80 factor
+  }
+  function playWa(period) {
+    const dur = Math.max(0.05, period * 0.6)
+    const c = ctx()
+    const t0 = c.currentTime
+    const osc = c.createOscillator()
+    osc.type = 'sawtooth'
+    osc.frequency.setValueAtTime(220, t0)
+    // Slide up ~3 semitones over the syllable — small but audible mouth-open.
+    osc.frequency.linearRampToValueAtTime(262, t0 + dur)
+    const bp = c.createBiquadFilter()
+    bp.type = 'bandpass'; bp.frequency.value = 720; bp.Q.value = 3.5
+    const g = c.createGain()
+    g.gain.setValueAtTime(0, t0)
+    g.gain.linearRampToValueAtTime(0.30, t0 + 0.012)
+    g.gain.setValueAtTime(0.30, t0 + Math.max(0.02, dur - 0.02))
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + dur)
+    osc.connect(bp).connect(g).connect(dest())
+    osc.start(t0); osc.stop(t0 + dur + 0.05)
+  }
+  function playKa(period) {
+    const dur = Math.max(0.03, period * 0.5) // half the footstep period
+    const c = ctx()
+    const t0 = c.currentTime
+
+    // The /k/ stop: ~5 ms of broadband noise to kick off the syllable.
+    const sr = c.sampleRate
+    const noise = c.createBufferSource()
+    const buf = c.createBuffer(1, Math.max(64, Math.floor(sr * 0.005)), sr)
+    const data = buf.getChannelData(0)
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1
+    noise.buffer = buf
+    const nlp = c.createBiquadFilter(); nlp.type = 'lowpass'; nlp.frequency.value = 2400
+    const ng = c.createGain()
+    ng.gain.setValueAtTime(0, t0)
+    ng.gain.linearRampToValueAtTime(0.16, t0 + 0.001)
+    ng.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.008)
+    noise.connect(nlp).connect(ng).connect(dest())
+    noise.start(t0); noise.stop(t0 + 0.012)
+
+    // The vowel: a couple semitones above wa's peak, brighter formant,
+    // sharp envelope so it reads as a quick "ka".
+    const osc = c.createOscillator()
+    osc.type = 'sawtooth'
+    osc.frequency.setValueAtTime(294, t0 + 0.005)
+    osc.frequency.linearRampToValueAtTime(330, t0 + dur)
+    const bp = c.createBiquadFilter()
+    bp.type = 'bandpass'; bp.frequency.value = 1180; bp.Q.value = 3.5
+    const g = c.createGain()
+    g.gain.setValueAtTime(0, t0 + 0.005)
+    g.gain.linearRampToValueAtTime(0.28, t0 + 0.012)
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + dur)
+    osc.connect(bp).connect(g).connect(dest())
+    osc.start(t0 + 0.005); osc.stop(t0 + dur + 0.05)
+  }
+
   return {
-    // "Waka-waka": two flat square-wave tones that alternate as pellets are
-    // eaten. A is the low "wa", B is the higher "ka" (perfect fifth above).
-    chompA: () => envelopedSine({freq: 440, dur: 0.08, gain: 0.18, type: 'square'}),
-    chompB: () => envelopedSine({freq: 660, dur: 0.08, gain: 0.18, type: 'square'}),
+    // chompA / chompB take an optional explicit `period` so the test screen
+    // can audition them at simulated speeds without touching pacman state;
+    // the in-game `eat-pellet` handler in `wiring.js` calls them with no
+    // args, which falls through to pacmanTilePeriod() and tracks the
+    // current speed (debug 1-9 keys, per-level factor, and the post-pellet
+    // slowdown all flow through pacman.getSpeed()).
+    chompA: (period) => playWa(period || pacmanTilePeriod()),
+    chompB: (period) => playKa(period || pacmanTilePeriod()),
     eatPower: () => {
       noiseBurst({dur: 0.4, gain: 0.25, freq: 600})
       envelopedSine({freq: 200, dur: 0.4, gain: 0.2, type: 'sawtooth', pitchTo: 800})
     },
     eatGhost: () => {
-      // Rising arpeggio
-      envelopedSine({freq: 400, dur: 0.12, gain: 0.2, type: 'square', when: 0.0})
-      envelopedSine({freq: 600, dur: 0.12, gain: 0.2, type: 'square', when: 0.12})
-      envelopedSine({freq: 900, dur: 0.18, gain: 0.2, type: 'square', when: 0.24})
+      // "Bonus!" fanfare — has to cut through the eyes-siren spatial loop
+      // that fires the same instant the ghost flips to mode 'eaten'. So we
+      // go louder than other one-shots, use a 5-note arpeggio + held top
+      // note with vibrato, and end on a snappy drop. Total ≈ 0.7 s.
+      const c = ctx()
+      const t0 = c.currentTime
+      const out = dest()
+
+      function note(freq, when, dur, gain, type = 'square', pitchTo = null, vibrato = 0) {
+        const osc = c.createOscillator()
+        osc.type = type
+        osc.frequency.setValueAtTime(freq, t0 + when)
+        if (pitchTo !== null) {
+          osc.frequency.exponentialRampToValueAtTime(Math.max(20, pitchTo), t0 + when + dur)
+        }
+        let lfo, lfoGain
+        if (vibrato > 0) {
+          lfo = c.createOscillator()
+          lfo.type = 'sine'
+          lfo.frequency.value = 14
+          lfoGain = c.createGain()
+          lfoGain.gain.value = vibrato
+          lfo.connect(lfoGain).connect(osc.frequency)
+          lfo.start(t0 + when); lfo.stop(t0 + when + dur + 0.02)
+        }
+        const g = c.createGain()
+        g.gain.setValueAtTime(0, t0 + when)
+        g.gain.linearRampToValueAtTime(gain, t0 + when + 0.005)
+        g.gain.setValueAtTime(gain, t0 + when + Math.max(0.01, dur - 0.02))
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + when + dur)
+        osc.connect(g).connect(out)
+        osc.start(t0 + when); osc.stop(t0 + when + dur + 0.02)
+      }
+
+      // Rising 5-note arpeggio (D5 → A5 → D6 → F#6 → A6)
+      const arp = [587, 880, 1175, 1480, 1760]
+      arp.forEach((f, i) => note(f, i * 0.06, 0.07, 0.32))
+      // Held top with vibrato — this is the part that announces the score.
+      note(2093, 0.32, 0.22, 0.34, 'square', null, 18)
+      // Snappy resolution drop
+      note(1568, 0.55, 0.12, 0.30, 'square', 880)
     },
     eatFruit: () => {
       envelopedSine({freq: 800, dur: 0.12, gain: 0.22, type: 'triangle', pitchTo: 1200})

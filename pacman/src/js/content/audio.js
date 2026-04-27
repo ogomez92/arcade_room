@@ -199,17 +199,31 @@ content.audio = (() => {
   }
 
   // ---------------- dot beacon ----------------
-  // Every 1.5 s, BFS-pathfind to the nearest dot from Pac-Man's tile and emit a
-  // single tick at the next step on that path. Pointing at the next-step (not the
-  // dot itself) means a dot behind a wall doesn't trick the player into walking
-  // into the wall — they hear the actual direction they should turn.
-  // Pitch lowers with path distance, so close dots tick brighter than far ones.
+  // Every 1.5 s, BFS-pathfind to the current target from Pac-Man's tile and emit
+  // a single tick at the next step on that path. Pointing at the next-step (not
+  // the target itself) means a target behind a wall doesn't trick the player
+  // into walking into the wall — they hear the actual direction they should turn.
+  // Pitch lowers with path distance, so close targets tick brighter than far ones.
+  // Active fruit/bonus items take precedence over dots while they're on the
+  // board, mirroring the F2 announcement so the audio cue and the spoken cue
+  // always agree on what Pac-Man should be heading toward.
   const BEACON_PERIOD = 1.5
   let nextBeaconAt = 0
 
   function emitDotBeacon() {
     if (!content.game.isPlaying()) return
     const p = content.pacman.getPosition()
+
+    if (content.fruit.isActive()) {
+      const fp = content.fruit.getPosition()
+      const path = content.maze.pathTo(p.x, p.y, fp.x, fp.y)
+      if (path && path.distance > 0) {
+        const freq = 1700 - Math.min(1100, path.distance * 55)
+        emitTick(path.nextStep.x, path.nextStep.y, {freq, dur: 0.07, gain: 0.7})
+        return
+      }
+    }
+
     const result = content.maze.nearestDotByPath(p.x, p.y)
     if (!result) return
     const freq = 1700 - Math.min(1100, result.distance * 55)
@@ -336,6 +350,40 @@ content.audio = (() => {
     noise.start(); lfo.start()
     return () => { try { noise.stop() } catch (_) {} try { lfo.stop() } catch (_) {} }
   }
+  // Power pellet: warm low fundamental + bright high overtone, heartbeat
+  // tremolo. Each of the four pellets gets a distinct (root, overtone,
+  // tremolo) so a blind player can tell which corner they're near just by
+  // sound. Pitch and tremolo both climb in reading order (NW → NE → SW → SE),
+  // so the spatial mnemonic is "lower-and-slower = top-left, higher-and-faster
+  // = bottom-right."
+  const POWER_PELLET_CONFIGS = [
+    {label: 'NW', root: 110, overtone: 660,  tremolo: 0.9},
+    {label: 'NE', root: 165, overtone: 990,  tremolo: 1.3},
+    {label: 'SW', root: 220, overtone: 1320, tremolo: 1.7},
+    {label: 'SE', root: 294, overtone: 1764, tremolo: 2.1},
+  ]
+  function buildPowerPellet(out, cfg) {
+    const ctx = engine.context()
+    const lo = ctx.createOscillator(); lo.type = 'triangle'; lo.frequency.value = cfg.root
+    const hi = ctx.createOscillator(); hi.type = 'sine'; hi.frequency.value = cfg.overtone
+    const mix = ctx.createGain(); mix.gain.value = 0.5
+    lo.connect(mix); hi.connect(mix)
+
+    const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = cfg.tremolo
+    const lfoDepth = ctx.createGain(); lfoDepth.gain.value = 0.45
+    const trem = ctx.createGain(); trem.gain.value = 0.55
+    lfo.connect(lfoDepth).connect(trem.gain)
+
+    const g = ctx.createGain(); g.gain.value = 0.06
+    mix.connect(trem).connect(g).connect(out)
+
+    lo.start(); hi.start(); lfo.start()
+    return () => {
+      try { lo.stop() } catch (_) {}
+      try { hi.stop() } catch (_) {}
+      try { lfo.stop() } catch (_) {}
+    }
+  }
   // Used by the Sound Learning menu so the player can preview the radar tick.
   function buildBeaconSample(out) {
     const ctx = engine.context()
@@ -352,6 +400,9 @@ content.audio = (() => {
 
   // ---------------- prop instances ----------------
   const props = {}
+  // One spatial loop per power pellet on the board, with its tile coords
+  // attached so frame() can mute it the moment maze.eatDot() clears the cell.
+  let powerPelletProps = []
   let started = false
 
   function start() {
@@ -366,6 +417,28 @@ content.audio = (() => {
     props.fruit      = makeProp({build: buildFruit, gain: 0})
     props.wall       = makeProp({build: buildWallProximity, gain: 0})
     props.beacon     = makeProp({build: buildBeaconSample, gain: 0})
+
+    // Row-major scan over the maze yields the corner pellets in reading order
+    // (NW, NE, SW, SE), which matches POWER_PELLET_CONFIGS so the i-th cell
+    // gets the i-th config. Also exposed under props.powerNW/NE/SW/SE so the
+    // Learn Sounds screen can preview each one by label.
+    for (let y = 0; y < content.maze.ROWS; y++) {
+      for (let x = 0; x < content.maze.COLS; x++) {
+        if (content.maze.getCell(x, y) === 'power') {
+          const cfg = POWER_PELLET_CONFIGS[powerPelletProps.length] || POWER_PELLET_CONFIGS[0]
+          const prop = makeProp({
+            build: (out) => buildPowerPellet(out, cfg),
+            gain: 0,
+          })
+          prop.setPosition(x + 0.5, y + 0.5)
+          prop.tx = x
+          prop.ty = y
+          prop.cfg = cfg
+          powerPelletProps.push(prop)
+          props['power' + cfg.label] = prop
+        }
+      }
+    }
   }
 
   function stop() {
@@ -375,6 +448,9 @@ content.audio = (() => {
       try { props[k].destroy() } catch (_) {}
       delete props[k]
     }
+    // powerPelletProps shares references with props (under power* keys), so
+    // the loop above already tore them down — just drop the references.
+    powerPelletProps = []
     resetSweep()
   }
 
@@ -390,6 +466,7 @@ content.audio = (() => {
     for (const k in props) {
       if (props[k] && props[k].setGain) props[k].setGain(0)
     }
+    for (const pp of powerPelletProps) pp.setGain(0)
     resetSweep()
   }
 
@@ -406,6 +483,10 @@ content.audio = (() => {
     const p = content.pacman.getPosition()
 
     // ---- Ghosts ----
+    // When the debug "ghosts off" toggle is engaged, every ghost-related prop
+    // (per-ghost loop, frightened pack, eyes) is force-muted so the player
+    // hears a clean board with just dots, fruit, walls, and power pellets.
+    const ghostsOff = content.ghosts.isDisabled && content.ghosts.isDisabled()
     const ghosts = content.ghosts.getAll()
     let frightenedActive = false
     let eatenActive = false
@@ -418,7 +499,7 @@ content.audio = (() => {
       prop.setPosition(g.x, g.y)
 
       let baseGain = 0
-      if (playing && !g.inHouse) {
+      if (playing && !g.inHouse && !ghostsOff) {
         if (g.mode === 'frightened') {
           frightenedActive = true
           frightenedPos = {x: g.x, y: g.y}
@@ -452,6 +533,10 @@ content.audio = (() => {
     }
 
     // ---- Fruit ----
+    // Continuous loop plays at the fruit's actual tile, the same way ghosts
+    // and walls do — so the player has a stable spatial picture of the maze.
+    // The directional "go this way" cue comes from the radar beacon below,
+    // which uses the BFS next-step toward the fruit (priority over dots).
     const fp = content.fruit.getPosition()
     if (fp && playing) {
       props.fruit.setPosition(fp.x, fp.y)
@@ -461,6 +546,26 @@ content.audio = (() => {
       props.fruit.setGain(0)
     }
     props.fruit._update()
+
+    // ---- Power pellets ----
+    // Each pellet plays at its actual tile; cell-state check mutes the loop
+    // the instant Pac-Man eats it (the cell flips from 'power' to 'empty').
+    // maze.reset() refills the cells on level/death restart, so the loops
+    // come back automatically without recreating the props. Position is also
+    // reasserted each frame: the Learn Sounds screen relocates the prop near
+    // the static listener for previewing, and we need it back at its tile
+    // when the game resumes.
+    for (const pp of powerPelletProps) {
+      const stillThere = content.maze.getCell(pp.tx, pp.ty) === 'power'
+      if (stillThere && playing) {
+        pp.setPosition(pp.tx + 0.5, pp.ty + 0.5)
+        const dx = pp.tx + 0.5 - p.x, dy = pp.ty + 0.5 - p.y
+        pp.setGain(distanceGain(Math.sqrt(dx*dx + dy*dy)))
+      } else {
+        pp.setGain(0)
+      }
+      pp._update()
+    }
 
     // ---- Wall proximity ----
     // Probe up to ~3 tiles ahead in 0.5-tile steps. Quadratic ramp keeps the

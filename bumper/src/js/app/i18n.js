@@ -94,6 +94,7 @@ app.i18n = (() => {
       'mp.hostingRoom': 'Hosting room {code}. Waiting for players.',
       'mp.connecting': 'Connecting to {code}…',
       'mp.enterCode': 'Enter a room code.',
+      'mp.enterName': 'Enter a name first.',
       'mp.connected': 'Connected. Waiting for host to start.',
       'mp.left': 'Left the room.',
       'mp.peerJoined': '{name} joined.',
@@ -111,7 +112,7 @@ app.i18n = (() => {
 
       // Game HUD / accessibility
       'game.aria': 'Game arena',
-      'game.instructions': 'Arrow keys drive. Q is a targeting sweep of opponents. In arcade mode, W sweeps pickups, A S D fire bullets, F drops a mine, G activates a speed burst, H teleports you to a random open spot, and F3 reads your inventory. Press Escape to pause.',
+      'game.instructions': 'Arrow keys drive. Q is a targeting sweep of opponents. Space honks the horn. In arcade mode, W sweeps pickups, A S D fire bullets, F drops a mine, G activates a speed burst, H teleports you to a random open spot, and F3 reads your inventory. Press Escape to pause.',
       'game.health': 'Health: ',
       'game.score': 'Score: ',
       'game.cars': 'Cars left: ',
@@ -152,6 +153,7 @@ app.i18n = (() => {
       'help.controlDown': '<kbd>Down</kbd> — light reverse pedal (slow)',
       'help.controlSteer': '<kbd>Left</kbd> <kbd>Right</kbd> — steer',
       'help.controlSweep': '<kbd>Q</kbd> — announce all nearby cars and their bearing',
+      'help.controlHorn': '<kbd>Space</kbd> — honk the horn (heard by other players from your position)',
       'help.controlReadouts': '<kbd>F1</kbd> score · <kbd>F2</kbd> cars left · <kbd>F4</kbd> health',
       'help.controlEscape': '<kbd>Escape</kbd> — pause / back',
       'help.controlConfirm': '<kbd>Enter</kbd> / <kbd>Space</kbd> — confirm in menus',
@@ -433,6 +435,7 @@ app.i18n = (() => {
       'mp.hostingRoom': 'Sala creada {code}. Esperando jugadores.',
       'mp.connecting': 'Conectando con {code}…',
       'mp.enterCode': 'Introduce un código de sala.',
+      'mp.enterName': 'Introduce un nombre primero.',
       'mp.connected': 'Conectado. Esperando a que el anfitrión empiece.',
       'mp.left': 'Has salido de la sala.',
       'mp.peerJoined': '{name} se ha unido.',
@@ -450,7 +453,7 @@ app.i18n = (() => {
 
       // Game HUD / accessibility
       'game.aria': 'Arena de juego',
-      'game.instructions': 'Las flechas conducen. Q hace un barrido de rivales. En modo arcade, W barre los bonus, A S D disparan balas, F deja una mina, G activa el turbo, H te teletransporta a un punto despejado al azar y F3 lee tu inventario. Pulsa Escape para pausar.',
+      'game.instructions': 'Las flechas conducen. Q hace un barrido de rivales. Espacio toca la bocina. En modo arcade, W barre los bonus, A S D disparan balas, F deja una mina, G activa el turbo, H te teletransporta a un punto despejado al azar y F3 lee tu inventario. Pulsa Escape para pausar.',
       'game.health': 'Salud: ',
       'game.score': 'Puntos: ',
       'game.cars': 'Coches: ',
@@ -491,6 +494,7 @@ app.i18n = (() => {
       'help.controlDown': '<kbd>Abajo</kbd> — marcha atrás suave (lenta)',
       'help.controlSteer': '<kbd>Izquierda</kbd> <kbd>Derecha</kbd> — girar',
       'help.controlSweep': '<kbd>Q</kbd> — anuncia los coches cercanos y su rumbo',
+      'help.controlHorn': '<kbd>Espacio</kbd> — toca la bocina (los demás la oyen desde tu posición)',
       'help.controlReadouts': '<kbd>F1</kbd> puntos · <kbd>F2</kbd> coches restantes · <kbd>F4</kbd> salud',
       'help.controlEscape': '<kbd>Escape</kbd> — pausa / atrás',
       'help.controlConfirm': '<kbd>Enter</kbd> / <kbd>Espacio</kbd> — confirmar en menús',

@@ -22,7 +22,11 @@ content.arena = (() => {
   function spawnPoints(count) {
     // Distribute around an inner ellipse so cars face the centre.
     const points = []
-    const inset = 7
+    // 9 m inset (was 7) — gives the car body ~8 m of clear space to the
+    // nearest wall after the radius bump, so a full-throttle drift in
+    // any direction has ~1.5 s of clear arena before any wall is a
+    // concern.
+    const inset = 9
     const rx = (config.width / 2) - inset,
       ry = (config.height / 2) - inset
 
@@ -30,8 +34,13 @@ content.arena = (() => {
       const t = (i / count) * engine.const.tau
       const x = Math.cos(t) * rx
       const y = Math.sin(t) * ry
-      // Heading faces toward arena centre with a small jitter
-      const heading = Math.atan2(-y, -x) + (Math.random() - 0.5) * 0.4
+      // Heading faces toward arena centre (atan2(-y,-x) is the angle of
+      // the vector from this point to the origin). Tiny ±3° jitter for
+      // visual/audible variety — the old ±11° swing could rotate a
+      // corner spawn close enough to parallel-with-the-nearest-wall that
+      // it felt like "spawned facing the wall" even though geometrically
+      // it wasn't.
+      const heading = Math.atan2(-y, -x) + (Math.random() - 0.5) * 0.1
       points.push({x, y, heading})
     }
 

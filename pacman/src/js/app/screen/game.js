@@ -15,6 +15,8 @@ app.screen.game = app.screenManager.invent({
     f2Pressed: false,
     f3Pressed: false,
     f4Pressed: false,
+    arrowPressed: {ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false},
+    ghostToggleDown: false,
   },
   onReady: function () {
     const root = this.rootElement
@@ -70,6 +72,8 @@ app.screen.game = app.screenManager.invent({
     this.state.f2Pressed = false
     this.state.f3Pressed = false
     this.state.f4Pressed = false
+    this.state.arrowPressed = {ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false}
+    this.state.ghostToggleDown = false
   },
   onExit: function () {
     // Silence all looping spatial audio so it doesn't bleed through pause/menu/game-over
@@ -86,6 +90,35 @@ app.screen.game = app.screenManager.invent({
     else if (k.is('ArrowLeft')) dir = {x: -1, y: 0}
     else if (k.is('ArrowRight')) dir = {x: 1, y: 0}
     if (dir) content.pacman.setQueuedDirection(dir)
+
+    // Rising-edge per-arrow check: if the player presses a direction and the
+    // adjacent tile in that direction is a wall, fire wall-hit immediately so
+    // they get audible feedback (sound + "X open" announcement) without having
+    // to wait until Pac-Man bumps. Uses the same tile-ahead probe as
+    // pacman.canMoveDir so behavior matches what the queued turn would do.
+    const arrowDirs = {
+      ArrowUp: {x: 0, y: -1},
+      ArrowDown: {x: 0, y: 1},
+      ArrowLeft: {x: -1, y: 0},
+      ArrowRight: {x: 1, y: 0},
+    }
+    for (const key in arrowDirs) {
+      const isDown = k.is(key)
+      if (isDown && !this.state.arrowPressed[key]) {
+        const ad = arrowDirs[key]
+        const pos = content.pacman.getPosition()
+        const tx = Math.floor(pos.x + ad.x * 0.51)
+        const ty = Math.floor(pos.y + ad.y * 0.51)
+        if (!content.maze.isPassableForPacman(tx, ty)) {
+          content.events.emit('wall-hit', {
+            x: Math.floor(pos.x),
+            y: Math.floor(pos.y),
+            facing: ad,
+          })
+        }
+      }
+      this.state.arrowPressed[key] = isDown
+    }
 
     // Esc to pause (handled via app.controls.ui's pause delta)
     const ui = app.controls.ui()
@@ -132,6 +165,19 @@ app.screen.game = app.screenManager.invent({
         app.announce.polite('Speed ' + i)
       }
     }
+
+    // Ctrl+Alt+D — toggle "ghosts off" debug mode. Edge-detected on D so a
+    // held chord doesn't flap the toggle every frame.
+    const ctrl = k.is('ControlLeft') || k.is('ControlRight')
+    const alt  = k.is('AltLeft') || k.is('AltRight')
+    const d    = k.is('KeyD')
+    const chord = ctrl && alt && d
+    if (chord && !this.state.ghostToggleDown) {
+      const next = !content.ghosts.isDisabled()
+      content.ghosts.setDisabled(next)
+      app.announce.assertive(next ? 'Ghosts off.' : 'Ghosts on.')
+    }
+    this.state.ghostToggleDown = chord
 
     // Update game logic at frame rate
     const delta = (e && e.delta) || 1/60

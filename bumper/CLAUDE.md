@@ -411,6 +411,14 @@ and broadcasts `{type:'mode', mode}`; the choice rides along in the
   `aggressorId`/`victimId`/...), and add the event name to
   `NETWORKED_EVENTS` in `content/game.js` so it gets captured into
   `pendingEvents`.
+- **Networked event payloads must not have a field named `type`.** The
+  capture pushes `{type: eventName, ...payload}`, so any payload field
+  called `type` will silently clobber the event name on the wire —
+  clients then replay e.g. a `'bullets'` event with no subscribers and
+  the local-subscriber-on-host masks it (only the picker/peers go
+  silent, the host still hears its own emit). This is why
+  `pickupApplied` carries `pickupType` rather than `type`. Same care
+  applies to any future kind/category field on a networked event.
 - **Score mutations belong on the host only.** Subscribers that bump
   `car.score` must guard with `if (role !== 'client')` — the
   authoritative score arrives in each snapshot, and a client mutation

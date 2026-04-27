@@ -15,7 +15,7 @@ content.car = (() => {
     position = {x: 0, y: 0},
     heading = 0,
     health = 100,
-    radius = 0.8,
+    radius = 0.95,
     mass = 1,
     arcade = false,             // attach inventory + shield slot
   } = {}) {

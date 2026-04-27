@@ -77,16 +77,20 @@ content.game = (() => {
 
   function checkCollisions() {
     const p = content.pacman.getPosition()
-    // Fruit
+    // Fruit. Pickup radius is wider than the ghost-collision radius (0.9 vs
+    // 0.6 tiles) because the fruit doesn't move and isn't lethal — the cost
+    // of a slightly generous pickup is zero, and the cost of "I walked over
+    // it but nothing happened" in an accessibility-first game is high.
     const fp = content.fruit.getPosition()
     if (fp) {
       const dx = p.x - fp.x, dy = p.y - fp.y
-      if (dx*dx + dy*dy < 0.36) {
+      if (dx*dx + dy*dy < 0.81) {
         const r = content.fruit.consume()
         if (r) addScore(r.points)
       }
     }
-    // Ghosts
+    // Ghosts (skip entirely when the debug "ghosts off" toggle is engaged)
+    if (content.ghosts.isDisabled && content.ghosts.isDisabled()) return
     for (const g of content.ghosts.getAll()) {
       if (g.inHouse || g.mode === 'leavingHouse') continue
       const dx = p.x - g.x, dy = p.y - g.y

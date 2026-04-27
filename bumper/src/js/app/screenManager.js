@@ -20,6 +20,12 @@ app.screenManager = (() => {
     if (current) {
       current.enter(e, ...args)
     }
+
+    // Prime the input cache against the now-active screen so any keys
+    // held *through* the transition (typically Enter on the button that
+    // triggered it) don't show up as "newly pressed" on the next frame
+    // and auto-click whatever the new screen put focus on.
+    if (app.controls && app.controls.consume) app.controls.consume()
   })
 
   machine.on('exit', (e, ...args) => {

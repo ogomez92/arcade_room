@@ -17,7 +17,7 @@ content.physics = (() => {
     carRestitution: 0.85,
     wallRestitution: 0.55,
     damageScaleCar: 6.0,
-    damageScaleWall: 4.0,
+    damageScaleWall: 2.5,
     minDamage: 1.5,
     // Attack incentive: aggressor (the car driving harder *into* the
     // contact normal) eats only this share of ev.damage. Victim takes

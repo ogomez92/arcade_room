@@ -12,6 +12,7 @@ app.screen.test = app.screenManager.invent({
   },
   state: {
     timeouts: [],
+    digitPressed: {},
   },
   onReady: function () {
     this.rootElement.addEventListener('click', (e) => {
@@ -22,12 +23,14 @@ app.screen.test = app.screenManager.invent({
         this.cancelTest()
         app.screenManager.dispatch('back')
       }
+      const m = btn.dataset.action && btn.dataset.action.match(/^waka(\d+)$/)
+      if (m) this.playWakaRun(parseInt(m[1], 10))
     })
   },
   onEnter: function () {
-    app.announce.polite('Spatial audio test. You should hear north in front, then east on the right, then south behind, then west on the left.')
-    // Small delay so the announcement comes through before the first tick.
+    app.announce.polite('Spatial audio test. Press 1 through 9 to hear the waka-waka at that game-speed level. Replay button repeats the spatial test.')
     setTimeout(() => this.runTest(), 1200)
+    this.state.digitPressed = {}
   },
   onExit: function () {
     this.cancelTest()
@@ -37,7 +40,44 @@ app.screen.test = app.screenManager.invent({
     if (ui.back) {
       this.cancelTest()
       app.screenManager.dispatch('back')
+      return
     }
+    // Number-key auditioning: 1–9 simulate the in-game speed multiplier and
+    // play a six-syllable waka-waka run at that cadence. Edge-detected so a
+    // held key doesn't spam.
+    const k = engine.input.keyboard
+    for (let i = 1; i <= 9; i++) {
+      const key = 'Digit' + i
+      const isDown = k.is(key)
+      if (isDown && !this.state.digitPressed[key]) {
+        this.playWakaRun(i)
+      }
+      this.state.digitPressed[key] = isDown
+    }
+  },
+  // Mirrors the in-game speed scale (1 → 0.5x, 9 → 1.7x — same ramp as
+  // game.js's debug speed keys). Computes the simulated tile period from
+  // L1 base cruise (≈ 6.4 t/s), then plays six alternating wa/ka syllables
+  // spaced one period apart. We pass the period explicitly so the test
+  // doesn't have to mutate pacman state.
+  playWakaRun: function (digit) {
+    const speedMultiplier = 0.5 + (digit - 1) * 0.15
+    const baseSpeed = 8 * 0.80 // SPEED_BASE × pacmanFactor at L1
+    const period = 1 / (baseSpeed * speedMultiplier)
+    app.announce.polite(`Speed ${digit}, waka period ${Math.round(period * 1000)} ms.`)
+    this.cancelTest()
+    const fns = [
+      content.sfx.chompA,
+      content.sfx.chompB,
+      content.sfx.chompA,
+      content.sfx.chompB,
+      content.sfx.chompA,
+      content.sfx.chompB,
+    ]
+    fns.forEach((fn, i) => {
+      const id = setTimeout(() => fn(period), Math.round(i * period * 1000))
+      this.state.timeouts.push(id)
+    })
   },
   cancelTest: function () {
     for (const id of this.state.timeouts) clearTimeout(id)

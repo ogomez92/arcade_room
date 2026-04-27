@@ -66,7 +66,7 @@ content.maze = (() => {
         case '.': type = 'pellet'; dotCount++; break
         case 'o': type = 'power'; dotCount++; break
         case '-': type = 'door'; break
-        case 'P': pacmanSpawn = {x: x + 0.5, y}; type = 'empty'; break
+        case 'P': pacmanSpawn = {x: x + 0.5, y: y + 0.5}; type = 'empty'; break
         case 'B': ghostSpawns.blinky = {x, y}; type = 'empty'; break
         case 'I': ghostSpawns.inky = {x, y}; type = 'empty'; break
         case 'K': ghostSpawns.pinky = {x, y}; type = 'empty'; break

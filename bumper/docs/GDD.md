@@ -58,7 +58,7 @@ Car {
   heading,                   // radians
   angularVelocity,           // rad/s
   health,                    // 0..100
-  radius:  0.8 m,
+  radius:  0.95 m,
   mass:    1.0,
   throttle:    -1..1         // input
   steering:    -1..1         // input
@@ -147,7 +147,7 @@ remaining 0.75. So ramming a stationary opponent costs you ~⅓ of what
 they lose, and head-on crashes still hurt both sides — but the more
 committed attacker still comes out ahead.
 
-The same base formula is reused for walls (`damageScale = 4`, no
+The same base formula is reused for walls (`damageScale = 2.5`, no
 split — wall damage is whatever you drove into). Below
 `minDamage = 1.5` no health is deducted (prevents nuisance ticks). Each
 frame a car spends in contact with a wall while moving deducts a small

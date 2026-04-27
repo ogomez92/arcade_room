@@ -226,5 +226,8 @@ content.pacman = (() => {
     getPosition: () => ({x: state.x, y: state.y}),
     setSpeedMultiplier: (m) => state.speedMultiplier = m,
     getSpeedMultiplier: () => state.speedMultiplier,
+    // Tiles per second at the current level + state. SFX (e.g. the chomp)
+    // read this so their duration scales with how fast pellets are arriving.
+    getSpeed: () => SPEED_BASE * state.speedMultiplier * pacmanFactor(),
   }
 })()
