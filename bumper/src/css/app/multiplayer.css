@@ -1,0 +1,48 @@
+.a-multiplayer input[type="text"] {
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0.4rem;
+  color: #FFFFFF;
+  font-family: monospace;
+  font-size: 1.1em;
+  letter-spacing: 0.15em;
+  margin-left: 0.5em;
+  padding: 0.4em 0.6em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.a-multiplayer input[type="text"]:focus {
+  border-color: #FFFFFF;
+  outline: none;
+}
+.a-multiplayer--lobbyCode {
+  font-family: monospace;
+  font-size: 1.6em;
+  letter-spacing: 0.4em;
+  padding-left: 0.4em;
+}
+.a-multiplayer--peers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  list-style: none;
+  margin-top: 0.5rem;
+  padding: 0;
+  width: min(28em, 90vw);
+}
+  .c-menu--peer {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 0.3rem;
+    padding: 0.4em 0.8em;
+    text-align: left;
+  }
+.a-multiplayer--lobbyStatus {
+  font-style: italic;
+  margin-top: 0.5rem;
+  opacity: 0.85;
+  text-align: center;
+}
+.a-multiplayer--start[disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

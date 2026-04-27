@@ -1,0 +1,6 @@
+dist/*
+!dist/.gitkeep
+node_modules
+public/scripts.min.js
+public/styles.min.css
+pinball-debug.log

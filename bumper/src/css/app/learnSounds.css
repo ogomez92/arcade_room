@@ -1,0 +1,8 @@
+.a-learnSounds--list {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.a-learnSounds--list .c-menu--button {
+  text-align: left;
+  text-transform: none;
+}

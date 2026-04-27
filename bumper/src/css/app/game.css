@@ -1,0 +1,24 @@
+.a-game {
+  align-items: center;
+  justify-content: center;
+}
+  .a-game--hud {
+    align-items: stretch;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    font-family: monospace;
+    font-size: 1.5em;
+    gap: 0.5rem;
+    padding: 1.5rem 2rem;
+    text-align: center;
+  }
+    .a-game--hud > div { letter-spacing: 0.1em; }
+    .a-game--healthValue,
+    .a-game--scoreValue,
+    .a-game--carsValue {
+      color: #00FFC8;
+      font-weight: 700;
+    }

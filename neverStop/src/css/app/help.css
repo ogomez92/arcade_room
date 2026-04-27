@@ -1,0 +1,47 @@
+.a-help {
+  align-items: center;
+}
+  .a-help h1 {
+    font-size: 2.25em;
+    text-align: center;
+  }
+  .a-help--body {
+    max-width: 42rem;
+    line-height: 1.6;
+  }
+  .a-help--body ul {
+    margin: 0.75rem 0;
+    padding-left: 1.5em;
+  }
+  .a-help--body li + li {
+    margin-top: 0.4rem;
+  }
+  .a-help--body h2 {
+    font-size: 1.25em;
+    margin-top: 1.5rem;
+  }
+  .a-help--keys {
+    list-style: none;
+    padding-left: 0;
+  }
+  .a-help--keys li {
+    align-items: baseline;
+    display: flex;
+    gap: 0.6rem;
+  }
+  .a-help--actions {
+    margin-top: 1rem;
+    text-align: center;
+  }
+  .a-help--actions button {
+    background: transparent;
+    border: 2px solid #FFFFFF;
+    color: #FFFFFF;
+    font-size: 1em;
+    padding: 0.5em 1em;
+  }
+  .a-help--actions button:hover,
+  .a-help--actions button:focus {
+    background: #FFFFFF;
+    color: #000000;
+  }

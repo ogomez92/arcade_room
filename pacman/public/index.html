@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title>Audio Pac-Man</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div role="status" aria-live="polite" aria-atomic="true" class="u-screenReader a-app--announce"></div>
+      <div role="status" aria-live="assertive" aria-atomic="true" class="u-screenReader a-app--announce-assertive"></div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" aria-label="Game">
+          <h1 class="u-screenReader">Game in progress</h1>
+          <div class="a-game--hud">
+            <div class="a-game--score" aria-label="Score">Score: <span class="a-game--score-value">0</span></div>
+            <div class="a-game--lives" aria-label="Lives">Lives: <span class="a-game--lives-value">3</span></div>
+            <div class="a-game--level" aria-label="Level">Level: <span class="a-game--level-value">1</span></div>
+            <div class="a-game--dots" aria-label="Dots remaining">Dots: <span class="a-game--dots-value">0</span></div>
+          </div>
+          <p class="a-game--help">Arrow keys to steer. F1 reads score. F2 reads nearest target. F3 reads dots remaining. F4 reads percent complete. 1–9 sets speed. Escape pauses.</p>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen a-menu" tabindex="-1" aria-label="Main Menu">
+          <h1 class="a-menu--logo">Audio Pac-Man</h1>
+          <p class="a-menu--instruction">An audio-first arcade adventure</p>
+          <nav class="a-menu--nav">
+            <button type="button" class="a-menu--button" data-action="play">Start Game</button>
+            <button type="button" class="a-menu--button" data-action="learn">Sound Learning Menu</button>
+            <button type="button" class="a-menu--button" data-action="settings">Settings</button>
+            <button type="button" class="a-menu--button" data-action="highscores">High Scores</button>
+            <button type="button" class="a-menu--button" data-action="help">How To Play</button>
+          </nav>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen a-learn" tabindex="-1" aria-label="Sound Learning Menu">
+          <h1>Sound Learning</h1>
+          <p>Press a button to listen to each sound. Each plays once and ahead of you.</p>
+          <nav class="a-learn--nav"></nav>
+          <button type="button" class="a-learn--back" data-action="back">Back to Menu</button>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--settings">
+        <section class="c-screen a-settings" tabindex="-1" aria-label="Settings">
+          <h1>Settings</h1>
+          <div class="a-settings--list"></div>
+          <button type="button" class="a-settings--back" data-action="back">Back to Menu</button>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen a-highscores" tabindex="-1" aria-label="High Scores">
+          <h1>High Scores</h1>
+          <ol class="a-highscores--list" aria-label="Top scores"></ol>
+          <button type="button" class="a-highscores--back" data-action="back">Back to Menu</button>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen a-gameover" tabindex="-1" aria-label="Game Over">
+          <h1>Game Over</h1>
+          <p>Final score: <span class="a-gameover--score">0</span></p>
+          <p class="a-gameover--rank-msg" hidden>You earned a high score! Enter your name:</p>
+          <form class="a-gameover--form">
+            <label for="a-gameover-name" class="u-screenReader">Your name</label>
+            <input type="text" id="a-gameover-name" class="a-gameover--name" maxlength="16" placeholder="Your name" autocomplete="off" />
+            <button type="submit" class="a-gameover--submit">Save Score</button>
+          </form>
+          <button type="button" class="a-gameover--continue" data-action="continue">Continue</button>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--pause">
+        <section class="c-screen a-pause" tabindex="-1" aria-label="Paused">
+          <h1>Paused</h1>
+          <button type="button" class="a-pause--button" data-action="resume">Resume</button>
+          <button type="button" class="a-pause--button" data-action="menu">Quit to Main Menu</button>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--test">
+        <section class="c-screen a-test" tabindex="-1" aria-label="Spatial Audio Test">
+          <h1>Spatial Audio Test</h1>
+          <p>Listen for sounds at four screen positions: north (front), east (right), south (behind), west (left).</p>
+          <button type="button" data-action="replay">Replay Test</button>
+          <button type="button" data-action="back">Back to Menu</button>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--music">
+        <section class="c-screen a-music" tabindex="-1" aria-label="Music Preview">
+          <h1>Music Preview</h1>
+          <p>Plays the intro melody. Press space or enter to replay.</p>
+          <button type="button" data-action="play">Play</button>
+          <button type="button" data-action="back">Back to Menu</button>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen a-help" tabindex="-1" aria-label="How to play">
+          <h1>How to Play</h1>
+
+          <h2>Goal</h2>
+          <p>Eat every dot in the maze to clear the level. Avoid the four ghosts. Eat power pellets to turn ghosts blue and chase them down for bonus points. Catch fruit for big extra score.</p>
+
+          <h2>Controls</h2>
+          <ul>
+            <li><kbd>Arrow keys</kbd> — steer Pac-Man. The next turn is queued and taken at the next legal tile.</li>
+            <li><kbd>Esc</kbd> — pause</li>
+            <li><kbd>F1</kbd> — speak score, lives, level, dots remaining</li>
+            <li><kbd>F2</kbd> — speak the nearest target with compass direction and tile distance. If a fruit is on the board, F2 points to the fruit; otherwise it points to the nearest dot.</li>
+            <li><kbd>F3</kbd> — speak dots remaining</li>
+            <li><kbd>F4</kbd> — speak percent of the level completed</li>
+            <li><kbd>1</kbd>–<kbd>9</kbd> — set Pac-Man's speed (debugging)</li>
+          </ul>
+
+          <h2>Listening to the maze</h2>
+          <p>The audio is fixed top-down: <strong>north is in front of you, south is behind, east is to your right, west is to your left</strong>. This never changes regardless of which way Pac-Man last moved, so a ghost south of you always sounds like it's behind you.</p>
+          <ul>
+            <li>Each ghost has its own voice — Blinky, Pinky, Inky, and Clyde all sound different. Distance is communicated by volume.</li>
+            <li>Frightened ghosts (after a power pellet) have a distinct vulnerable warble.</li>
+            <li>Eaten ghosts return to the house as fast eyes — a high, racing whistle that fades as they reach home.</li>
+            <li>A short tick every 1.5 seconds points to the next move toward the nearest dot.</li>
+            <li>A low rumble grows louder as you approach a wall in your current direction.</li>
+            <li>Fruit makes its own shimmering tone while it's on the board.</li>
+            <li>Sounds behind you are muffled; sounds in front are bright. Use that to tell ahead from behind on the same axis.</li>
+          </ul>
+
+          <h2>Tips</h2>
+          <ul>
+            <li>Visit the <strong>Sound Learning</strong> menu from the main menu to preview every game sound on its own.</li>
+            <li>Power pellets stop frightening ghosts from level 19 onward — same as the arcade.</li>
+            <li>Fruit appears twice per level. F2 will guide you to it while it's on the board.</li>
+            <li>Row 14 has a tunnel that wraps around left-to-right.</li>
+          </ul>
+
+          <button type="button" class="a-help--back" data-action="back">Back to Menu</button>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--splash">
+        <section class="c-screen a-splash" tabindex="-1">
+          <h1 class="a-splash--logo">Audio Pac-Man</h1>
+          <div class="a-splash--details">
+            <div class="a-splash--version"></div>
+            <div class="a-splash--author">Audio-first edition</div>
+          </div>
+          <div class="a-splash--instruction">Press any key or click to begin</div>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

@@ -1,0 +1,121 @@
+.a-menu {
+  align-items: center;
+  text-align: center;
+}
+.a-menu--logo {
+  color: #FFFF00;
+  font-size: 3em;
+  letter-spacing: 0.25em;
+}
+.a-menu--instruction {
+  color: #cccccc;
+}
+.a-menu--nav {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  margin: 1em auto;
+  max-width: 24em;
+  width: 100%;
+}
+.a-menu--button,
+.a-pause--button,
+.a-learn--back,
+.a-settings--back,
+.a-highscores--back,
+.a-gameover--continue,
+.a-gameover--submit,
+.a-learn--nav button,
+.a-settings--list button {
+  background: #1a1a1a;
+  border: 2px solid #FFFF00;
+  color: #FFFFFF;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1em;
+  letter-spacing: 0.125em;
+  padding: 0.6em 1em;
+}
+.a-menu--button:focus,
+.a-pause--button:focus,
+.a-learn--back:focus,
+.a-settings--back:focus,
+.a-highscores--back:focus,
+.a-gameover--continue:focus,
+.a-gameover--submit:focus,
+.a-learn--nav button:focus,
+.a-settings--list button:focus {
+  background: #FFFF00;
+  color: #000000;
+  outline: 2px solid #FFFFFF;
+}
+
+.a-game--hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5em;
+  font-size: 1.2em;
+  color: #FFFF00;
+  margin-bottom: 1em;
+}
+.a-game--help {
+  color: #cccccc;
+  font-size: 0.9em;
+}
+
+.a-learn--nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14em, 1fr));
+  gap: 0.5em;
+  margin: 1em 0;
+}
+
+.a-settings--list {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  margin: 1em 0;
+}
+.a-settings--list fieldset {
+  border: 1px solid #444;
+  padding: 0.5em 1em;
+}
+.a-settings--list legend {
+  color: #FFFF00;
+  letter-spacing: 0.125em;
+}
+.a-settings--list button {
+  margin-right: 0.25em;
+}
+.a-settings--list button[aria-pressed="true"] {
+  background: #FFFF00;
+  color: #000000;
+}
+
+.a-highscores--list {
+  font-family: monospace;
+  font-size: 1.1em;
+  margin: 1em 0;
+  padding-left: 2em;
+}
+
+.a-gameover--form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  margin: 1em 0;
+}
+.a-gameover--name {
+  background: #000;
+  border: 2px solid #FFFF00;
+  color: #FFFFFF;
+  flex: 1 1 12em;
+  font-family: inherit;
+  font-size: 1em;
+  padding: 0.6em 1em;
+}
+.a-gameover--name:focus {
+  background: #1a1a00;
+  outline: 2px solid #FFFFFF;
+}

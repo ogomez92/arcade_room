@@ -1,0 +1,54 @@
+.a-learn {
+  align-items: center;
+}
+  .a-learn h1 {
+    font-size: 2.25em;
+    text-align: center;
+  }
+  .a-learn--list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 1rem 0;
+    padding: 0;
+    width: min(28rem, 90vw);
+  }
+  .a-learn--list button {
+    background: transparent;
+    border: 2px solid #FFFFFF;
+    color: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    font-size: 1em;
+    padding: 0.6em 0.8em;
+    text-align: left;
+    width: 100%;
+  }
+  .a-learn--list button .a-learn--name {
+    font-weight: bold;
+  }
+  .a-learn--list button .a-learn--desc {
+    font-size: 0.85em;
+    opacity: 0.85;
+  }
+  .a-learn--list button:hover,
+  .a-learn--list button:focus {
+    background: #FFFFFF;
+    color: #000000;
+  }
+  .a-learn--actions {
+    text-align: center;
+  }
+  .a-learn--actions button {
+    background: transparent;
+    border: 2px solid #FFFFFF;
+    color: #FFFFFF;
+    font-size: 1em;
+    padding: 0.5em 1em;
+  }
+  .a-learn--actions button:hover,
+  .a-learn--actions button:focus {
+    background: #FFFFFF;
+    color: #000000;
+  }

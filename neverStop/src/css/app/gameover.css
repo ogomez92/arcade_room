@@ -1,0 +1,45 @@
+.a-gameover {
+  align-items: center;
+  text-align: center;
+}
+  .a-gameover h1 {
+    font-size: 3em;
+  }
+  .a-gameover--reason {
+    opacity: 0.85;
+    margin-bottom: 1rem;
+  }
+  .a-gameover--stats {
+    display: grid;
+    font-family: monospace;
+    font-size: 1.1em;
+    gap: 0.25rem 1.5rem;
+    grid-template-columns: auto auto;
+    margin: 0 auto 1.5rem;
+    text-align: left;
+  }
+  .a-gameover--stats dt {
+    opacity: 0.7;
+  }
+  .a-gameover--stats dd {
+    margin: 0;
+    font-weight: bold;
+  }
+  .a-gameover--actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+  .a-gameover--actions button {
+    background: transparent;
+    border: 2px solid #FFFFFF;
+    color: #FFFFFF;
+    font-size: 1em;
+    padding: 0.6em 1.2em;
+  }
+  .a-gameover--actions button:hover,
+  .a-gameover--actions button:focus {
+    background: #FFFFFF;
+    color: #000000;
+  }

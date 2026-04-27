@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title>Mech Duel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div class="a-live" aria-live="polite" aria-atomic="true"></div>
+      <div class="a-live-assertive" aria-live="assertive" aria-atomic="true"></div>
+
+      <div class="a-app--screen a-app--splash" hidden>
+        <section class="c-screen a-splash" tabindex="-1">
+          <h1 class="a-splash--logo">Mech Duel</h1>
+          <div class="a-splash--details">
+            <div class="a-splash--version"></div>
+            <div class="a-splash--author">Accessible audio combat</div>
+          </div>
+          <div class="a-splash--instruction">Press Enter or click to begin</div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--menu" hidden>
+        <section class="c-screen a-menu" tabindex="-1" aria-label="Main menu">
+          <h1>Mech Duel — Main Menu</h1>
+          <p class="u-screenReader">Use arrow keys or Tab to navigate, Enter to select.</p>
+          <nav class="c-menu">
+            <button type="button" data-action="play-ai">Play vs computer</button>
+            <button type="button" data-action="play-online-host">Host an online duel</button>
+            <button type="button" data-action="play-online-join">Join an online duel</button>
+            <button type="button" data-action="learn-sounds">Learn game sounds</button>
+            <button type="button" data-action="manual">How to play</button>
+          </nav>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--mech" hidden>
+        <section class="c-screen a-mech" tabindex="-1" aria-label="Choose a mech">
+          <h1>Choose your mech</h1>
+          <p class="u-screenReader">Use left and right arrows to cycle mechs, up and down arrows or Tab to move between sections, Enter to select. Press P to preview the engine sound. Press Escape to go back.</p>
+          <div class="c-mech-select">
+            <div class="c-mech-select--name"></div>
+            <p class="c-mech-select--summary"></p>
+            <dl class="c-mech-select--stats"></dl>
+            <nav class="c-mech-select--actions">
+              <button type="button" data-action="prev">Previous mech</button>
+              <button type="button" data-action="preview">Preview engine</button>
+              <button type="button" data-action="next">Next mech</button>
+              <button type="button" data-action="confirm">Confirm this mech</button>
+              <button type="button" data-action="back">Back</button>
+            </nav>
+          </div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--multiplayer" hidden>
+        <section class="c-screen a-multiplayer" tabindex="-1" aria-label="Online multiplayer">
+          <h1 class="c-mp-title">Online multiplayer</h1>
+          <p class="c-mp-status"></p>
+          <div class="c-mp-host" hidden>
+            <p>Your room code is:</p>
+            <p class="c-mp-code"></p>
+            <button type="button" data-action="copy-code">Copy room code</button>
+          </div>
+          <div class="c-mp-join" hidden>
+            <label>Enter room code: <input type="text" class="c-mp-input" autocomplete="off" spellcheck="false" /></label>
+            <button type="button" data-action="connect">Connect</button>
+          </div>
+          <nav>
+            <button type="button" data-action="back">Back to menu</button>
+          </nav>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--learn" hidden>
+        <section class="c-screen a-learn" tabindex="-1" aria-label="Learn game sounds">
+          <h1>Learn game sounds</h1>
+          <p>Select a sound cue to hear it. Use this menu to get familiar with the audio cues used during combat.</p>
+          <nav class="c-learn-list"></nav>
+          <div class="c-learn-description"></div>
+          <nav>
+            <button type="button" data-action="back">Back to menu</button>
+          </nav>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--game" hidden>
+        <section class="c-screen a-game" tabindex="-1" aria-label="Combat arena">
+          <h1 class="u-screenReader">Mech Duel combat</h1>
+          <div class="c-hud">
+            <div class="c-hud-row">Your mech: <span class="c-hud-mech"></span></div>
+            <div class="c-hud-row">Your health: <span class="c-hud-health">100</span></div>
+            <div class="c-hud-row">Opponent: <span class="c-hud-opp-mech"></span></div>
+            <div class="c-hud-row">Opponent health: <span class="c-hud-opp-health">100</span></div>
+            <div class="c-hud-row">Speed: <span class="c-hud-speed">0</span></div>
+            <div class="c-hud-row">Heading: <span class="c-hud-heading">north</span></div>
+            <div class="c-hud-row">Sonar: <span class="c-hud-sonar">primary</span></div>
+          </div>
+          <p class="u-screenReader">Up and down arrows change speed. Left and right arrows turn. Shift plus left or right snaps to cardinal direction. Space jumps or activates jetpack. F fires primary weapon. R fires secondary. Shift plus F or R switches sonar mode. H announces your status. Q announces the opponent's distance and direction. Escape pauses.</p>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--pause" hidden>
+        <section class="c-screen a-pause" tabindex="-1" aria-label="Paused">
+          <h1>Paused</h1>
+          <nav class="c-menu">
+            <button type="button" data-action="resume">Resume</button>
+            <button type="button" data-action="quit">Quit to menu</button>
+          </nav>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameOver" hidden>
+        <section class="c-screen a-gameOver" tabindex="-1" aria-label="Game over">
+          <h1 class="c-go-title">Game over</h1>
+          <p class="c-go-message"></p>
+          <nav class="c-menu">
+            <button type="button" data-action="rematch">Rematch</button>
+            <button type="button" data-action="menu">Back to main menu</button>
+          </nav>
+        </section>
+      </div>
+
+    </main>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

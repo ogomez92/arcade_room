@@ -1,0 +1,60 @@
+.a-soundtest {
+  align-items: center;
+}
+  .a-soundtest h1 {
+    font-size: 2em;
+    text-align: center;
+  }
+  .a-soundtest--current {
+    font-family: monospace;
+    opacity: 0.85;
+  }
+  .a-soundtest--list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 1rem 0;
+    padding: 0;
+    width: min(28rem, 90vw);
+  }
+  .a-soundtest--list button {
+    background: transparent;
+    border: 2px solid #FFFFFF;
+    color: #FFFFFF;
+    display: flex;
+    font-size: 1em;
+    gap: 0.6rem;
+    padding: 0.6em 0.9em;
+    text-align: left;
+    width: 100%;
+  }
+  .a-soundtest--list button[aria-pressed="true"] {
+    background: #FFFFFF;
+    color: #000000;
+  }
+  .a-soundtest--list button:focus {
+    outline: 2px solid #ffaa55;
+  }
+  .a-soundtest--list .a-soundtest--idx {
+    font-family: monospace;
+    opacity: 0.7;
+    min-width: 1.5em;
+  }
+  .a-soundtest--actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+  .a-soundtest--actions button {
+    background: transparent;
+    border: 2px solid #FFFFFF;
+    color: #FFFFFF;
+    font-size: 1em;
+    padding: 0.5em 1em;
+  }
+  .a-soundtest--actions button:hover,
+  .a-soundtest--actions button:focus {
+    background: #FFFFFF;
+    color: #000000;
+  }

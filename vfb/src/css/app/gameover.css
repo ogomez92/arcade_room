@@ -1,0 +1,21 @@
+.a-gameover {
+  align-items: center;
+  text-align: center;
+}
+  .a-gameover h1 {
+    font-size: 3em;
+  }
+  .a-gameover button {
+    background: transparent;
+    border: 2px solid #ffffff;
+    color: #ffffff;
+    font: inherit;
+    letter-spacing: 0.125em;
+    padding: 0.5em 2em;
+    text-transform: uppercase;
+  }
+  .a-gameover button:focus,
+  .a-gameover button:hover {
+    background: #ffffff;
+    color: #000000;
+  }

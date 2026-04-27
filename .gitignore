@@ -1,0 +1,22 @@
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Distribution bundles
+*.dmg
+*.zip
+
+# Per-game build artifacts (preserved from prior subrepo gitignores)
+*/dist/*
+!*/dist/.gitkeep
+*/public/scripts.min.js
+*/public/styles.min.css
+pinball-debug.log
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

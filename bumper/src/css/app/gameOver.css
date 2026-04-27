@@ -1,0 +1,62 @@
+.a-gameOver--score {
+  display: grid;
+  font-family: monospace;
+  font-size: 1.4em;
+  grid-template-columns: max-content max-content;
+  grid-column-gap: 1.5em;
+  justify-content: center;
+  margin-top: 1rem;
+}
+  .a-gameOver--score dt { opacity: 0.7; }
+  .a-gameOver--score dd { font-weight: 700; color: #00FFC8; }
+
+.a-gameOver--standings {
+  margin: 1.25rem auto 0;
+  max-width: 32em;
+}
+  .a-gameOver--standingsTitle {
+    font-size: 1em;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+    opacity: 0.8;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .a-gameOver--standingsList {
+    counter-reset: standing;
+    font-family: monospace;
+    font-size: 1.05em;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+    .a-gameOver--standingsList li {
+      align-items: baseline;
+      counter-increment: standing;
+      display: grid;
+      gap: 0.75em;
+      grid-template-columns: 2em 1fr max-content;
+      padding: 0.25em 0.5em;
+    }
+      .a-gameOver--standingsList li::before {
+        content: counter(standing) ".";
+        opacity: 0.6;
+        text-align: right;
+      }
+      .a-gameOver--standingsList li[data-status="winner"] {
+        background: rgba(0, 255, 200, 0.08);
+        border-radius: 4px;
+      }
+      .a-gameOver--standingsList li[data-self="1"] {
+        outline: 1px solid rgba(0, 255, 200, 0.4);
+        border-radius: 4px;
+      }
+      .a-gameOver--standingsList .a-gameOver--standingScore {
+        color: #00FFC8;
+        font-weight: 700;
+      }
+      .a-gameOver--standingsList .a-gameOver--standingTag {
+        opacity: 0.7;
+        font-size: 0.85em;
+      }

@@ -1,0 +1,37 @@
+.a-help {
+  justify-content: flex-start;
+  overflow-y: auto;
+  text-align: left;
+}
+  .a-help > * + * {
+    margin-top: 1rem;
+  }
+  .a-help h1 {
+    font-size: 2rem;
+  }
+  .a-help h2 {
+    font-size: 1.25rem;
+    margin-top: 1.5rem;
+  }
+  .a-help ul {
+    padding-left: 1.5rem;
+  }
+  .a-help li + li {
+    margin-top: 0.25rem;
+  }
+  .a-help kbd {
+    border: 1px solid currentColor;
+    border-radius: 0.25em;
+    display: inline-block;
+    font-family: monospace;
+    padding: 0 0.4em;
+  }
+  .a-help--back {
+    align-self: flex-start;
+    background: transparent;
+    border: 2px solid currentColor;
+    color: inherit;
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+    margin-top: 2rem;
+  }

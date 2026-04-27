@@ -1,0 +1,74 @@
+.a-game {
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 4em;
+}
+  .a-game--hud {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.5rem;
+    display: grid;
+    font-family: monospace;
+    font-size: 1.25em;
+    gap: 0.4rem 1rem;
+    padding: 1.25rem 1.5rem;
+    width: min(28rem, 90vw);
+  }
+  .a-game--row {
+    display: grid;
+    grid-template-columns: 6rem 1fr auto;
+    align-items: baseline;
+  }
+  .a-game--label {
+    opacity: 0.7;
+    text-transform: uppercase;
+    font-size: 0.75em;
+    letter-spacing: 0.1em;
+  }
+  .a-game--value {
+    font-weight: bold;
+  }
+  .a-game--gear {
+    font-size: 1.5em;
+  }
+  .a-game--unit {
+    opacity: 0.6;
+    font-size: 0.8em;
+  }
+  .a-game--row-status {
+    grid-template-columns: 1fr;
+    margin-top: 0.5rem;
+    text-align: center;
+  }
+  .a-game--status {
+    color: #ffaa55;
+    min-height: 1.4em;
+  }
+  .a-game--status:empty::before {
+    content: "\00a0";
+  }
+  .a-game--keys {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 0.8em;
+    gap: 0.4rem 1rem;
+    list-style: none;
+    margin-top: 1.25rem;
+    opacity: 0.7;
+    padding: 0;
+    width: min(28rem, 90vw);
+  }
+  .a-game--keys li {
+    align-items: center;
+    display: flex;
+    gap: 0.4rem;
+  }
+  .a-game--keys kbd,
+  .a-help--keys kbd {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 0.2rem;
+    font-family: monospace;
+    font-size: 0.9em;
+    padding: 0.05em 0.35em;
+  }
