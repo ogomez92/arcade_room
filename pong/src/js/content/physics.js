@@ -11,11 +11,11 @@ content.physics = (() => {
       if (x < 0) {
         x = -x
         vx = -vx * R
-        content.audio.playWallBounce(x, bouncyWalls)
+        content.audio.playWallBounce(x, y, bouncyWalls)
       } else if (x > content.table.WIDTH) {
         x = 2 * content.table.WIDTH - x
         vx = -vx * R
-        content.audio.playWallBounce(x, bouncyWalls)
+        content.audio.playWallBounce(x, y, bouncyWalls)
       }
 
       const playerHalf = content.table.PADDLE_HALF *
@@ -34,7 +34,7 @@ content.physics = (() => {
           y = -y
           vy = -vy * content.table.SHIELD_RESTITUTION
           content.ball.clearSpin()
-          content.audio.playShieldBounce(x)
+          content.audio.playShieldBounce(x, 0)
         } else {
           content.scoring.onGoal('ai')
           return
@@ -53,7 +53,7 @@ content.physics = (() => {
           y = 2 * content.table.LENGTH - y
           vy = -vy * content.table.SHIELD_RESTITUTION
           content.ball.clearSpin()
-          content.audio.playShieldBounce(x)
+          content.audio.playShieldBounce(x, content.table.LENGTH)
         } else {
           content.scoring.onGoal('player')
           return

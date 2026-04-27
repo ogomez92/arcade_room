@@ -5,12 +5,17 @@ content.player = (() => {
   let rightHeldTime = 0
   let leftWasHeld = false
   let rightWasHeld = false
+  // Manual mode: when set, update() ignores the local keyboard and uses
+  // injected keys instead. Host installs this so a team-1 client can
+  // drive the team-1 paddle remotely (mirrors content.ai.manualMode).
+  let manualMode = false
+  let manualKeys = { left: false, right: false }
 
   function tryMove(dir) {
     const next = step + dir
     if (next < 0 || next >= content.table.NUM_STEPS) return
     step = next
-    content.audio.playStepClick()
+    content.audio.playStepClick(step + 0.5)
   }
 
   function processKey(held, wasHeld, heldTime, dir, dt) {
@@ -45,6 +50,17 @@ content.player = (() => {
       rightWasHeld = false
     },
 
+    setManualMode: (on) => {
+      manualMode = on
+      manualKeys = { left: false, right: false }
+      leftWasHeld = false
+      rightWasHeld = false
+      leftHeldTime = 0
+      rightHeldTime = 0
+    },
+
+    setManualKeys: (keys) => { manualKeys = keys },
+
     startCooldown: () => { cooldown = content.table.SWING_COOLDOWN },
     isOnCooldown: () => cooldown > 0,
 
@@ -60,9 +76,9 @@ content.player = (() => {
         return
       }
 
-      const keys = engine.input.keyboard.get()
-      const leftHeld = !!keys['ArrowLeft']
-      const rightHeld = !!keys['ArrowRight']
+      const keys = manualMode ? null : engine.input.keyboard.get()
+      const leftHeld = manualMode ? !!manualKeys.left : !!keys['ArrowLeft']
+      const rightHeld = manualMode ? !!manualKeys.right : !!keys['ArrowRight']
 
       const left = processKey(leftHeld, leftWasHeld, leftHeldTime, -1, dt)
       leftWasHeld = left.wasHeld

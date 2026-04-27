@@ -14,6 +14,10 @@ app.screen.game = app.screenManager.invent({
     prevGs: null,
     prevPbp: null,
     prevPba: null,
+    // Audio events queued by the host's audio relay; flushed into each
+    // outgoing state broadcast so clients can replay them locally with
+    // their own listener perspective.
+    pendingAudioEvents: [],
   },
   onReady: function () {
     const root = this.rootElement
@@ -77,6 +81,7 @@ app.screen.game = app.screenManager.invent({
     this.state.prevGs = null
     this.state.prevPbp = null
     this.state.prevPba = null
+    this.state.pendingAudioEvents = []
 
     const root = this.rootElement
     root.querySelector('.a-game--pregame').hidden = false
@@ -84,12 +89,22 @@ app.screen.game = app.screenManager.invent({
 
     if (this.state.isMultiplayer) {
       content.teamManager.setup(e.team1, e.team2, e.localId)
-      const team2ActiveId = content.teamManager.getTeam2ActiveId()
-      const team2HasHuman = e.team2.some(p => p.id === team2ActiveId)
-      if (team2HasHuman) content.ai.setManualMode(true)
+      // Both paddles run in manual mode in multiplayer so input routing
+      // is uniform: whoever owns each paddle pushes keys via setManualKeys
+      // (the host's own paddle from _hostFrame, the remote paddle from
+      // 'keys' messages). Avoids content.player double-reading the host's
+      // keyboard when the host is on team 2.
+      content.player.setManualMode(true)
+      content.ai.setManualMode(true)
 
       if (this.state.isHost) {
         network.onMessage((peerId, msg) => this._onHostMessage(peerId, msg))
+        // Host taps the audio module so spatial sound calls get queued
+        // for the next state broadcast. Clients replay them with their
+        // own listener perspective (team-aware pan/depth).
+        content.audio.setRelay((name, args) => {
+          this.state.pendingAudioEvents.push({ n: name, a: args })
+        })
         this._startGame(7)
       } else {
         network.onMessage((peerId, msg) => this._onClientMessage(msg))
@@ -120,7 +135,10 @@ app.screen.game = app.screenManager.invent({
     }
     if (this.state.isMultiplayer) {
       content.teamManager.reset()
+      content.player.setManualMode(false)
       content.ai.setManualMode(false)
+      content.audio.setRelay(null)
+      this.state.pendingAudioEvents = []
       network.disconnect()
     }
     engine.loop.pause()
@@ -160,9 +178,15 @@ app.screen.game = app.screenManager.invent({
   _hostFrame: function (e) {
     const localTeam = content.teamManager.getLocalTeam()
     const isBench = content.teamManager.isBench()
-    if (!isBench && localTeam === 2) {
+    // Feed the host's own keyboard into whichever paddle they control.
+    // The other paddle gets its keys from a 'keys' message in
+    // _onHostMessage. Both paddles are in manualMode, so neither reads
+    // the keyboard directly.
+    if (!isBench) {
       const keys = engine.input.keyboard.get()
-      content.ai.setManualKeys({ left: !!keys['ArrowLeft'], right: !!keys['ArrowRight'] })
+      const localKeys = { left: !!keys['ArrowLeft'], right: !!keys['ArrowRight'] }
+      if (localTeam === 1) content.player.setManualKeys(localKeys)
+      else if (localTeam === 2) content.ai.setManualKeys(localKeys)
     }
 
     content.game.update(e)
@@ -178,6 +202,10 @@ app.screen.game = app.screenManager.invent({
     }
     if (pbs.player) stateMsg.pbp = { x: pbs.player.x }
     if (pbs.ai)     stateMsg.pba = { x: pbs.ai.x }
+    if (this.state.pendingAudioEvents.length) {
+      stateMsg.events = this.state.pendingAudioEvents
+      this.state.pendingAudioEvents = []
+    }
     network.broadcast(stateMsg)
 
     if (!this.state.showingGameOver && content.game.isGameOver()) {
@@ -193,15 +221,6 @@ app.screen.game = app.screenManager.invent({
     const gs = s.gs
     const prevGs = this.state.prevGs
 
-    if (prevGs !== 'playing' && gs === 'playing') {
-      content.audio.startBall()
-    } else if (prevGs === 'playing' && gs !== 'playing') {
-      content.audio.stopBall()
-      content.audio.stopPowerupRoll()
-      this.state.prevPbp = null
-      this.state.prevPba = null
-    }
-
     if (gs === 'game_over' && prevGs !== 'game_over' && !this.state.showingGameOver) {
       this.state.showingGameOver = true
       this._showGameOver()
@@ -209,31 +228,22 @@ app.screen.game = app.screenManager.invent({
 
     this.state.prevGs = gs
 
+    // The host relays startBall/stopBall and startPowerupRoll/stopPowerupRoll
+    // through audio events; only the per-frame continuous updates run here.
     if (gs === 'playing') {
       content.audio.updateBall({ x: s.bx, y: s.by, vx: s.bvx, vy: s.bvy })
-      const pbp = s.pbp || null
-      const pba = s.pba || null
-      if (pbp) {
-        if (!this.state.prevPbp) content.audio.startPowerupRoll('player')
-        content.audio.updatePowerupRoll(pbp.x, 'player')
-      } else if (this.state.prevPbp) {
-        content.audio.stopPowerupRoll('player')
-      }
-      if (pba) {
-        if (!this.state.prevPba) content.audio.startPowerupRoll('ai')
-        content.audio.updatePowerupRoll(pba.x, 'ai')
-      } else if (this.state.prevPba) {
-        content.audio.stopPowerupRoll('ai')
-      }
-      this.state.prevPbp = pbp
-      this.state.prevPba = pba
+      if (s.pbp) content.audio.updatePowerupRoll(s.pbp.x, 'player')
+      if (s.pba) content.audio.updatePowerupRoll(s.pba.x, 'ai')
     }
   },
 
   _onHostMessage: function (peerId, msg) {
     if (msg.type === 'keys') {
-      if (content.teamManager.getTeam2ActiveId() === peerId) {
-        content.ai.setManualKeys({ left: msg.left, right: msg.right })
+      const keys = { left: !!msg.left, right: !!msg.right }
+      if (content.teamManager.getTeam1ActiveId() === peerId) {
+        content.player.setManualKeys(keys)
+      } else if (content.teamManager.getTeam2ActiveId() === peerId) {
+        content.ai.setManualKeys(keys)
       }
     } else if (msg.type === 'swing') {
       if (content.teamManager.getTeam2ActiveId() === peerId) {
@@ -247,6 +257,17 @@ app.screen.game = app.screenManager.invent({
   _onClientMessage: function (msg) {
     if (msg.type === 'state') {
       this.state.receivedState = msg
+      // Replay any host-emitted audio events through the local audio
+      // module. Each call routes through calcPan/calcDepthT here, so
+      // sounds land in the listener's own team perspective.
+      if (Array.isArray(msg.events)) {
+        for (const ev of msg.events) {
+          if (!ev || !ev.n) continue
+          const fn = content.audio[ev.n]
+          if (typeof fn !== 'function') continue
+          try { fn.apply(content.audio, ev.a || []) } catch (err) {}
+        }
+      }
     }
   },
 })

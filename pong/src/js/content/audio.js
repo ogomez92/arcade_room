@@ -5,6 +5,17 @@ content.audio = (() => {
   let demoSound = null
   const powerupActiveSounds = {}
 
+  // When set (on the multiplayer host), networked sound calls fire this
+  // first so the screen layer can queue them for broadcast. Each peer
+  // replays incoming events through the same public methods, but with
+  // _relay null so the events never bounce back. Args is an array passed
+  // verbatim to apply().
+  let _relay = null
+  function relay(name, args) {
+    if (!_relay) return
+    try { _relay(name, args) } catch (e) {}
+  }
+
   const POWERUP_ACTIVE_SPEC = {
     widePaddle:  { oscType: 'sine',     freq: 80,  lfoFreq: 1.5, lfoDepth: 0.22 },
     shield:      { oscType: 'triangle', freq: 160, lfoFreq: 0.8, lfoDepth: 0.28 },
@@ -222,13 +233,30 @@ content.audio = (() => {
     return y / content.table.LENGTH
   }
 
+  // Standard depth gain: 1.0 at the listener, ~0.02 at the far paddle.
+  function depthGainAt(y) { return Math.pow(0.02, calcDepthT(y)) }
+
+  // POWERUP_ACTIVE_GAIN is keyed by 'player' (loud, your paddle) and 'ai'
+  // (quiet, far paddle). In multiplayer, a team-2 listener owns the 'ai'
+  // paddle, so swap the lookup so their own powerup plays at the loud
+  // "player" gain.
+  function gainOwnerForLocal(owner) {
+    const isTeam2 = content.teamManager && content.teamManager.isTeam2()
+    if (!isTeam2) return owner
+    return owner === 'player' ? 'ai' : 'player'
+  }
+
   return {
+    setRelay: (fn) => { _relay = fn },
+
     startBall: () => {
+      relay('startBall', [])
       if (ballSound) { destroyBallNodes(ballSound); ballSound = null }
       ballSound = createBallNodes()
     },
 
     stopBall: () => {
+      relay('stopBall', [])
       if (ballSound) { destroyBallNodes(ballSound); ballSound = null }
     },
 
@@ -246,15 +274,24 @@ content.audio = (() => {
       ballSound.lfoOsc.frequency.value = 34 + speed * 0.4
     },
 
-    playStepClick: () => {
-      playBurst({ freq: 900, noiseRatio: 0.6, duration: 0.02, gain: 0.25, filterFreq: 1800 })
+    // Step click for the team-1 paddle (at y=0). x defaults to the local
+    // paddle position so single-player can keep calling with no args.
+    playStepClick: (x) => {
+      if (x == null) x = content.player.getX()
+      relay('playStepClick', [x])
+      const depth = depthGainAt(0)
+      playBurst({ freq: 900, noiseRatio: 0.6, duration: 0.02, gain: 0.25 * depth, filterFreq: 1800, pan: calcPan(x) })
     },
 
+    // Step click for the team-2 paddle (at y=LENGTH).
     playAiStepClick: (x) => {
-      playBurst({ freq: 900, noiseRatio: 0.6, duration: 0.02, gain: 0.005, filterFreq: 1800, pan: calcPan(x) })
+      relay('playAiStepClick', [x])
+      const depth = depthGainAt(content.table.LENGTH)
+      playBurst({ freq: 900, noiseRatio: 0.6, duration: 0.02, gain: 0.25 * depth, filterFreq: 1800, pan: calcPan(x) })
     },
 
     startPowerupRoll: (owner) => {
+      relay('startPowerupRoll', [owner])
       if (powerupRollSounds[owner]) { destroyPowerupNodes(powerupRollSounds[owner]); delete powerupRollSounds[owner] }
       const isMine = !content.teamManager || !content.teamManager.isMultiplayer()
         ? owner === 'player'
@@ -263,6 +300,7 @@ content.audio = (() => {
     },
 
     stopPowerupRoll: (owner) => {
+      relay('stopPowerupRoll', [owner])
       if (owner != null) {
         const s = powerupRollSounds[owner]
         if (s) { destroyPowerupNodes(s); delete powerupRollSounds[owner] }
@@ -280,7 +318,7 @@ content.audio = (() => {
       s.panner.pan.value = calcPan(x)
     },
 
-    playPowerupAppear: (x) => {
+    playPowerupAppear: (x) => { relay('playPowerupAppear', [x])
       const ctx = engine.context()
       const bus = engine.mixer.createBus()
       const now = ctx.currentTime
@@ -304,7 +342,7 @@ content.audio = (() => {
       setTimeout(() => { try { bus.disconnect() } catch(e) {} }, 400)
     },
 
-    playPowerupDisappear: (x) => {
+    playPowerupDisappear: (x) => { relay('playPowerupDisappear', [x])
       const ctx = engine.context()
       const bus = engine.mixer.createBus()
       const now = ctx.currentTime
@@ -327,7 +365,7 @@ content.audio = (() => {
       setTimeout(() => { try { bus.disconnect() } catch(e) {} }, 400)
     },
 
-    playPowerupPickup: (type) => {
+    playPowerupPickup: (type) => { relay('playPowerupPickup', [type])
       const ctx = engine.context()
       const now = ctx.currentTime
       const bus = engine.mixer.createBus()
@@ -374,11 +412,15 @@ content.audio = (() => {
       setTimeout(() => { try { bus.disconnect() } catch(e) {} }, 700)
     },
 
-    playShieldBounce: (x) => {
-      playBurst({ freq: 220, noiseRatio: 0.3, duration: 0.07, gain: 0.5, filterFreq: 440, pan: calcPan(x) })
+    playShieldBounce: (x, y) => {
+      relay('playShieldBounce', [x, y])
+      const depth = (y != null) ? depthGainAt(y) : 1
+      playBurst({ freq: 220, noiseRatio: 0.3, duration: 0.07, gain: 0.5 * depth, filterFreq: 440, pan: calcPan(x) })
     },
 
-    playWallBounce: (x, bouncy = false) => {
+    playWallBounce: (x, y, bouncy = false) => {
+      relay('playWallBounce', [x, y, bouncy])
+      const depth = (y != null) ? depthGainAt(y) : 1
       if (bouncy) {
         const ctx = engine.context()
         const bus = engine.mixer.createBus()
@@ -393,7 +435,7 @@ content.audio = (() => {
         osc.type = 'sine'
         osc.frequency.setValueAtTime(180, now)
         osc.frequency.exponentialRampToValueAtTime(800, now + 0.10)
-        g.gain.setValueAtTime(0.55, now)
+        g.gain.setValueAtTime(0.55 * depth, now)
         g.gain.exponentialRampToValueAtTime(0.0001, now + 0.20)
         osc.connect(g)
         g.connect(panner)
@@ -405,7 +447,7 @@ content.audio = (() => {
         osc2.type = 'triangle'
         osc2.frequency.setValueAtTime(360, now)
         osc2.frequency.exponentialRampToValueAtTime(1600, now + 0.10)
-        g2.gain.setValueAtTime(0.22, now)
+        g2.gain.setValueAtTime(0.22 * depth, now)
         g2.gain.exponentialRampToValueAtTime(0.0001, now + 0.14)
         osc2.connect(g2)
         g2.connect(panner)
@@ -413,16 +455,18 @@ content.audio = (() => {
         osc2.stop(now + 0.16)
         setTimeout(() => { try { bus.disconnect() } catch(e) {} }, 500)
       } else {
-        playBurst({ freq: 320, noiseRatio: 0.55, duration: 0.055, gain: 0.45, filterFreq: 640, pan: calcPan(x) })
+        playBurst({ freq: 320, noiseRatio: 0.55, duration: 0.055, gain: 0.45 * depth, filterFreq: 640, pan: calcPan(x) })
       }
     },
 
     playPaddleHit: (x, y) => {
-      const depth = Math.pow(0.02, y / content.table.LENGTH)
+      relay('playPaddleHit', [x, y])
+      const depth = depthGainAt(y)
       playBurst({ freq: 130, noiseRatio: 0.45, duration: 0.085, gain: 0.5 * depth, filterFreq: 260, pan: calcPan(x) })
     },
 
-    playSwingHit: (x, forceMult = 1) => {
+    playSwingHit: (x, y, forceMult = 1) => {
+      relay('playSwingHit', [x, y, forceMult])
       const ctx = engine.context()
       const bus = engine.mixer.createBus()
       const now = ctx.currentTime
@@ -430,7 +474,7 @@ content.audio = (() => {
       const f = Math.min(forceMult, 2)
 
       const out = ctx.createGain()
-      out.gain.value = (x != null) ? Math.pow(0.02, content.table.LENGTH / content.table.LENGTH) : 1
+      out.gain.value = (y != null) ? depthGainAt(y) : 1
       const panner = ctx.createStereoPanner()
       panner.pan.value = (x != null) ? calcPan(x) : 0
       out.connect(panner)
@@ -469,7 +513,7 @@ content.audio = (() => {
       setTimeout(() => { try { bus.disconnect() } catch(e) {} }, (dur + 0.2) * 1000)
     },
 
-    playSwingMiss: () => {
+    playSwingMiss: () => { relay('playSwingMiss', [])
       const ctx = engine.context()
       const bus = engine.mixer.createBus()
       const now = ctx.currentTime
@@ -491,7 +535,7 @@ content.audio = (() => {
       setTimeout(() => { try { bus.disconnect() } catch(e) {} }, (dur + 0.2) * 1000)
     },
 
-    playSwing: (forceMult = 1) => {
+    playSwing: (forceMult = 1) => { relay('playSwing', [forceMult])
       const ctx = engine.context()
       const bus = engine.mixer.createBus()
       const now = ctx.currentTime
@@ -517,7 +561,7 @@ content.audio = (() => {
       setTimeout(() => { try { bus.disconnect() } catch(e) {} }, (dur + 0.2) * 1000)
     },
 
-    playServeBeep: () => {
+    playServeBeep: () => { relay('playServeBeep', [])
       const ctx = engine.context()
       const bus = engine.mixer.createBus()
       const now = ctx.currentTime
@@ -536,8 +580,12 @@ content.audio = (() => {
     },
 
     playGoal: (scorer) => {
-      // C major arpeggio up (player scores) or down (AI scores)
-      const notes = scorer === 'player'
+      relay('playGoal', [scorer])
+      // Map team-coordinates to local perspective so team 2 hears the
+      // ascending arpeggio when *they* score, not the descending one.
+      const isTeam2 = content.teamManager && content.teamManager.isTeam2()
+      const selfScored = isTeam2 ? (scorer === 'ai') : (scorer === 'player')
+      const notes = selfScored
         ? [392, 523, 659, 784]   // G4 C5 E5 G5 — ascending, triumphant
         : [523, 440, 370, 294]   // C5 A4 F#4 D4 — descending, minor feel
       const noteDur = 0.09
@@ -564,8 +612,12 @@ content.audio = (() => {
     },
 
     playServeIndicator: (who) => {
-      // Two-note cue: ascending = your serve, descending = computer's serve
-      const notes = who === 'player' ? [330, 494] : [494, 330]
+      relay('playServeIndicator', [who])
+      // Map team-coordinates to local perspective so team 2 hears
+      // ascending = your serve, descending = opponent's serve.
+      const isTeam2 = content.teamManager && content.teamManager.isTeam2()
+      const isMine = isTeam2 ? (who === 'ai') : (who === 'player')
+      const notes = isMine ? [330, 494] : [494, 330]
       const noteDur = 0.07
       notes.forEach((freq, i) => {
         setTimeout(() => {
@@ -644,6 +696,7 @@ content.audio = (() => {
     },
 
     startPowerupActive: (type, owner) => {
+      relay('startPowerupActive', [type, owner])
       const key = `${owner}_${type}`
       if (powerupActiveSounds[key]) return
       const spec = POWERUP_ACTIVE_SPEC[type]
@@ -656,7 +709,7 @@ content.audio = (() => {
       const lfoOsc = ctx.createOscillator()
       lfoOsc.type = 'sine'
       lfoOsc.frequency.value = spec.lfoFreq
-      const baseGain = POWERUP_ACTIVE_GAIN[type][owner]
+      const baseGain = POWERUP_ACTIVE_GAIN[type][gainOwnerForLocal(owner)]
       const lfoGain = ctx.createGain()
       lfoGain.gain.value = baseGain * spec.lfoDepth
       const mainGain = ctx.createGain()
@@ -680,6 +733,7 @@ content.audio = (() => {
     },
 
     stopPowerupActive: (type, owner) => {
+      relay('stopPowerupActive', [type, owner])
       const key = `${owner}_${type}`
       const s = powerupActiveSounds[key]
       if (!s) return
@@ -690,6 +744,7 @@ content.audio = (() => {
     },
 
     playPowerupDeactivate: (type, owner) => {
+      relay('playPowerupDeactivate', [type, owner])
       const spec = POWERUP_DEACTIVATE_SPEC[type]
       if (!spec) return
       const ctx = engine.context()
@@ -700,7 +755,7 @@ content.audio = (() => {
       osc.type = spec.oscType
       osc.frequency.setValueAtTime(spec.startFreq, now)
       osc.frequency.exponentialRampToValueAtTime(spec.endFreq, now + spec.dur)
-      const peakGain = POWERUP_ACTIVE_GAIN[type][owner] * 2.5
+      const peakGain = POWERUP_ACTIVE_GAIN[type][gainOwnerForLocal(owner)] * 2.5
       g.gain.setValueAtTime(peakGain, now)
       g.gain.exponentialRampToValueAtTime(0.0001, now + spec.dur)
       osc.connect(g)
@@ -710,7 +765,7 @@ content.audio = (() => {
       setTimeout(() => { try { bus.disconnect() } catch(e) {} }, (spec.dur + 0.2) * 1000)
     },
 
-    playTagIn: () => {
+    playTagIn: () => { relay('playTagIn', [])
       // Two short ascending notes E→G
       const ctx = engine.context()
       const now = ctx.currentTime
@@ -731,7 +786,7 @@ content.audio = (() => {
       })
     },
 
-    playTagOut: () => {
+    playTagOut: () => { relay('playTagOut', [])
       // Single descending note G→E glide
       const ctx = engine.context()
       const bus = engine.mixer.createBus()

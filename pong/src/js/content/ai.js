@@ -123,7 +123,7 @@ content.ai = (() => {
           const spinDir = dir === 'a' ? -1 : dir === 'd' ? 1 : (Math.random() < 0.5 ? -1 : 1)
           content.ball.setSpin(spinDir * content.table.POWERUP_CURVE_SPIN)
         }
-        content.audio.playSwingHit(step + 0.5, forceMult)
+        content.audio.playSwingHit(step + 0.5, content.table.LENGTH, forceMult)
       }
     },
 
@@ -160,7 +160,7 @@ content.ai = (() => {
           const spinDir = dir === 'a' ? -1 : dir === 'd' ? 1 : (Math.random() < 0.5 ? -1 : 1)
           content.ball.setSpin(spinDir * content.table.POWERUP_CURVE_SPIN)
         }
-        content.audio.playSwingHit(step + 0.5, forceMult)
+        content.audio.playSwingHit(step + 0.5, content.table.LENGTH, forceMult)
       } else {
         content.audio.playSwingMiss()
       }

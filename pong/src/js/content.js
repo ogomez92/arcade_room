@@ -85,7 +85,7 @@ content.game = (() => {
           content.ball.setSpin(spinDir * content.table.POWERUP_CURVE_SPIN)
         }
         content.player.startCooldown()
-        setTimeout(() => content.audio.playSwingHit(null, forceMult), 55)
+        setTimeout(() => content.audio.playSwingHit(playerX, 0, forceMult), 55)
       } else {
         content.player.startCooldown()
         content.audio.playSwingMiss()
