@@ -128,3 +128,6 @@ content.mechs.list = () => [
   content.mechs.phantom,
   content.mechs.brawler,
 ]
+
+content.mechs.nameOf = (mech) => mech ? app.i18n.t('mech.' + mech.id + '.name') : ''
+content.mechs.descOf = (mech) => mech ? app.i18n.t('mech.' + mech.id + '.description') : ''

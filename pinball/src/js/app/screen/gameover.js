@@ -19,9 +19,13 @@ app.screen.gameover = app.screenManager.invent({
   onEnter: function () {
     this.state.entryFrames = 8
     const root = this.rootElement
-    root.querySelector('.a-gameover--score').textContent =
-      content.game.state.score.toLocaleString()
-    root.querySelector('.a-gameover--rank').textContent = content.game.rankName()
+    const summary = root.querySelector('.a-gameover--summary')
+    if (summary) {
+      summary.textContent = app.i18n.t('gameover.summary', {
+        score: content.game.state.score.toLocaleString(),
+        rank: content.game.rankName(),
+      })
+    }
   },
   onFrame: function () {
     if (this.state.entryFrames > 0) { this.state.entryFrames--; return }

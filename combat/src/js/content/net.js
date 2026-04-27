@@ -33,20 +33,20 @@ content.net = (() => {
 
   function host() {
     if (typeof window.Peer === 'undefined') {
-      onStatus('PeerJS library is not available. Online play requires an internet connection.')
+      onStatus(app.i18n.t('mp.peerUnavailable'))
       return
     }
     roomCode = randomCode()
     isHost = true
-    onStatus('Creating room...')
+    onStatus(app.i18n.t('mp.creatingRoom'))
     peer = new window.Peer(roomCode)
 
     peer.on('open', (id) => {
-      onStatus('Room ready. Share the code with your opponent.')
+      onStatus(app.i18n.t('mp.roomReady'))
       onOpen(id)
     })
     peer.on('error', (err) => {
-      onStatus('Error: ' + err.type)
+      onStatus(app.i18n.t('mp.error', {type: err.type}))
     })
     peer.on('connection', (c) => {
       conn = c
@@ -56,18 +56,18 @@ content.net = (() => {
 
   function join(code) {
     if (typeof window.Peer === 'undefined') {
-      onStatus('PeerJS library is not available. Online play requires an internet connection.')
+      onStatus(app.i18n.t('mp.peerUnavailable'))
       return
     }
     isHost = false
-    onStatus('Connecting...')
+    onStatus(app.i18n.t('mp.connecting'))
     peer = new window.Peer()
     peer.on('open', () => {
       conn = peer.connect(code.trim().toUpperCase())
       setupConn()
     })
     peer.on('error', (err) => {
-      onStatus('Error: ' + err.type)
+      onStatus(app.i18n.t('mp.error', {type: err.type}))
     })
   }
 
@@ -75,7 +75,7 @@ content.net = (() => {
     if (!conn) return
     conn.on('open', () => {
       connected = true
-      onStatus('Connected.')
+      onStatus(app.i18n.t('mp.connected'))
       onOpen(conn.peer)
     })
     conn.on('data', (data) => {
@@ -97,10 +97,10 @@ content.net = (() => {
     })
     conn.on('close', () => {
       connected = false
-      onStatus('Disconnected.')
+      onStatus(app.i18n.t('mp.disconnected'))
     })
     conn.on('error', (err) => {
-      onStatus('Connection error: ' + err.type)
+      onStatus(app.i18n.t('mp.connectionError', {type: err.type}))
     })
   }
 

@@ -19,13 +19,14 @@ app.screen.highscores = app.screenManager.invent({
     this.state.entryFrames = 6 // ignore input briefly so the entering keypress doesn't bounce us back
     const entries = app.highscores.list()
     if (!entries.length) {
-      app.announce.polite('High scores. No scores yet.')
+      app.announce.polite(app.i18n.t('ann.highscoresEmpty'))
       return
     }
+    const lvlWord = app.i18n.t('game.level').replace(':', '').toLowerCase()
     const top = entries.slice(0, 5).map((e, i) =>
-      `${i + 1}: ${e.name}, ${e.score}, level ${e.level || 1}`
+      `${i + 1}: ${e.name}, ${e.score}, ${lvlWord} ${e.level || 1}`
     )
-    app.announce.polite(`High scores. ${top.join('. ')}.`)
+    app.announce.polite(app.i18n.t('ann.highscoresList', {top: top.join('. ')}))
   },
   onFrame: function () {
     if (this.state.entryFrames > 0) {
@@ -44,13 +45,13 @@ app.screen.highscores = app.screenManager.invent({
     const entries = app.highscores.list()
     if (!entries.length) {
       const li = document.createElement('li')
-      li.textContent = 'No scores yet — be the first!'
+      li.textContent = app.i18n.t('highscores.empty')
       list.appendChild(li)
       return
     }
     for (const e of entries) {
       const li = document.createElement('li')
-      li.textContent = `${e.name} — ${e.score} (level ${e.level || 1})`
+      li.textContent = app.i18n.t('highscores.entry', {name: e.name, score: e.score, level: e.level || 1})
       list.appendChild(li)
     }
   },

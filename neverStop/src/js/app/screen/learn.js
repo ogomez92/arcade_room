@@ -24,7 +24,16 @@ app.screen.learn = app.screenManager.invent({
       const btn = document.createElement('button')
       btn.type = 'button'
       btn.setAttribute('data-learn-sound', sound.id)
-      btn.innerHTML = `<span class="a-learn--name">${sound.name}</span><span class="a-learn--desc">${sound.desc}</span>`
+      const nameEl = document.createElement('span')
+      nameEl.className = 'a-learn--name'
+      nameEl.dataset.i18n = 'learn.s.' + sound.id + '.name'
+      nameEl.textContent = app.i18n.t('learn.s.' + sound.id + '.name')
+      const descEl = document.createElement('span')
+      descEl.className = 'a-learn--desc'
+      descEl.dataset.i18n = 'learn.s.' + sound.id + '.desc'
+      descEl.textContent = app.i18n.t('learn.s.' + sound.id + '.desc')
+      btn.appendChild(nameEl)
+      btn.appendChild(descEl)
       btn.addEventListener('click', () => {
         const ctx = engine.context()
         if (ctx && ctx.state === 'suspended') ctx.resume()

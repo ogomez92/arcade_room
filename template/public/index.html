@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en-US">
   <head>
-    <title>syngen-template</title>
+    <title data-i18n="doc.title">syngen-template</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="./favicon.png" />
     <link rel="stylesheet" type="text/css" href="./styles.min.css" />
@@ -11,7 +11,18 @@
       <canvas class="a-app--overlaySupport"></canvas>
 
       <div class="a-app--screen a-app--game">
-        <section class="c-screen a-game" tabindex="-1" aria-label="Game"></section>
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria"></section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
       </div>
 
       <div class="a-app--screen a-app--splash">
@@ -19,9 +30,12 @@
           <h1 class="a-splash--logo">syngen-template</h1>
           <div class="a-splash--details">
             <div class="a-splash--version"></div>
-            <div class="a-splash--author">by shiftBacktick</div>
+            <div class="a-splash--author" data-i18n="splash.author">by shiftBacktick</div>
           </div>
-          <div class="a-splash--instruction">Interact to Begin</div>
+          <div class="a-splash--instruction" data-i18n="splash.instruction">Interact to Begin</div>
+          <div class="a-splash--actions">
+            <button class="c-menu--button a-splash--language" data-action="language" data-i18n="language.button">Language</button>
+          </div>
         </section>
       </div>
 

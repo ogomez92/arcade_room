@@ -26,24 +26,26 @@ app.screen.settings = app.screenManager.invent({
   render: function () {
     const list = this.state.listEl
     list.innerHTML = ''
+    const diffMap = { easy: 'settings.diffEasy', normal: 'settings.diffNormal', hard: 'settings.diffHard' }
 
     const diff = document.createElement('fieldset')
-    diff.innerHTML = `<legend>Difficulty</legend>` +
+    diff.innerHTML = `<legend>${app.i18n.t('settings.difficulty')}</legend>` +
       ['easy', 'normal', 'hard'].map((d) => {
         const sel = app.settings.computed.difficulty === d ? 'aria-pressed="true"' : 'aria-pressed="false"'
-        return `<button type="button" data-setting="difficulty" data-value="${d}" ${sel}>${d}</button>`
+        return `<button type="button" data-setting="difficulty" data-value="${d}" ${sel}>${app.i18n.t(diffMap[d])}</button>`
       }).join(' ')
     list.appendChild(diff)
 
     const vol = document.createElement('fieldset')
     const v = Math.round(app.settings.computed.volume * 100)
-    vol.innerHTML = `<legend>Master Volume: <span class="a-settings--volume">${v}%</span></legend>` +
-      `<button type="button" data-adjust="volume" data-delta="-0.1" aria-label="Volume down">−</button> ` +
-      `<button type="button" data-adjust="volume" data-delta="0.1" aria-label="Volume up">+</button>`
+    vol.innerHTML = `<legend>${app.i18n.t('settings.masterVolume')}: <span class="a-settings--volume">${v}%</span></legend>` +
+      `<button type="button" data-adjust="volume" data-delta="-0.1" aria-label="${app.i18n.t('settings.volumeDown')}">−</button> ` +
+      `<button type="button" data-adjust="volume" data-delta="0.1" aria-label="${app.i18n.t('settings.volumeUp')}">+</button>`
     list.appendChild(vol)
   },
   onEnter: function () {
-    app.announce.polite('Settings. Use Tab to navigate.')
+    this.render()
+    app.announce.polite(app.i18n.t('ann.settings'))
   },
   onFrame: function () {
     const ui = app.controls.ui()
@@ -62,7 +64,8 @@ app.screen.settings = app.screenManager.invent({
     if (key === 'difficulty') {
       app.settings.setDifficulty(value)
       app.settings.save()
-      app.announce.polite('Difficulty: ' + value)
+      const diffMap = { easy: 'settings.diffEasy', normal: 'settings.diffNormal', hard: 'settings.diffHard' }
+      app.announce.polite(app.i18n.t('ann.difficulty', {value: app.i18n.t(diffMap[value] || value)}))
     }
     this.render()
   },
@@ -71,7 +74,7 @@ app.screen.settings = app.screenManager.invent({
       const next = Math.max(0, Math.min(1, (app.settings.computed.volume || 0) + delta))
       app.settings.setVolume(next)
       app.settings.save()
-      app.announce.polite('Volume ' + Math.round(next * 100) + ' percent')
+      app.announce.polite(app.i18n.t('ann.volume', {value: Math.round(next * 100)}))
     }
     this.render()
   },

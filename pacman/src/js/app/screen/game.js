@@ -38,35 +38,40 @@ app.screen.game = app.screenManager.invent({
     content.events.on('score-change', () => this.refreshHud())
     content.events.on('level-start', (e) => {
       this.refreshHud()
-      app.announce.polite(`Level ${e.level}. Get ready!`)
+      app.announce.polite(app.i18n.t('ann.levelGetReady', {level: e.level}))
     })
     content.events.on('level-clear', (e) => {
-      app.announce.assertive(`Level ${e.level} cleared!`)
+      app.announce.assertive(app.i18n.t('ann.levelCleared', {level: e.level}))
     })
     content.events.on('life-lost', () => {
-      app.announce.assertive('Caught! Lives left: ' + Math.max(0, content.game.state.lives - 1))
+      app.announce.assertive(app.i18n.t('ann.caught', {lives: Math.max(0, content.game.state.lives - 1)}))
       this.refreshHud()
     })
-    content.events.on('extra-life', () => app.announce.polite('Extra life!'))
-    content.events.on('eat-power', () => app.announce.polite('Power pellet! Ghosts vulnerable.'))
-    content.events.on('ghost-eaten', (e) => app.announce.polite(`${e.name} eaten! +${e.points}`))
-    content.events.on('fruit-spawn', (e) => app.announce.polite(`A ${e.name} appeared!`))
-    content.events.on('fruit-eaten', (e) => app.announce.polite(`${e.name} +${e.points}`))
+    content.events.on('extra-life', () => app.announce.polite(app.i18n.t('ann.extraLife')))
+    content.events.on('eat-power', () => app.announce.polite(app.i18n.t('ann.eatPower')))
+    content.events.on('ghost-eaten', (e) => app.announce.polite(app.i18n.t('ann.ghostEaten', {name: e.name, points: e.points})))
+    content.events.on('fruit-spawn', (e) => app.announce.polite(app.i18n.t('ann.fruitSpawn', {name: e.name})))
+    content.events.on('fruit-eaten', (e) => app.announce.polite(app.i18n.t('ann.fruitEaten', {name: e.name, points: e.points})))
     content.events.on('game-over', () => {
-      app.announce.assertive('Game over.')
+      app.announce.assertive(app.i18n.t('ann.gameOverShort'))
       app.screenManager.dispatch('gameOver')
     })
     content.events.on('wall-hit', (e) => {
       content.sfx.wallHit()
       const opens = openDirections(e.x, e.y)
-      if (opens.length === 0) app.announce.polite('no exits')
-      else app.announce.polite(opens.join(' ') + ' open')
+      if (opens.length === 0) app.announce.polite(app.i18n.t('ann.noExits'))
+      else app.announce.polite(app.i18n.t('ann.opensList', {list: opens.join(' ')}))
     })
   },
   onEnter: function () {
     content.audio.start()
     content.sfx.introJingle()
-    app.announce.polite(`Level ${content.game.state.level}. Score ${content.game.state.score}. Lives ${content.game.state.lives}.`)
+    app.announce.polite(app.i18n.t('ann.score', {
+      score: content.game.state.score,
+      lives: content.game.state.lives,
+      level: content.game.state.level,
+      dots: content.maze.dotsRemaining(),
+    }))
     this.refreshHud()
     this.state.f1Pressed = false
     this.state.f2Pressed = false
@@ -162,7 +167,7 @@ app.screen.game = app.screenManager.invent({
       if (k.is('Digit' + i)) {
         const m = 0.5 + (i - 1) * 0.15
         content.pacman.setSpeedMultiplier(m)
-        app.announce.polite('Speed ' + i)
+        app.announce.polite(app.i18n.t('ann.speed', {n: i}))
       }
     }
 
@@ -175,7 +180,7 @@ app.screen.game = app.screenManager.invent({
     if (chord && !this.state.ghostToggleDown) {
       const next = !content.ghosts.isDisabled()
       content.ghosts.setDisabled(next)
-      app.announce.assertive(next ? 'Ghosts off.' : 'Ghosts on.')
+      app.announce.assertive(app.i18n.t(next ? 'ann.ghostsOff' : 'ann.ghostsOn'))
     }
     this.state.ghostToggleDown = chord
 
@@ -195,7 +200,9 @@ app.screen.game = app.screenManager.invent({
   },
   announceScore: function () {
     const s = content.game.state
-    app.announce.polite(`Score ${s.score}. Lives ${s.lives}. Level ${s.level}. ${content.maze.dotsRemaining()} dots remaining.`)
+    app.announce.polite(app.i18n.t('ann.score', {
+      score: s.score, lives: s.lives, level: s.level, dots: content.maze.dotsRemaining(),
+    }))
   },
   // F2: nearest target. Fruit (and any future special items) takes precedence
   // over dots — if a bonus is on the maze, the player should be heading for it.
@@ -210,39 +217,39 @@ app.screen.game = app.screenManager.invent({
       const fp = content.fruit.getPosition()
       const path = content.maze.pathTo(p.x, p.y, fp.x, fp.y)
       if (path) {
-        const label = nextStepDir(p, path.nextStepTile)
-        const name = content.fruit.name() || 'fruit'
-        app.announce.polite(`${name}: ${label}, ${path.distance} tiles.`)
+        const direction = nextStepDir(p, path.nextStepTile)
+        const name = content.fruit.name() || app.i18n.t('ann.fruitGeneric')
+        app.announce.polite(app.i18n.t('ann.targetFruit', {name, direction, distance: path.distance}))
         return
       }
     }
 
     const result = content.maze.nearestDotByPath(p.x, p.y)
     if (!result) {
-      app.announce.polite('No dots remaining.')
+      app.announce.polite(app.i18n.t('ann.noDots'))
       return
     }
-    let bucket = 'far'
-    if (result.distance < 4) bucket = 'close'
-    else if (result.distance < 10) bucket = 'medium'
-    const label = nextStepDir(p, result.nextStepTile)
-    app.announce.polite(`Nearest dot: ${bucket}, ${label}, ${result.distance} tiles.`)
+    let bucketKey = 'ann.bucketFar'
+    if (result.distance < 4) bucketKey = 'ann.bucketClose'
+    else if (result.distance < 10) bucketKey = 'ann.bucketMedium'
+    const direction = nextStepDir(p, result.nextStepTile)
+    app.announce.polite(app.i18n.t('ann.targetDot', {bucket: app.i18n.t(bucketKey), direction, distance: result.distance}))
   },
   announceDotsRemaining: function () {
     const n = content.maze.dotsRemaining()
-    if (n === 0) app.announce.polite('Level cleared.')
-    else if (n === 1) app.announce.polite('1 dot left to clear the level.')
-    else app.announce.polite(`${n} dots left to clear the level.`)
+    if (n === 0) app.announce.polite(app.i18n.t('ann.levelClearedShort'))
+    else if (n === 1) app.announce.polite(app.i18n.t('ann.dotsLeft1'))
+    else app.announce.polite(app.i18n.t('ann.dotsLeftN', {n}))
   },
   announceCompletion: function () {
     const total = content.game.state.totalDots
     const remaining = content.maze.dotsRemaining()
     if (!total) {
-      app.announce.polite('Level not started.')
+      app.announce.polite(app.i18n.t('ann.levelNotStarted'))
       return
     }
     const pct = Math.round(((total - remaining) / total) * 100)
-    app.announce.polite(`${pct} percent complete.`)
+    app.announce.polite(app.i18n.t('ann.percentComplete', {pct}))
   },
 })
 
@@ -252,15 +259,15 @@ app.screen.game = app.screenManager.invent({
 // facing.
 function openDirections(tx, ty) {
   const offsets = [
-    {dx: 0,  dy: -1, label: 'north'},
-    {dx: 1,  dy: 0,  label: 'east'},
-    {dx: 0,  dy: 1,  label: 'south'},
-    {dx: -1, dy: 0,  label: 'west'},
+    {dx: 0,  dy: -1, key: 'ann.dirNorth'},
+    {dx: 1,  dy: 0,  key: 'ann.dirEast'},
+    {dx: 0,  dy: 1,  key: 'ann.dirSouth'},
+    {dx: -1, dy: 0,  key: 'ann.dirWest'},
   ]
   const opens = []
   for (const o of offsets) {
     if (content.maze.isPassableForPacman(tx + o.dx, ty + o.dy)) {
-      opens.push(o.label)
+      opens.push(app.i18n.t(o.key))
     }
   }
   return opens
@@ -285,16 +292,17 @@ function nextStepDir(pacPos, nextTile) {
 
 // 8-way compass label for an arbitrary delta. Screen coords: +y = south.
 function describeDir(dx, dy) {
-  if (dx === 0 && dy === 0) return 'here'
+  const t = (k) => app.i18n.t(k)
+  if (dx === 0 && dy === 0) return t('ann.dirHere')
   // atan2 with -dy so 0° points north (up), 90° points east, etc.
   const deg = Math.atan2(dx, -dy) * 180 / Math.PI
   const a = ((deg % 360) + 360) % 360
-  if (a < 22.5 || a >= 337.5) return 'north'
-  if (a < 67.5)  return 'north-east'
-  if (a < 112.5) return 'east'
-  if (a < 157.5) return 'south-east'
-  if (a < 202.5) return 'south'
-  if (a < 247.5) return 'south-west'
-  if (a < 292.5) return 'west'
-  return 'north-west'
+  if (a < 22.5 || a >= 337.5) return t('ann.dirNorth')
+  if (a < 67.5)  return t('ann.dirNE')
+  if (a < 112.5) return t('ann.dirEast')
+  if (a < 157.5) return t('ann.dirSE')
+  if (a < 202.5) return t('ann.dirSouth')
+  if (a < 247.5) return t('ann.dirSW')
+  if (a < 292.5) return t('ann.dirWest')
+  return t('ann.dirNW')
 }

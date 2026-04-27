@@ -84,7 +84,7 @@ content.player = (() => {
         if (state.snapTimer <= 0) {
           const nearest = content.util.nearestCardinal(state.yaw)
           state.yaw = nearest.yaw
-          content.util.announce('Snapped to ' + nearest.name, true)
+          content.util.announce(app.i18n.t('ann.snapTo', {name: app.i18n.t('dir.' + nearest.name)}), true)
           state.snapTimer = 0.4
         }
       } else if (controls.turnLeft) {
@@ -179,7 +179,7 @@ content.player = (() => {
         const damage = speed * content.constants.collision.wallSpeedDamageFactor
         applyDamage(damage, 'wall')
         content.sfx.play('wallHit', { x: state.x, y: state.y, z: 0 })
-        content.util.announce('Wall impact, ' + Math.round(damage) + ' damage', true)
+        content.util.announce(app.i18n.t('ann.wallImpact', {damage: Math.round(damage)}), true)
       }
       state.currentSpeed = 0
       state.targetSpeed = 0

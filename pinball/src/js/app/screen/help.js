@@ -14,7 +14,7 @@ app.screen.help = app.screenManager.invent({
   },
   onEnter: function () {
     this.state.entryFrames = 8
-    app.announce.assertive('How to play. Tab through the text and the back button at the bottom, or press Escape to return to the menu.')
+    app.announce.assertive(app.i18n.t('ann.helpEnter'))
     const first = this.rootElement.querySelector('button')
     if (first) app.utility.focus.set(first)
   },

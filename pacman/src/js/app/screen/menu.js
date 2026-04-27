@@ -8,6 +8,7 @@ app.screen.menu = app.screenManager.invent({
     settings: function () { this.change('settings') },
     highscores: function () { this.change('highscores') },
     help: function () { this.change('help') },
+    language: function () { this.change('language') },
     test: function () { this.change('test') },
     music: function () { this.change('music') },
   },
@@ -21,7 +22,7 @@ app.screen.menu = app.screenManager.invent({
     })
   },
   onEnter: function () {
-    app.announce.polite('Main Menu. Use arrow keys to navigate, Enter to select.')
+    app.announce.polite(app.i18n.t('ann.menu'))
     content.sfx.menuMove()
   },
   onFrame: function () {
@@ -52,6 +53,8 @@ app.screen.menu = app.screenManager.invent({
       app.screenManager.dispatch('highscores')
     } else if (name === 'help') {
       app.screenManager.dispatch('help')
+    } else if (name === 'language') {
+      app.screenManager.dispatch('language')
     }
   },
 })

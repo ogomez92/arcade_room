@@ -71,7 +71,7 @@ app.screen.store = app.screenManager.invent({
     if (p.rPowertime < 50000) {
       items.push({
         id: 'power',
-        label: 'Powerup time +3s (now ' + (p.rPowertime / 1000) + 's)',
+        label: app.i18n.t('store.upgradePowerup', {sec: p.rPowertime / 1000}),
         cost: 300 + s.storeSession * 2,
         apply: () => {
           p.rPowertime += 3000
@@ -82,7 +82,7 @@ app.screen.store = app.screenManager.invent({
     if (p.rZaptime > 125) {
       items.push({
         id: 'beamspeed',
-        label: 'Zapper firing speed +25ms (now ' + p.rZaptime + 'ms)',
+        label: app.i18n.t('store.upgradeZap', {ms: p.rZaptime}),
         cost: 50 + s.storeSession,
         apply: () => {
           p.rZaptime -= 25
@@ -93,7 +93,7 @@ app.screen.store = app.screenManager.invent({
     if (p.rBeamvel > 17) {
       items.push({
         id: 'velocity',
-        label: 'Beam travel speed (now ' + p.rBeamvel + ')',
+        label: app.i18n.t('store.upgradeBeam', {value: p.rBeamvel}),
         cost: 55 + s.storeSession,
         apply: () => {
           p.rBeamvel = Math.max(17, p.rBeamvel - 4)
@@ -104,7 +104,7 @@ app.screen.store = app.screenManager.invent({
     if (p.rBombarea < 16) {
       items.push({
         id: 'bombrange',
-        label: 'Bomb range +1 (now ' + p.rBombarea + ')',
+        label: app.i18n.t('store.upgradeBomb', {value: p.rBombarea}),
         cost: 30 + s.storeSession,
         apply: () => {
           p.rBombarea += 1
@@ -115,29 +115,29 @@ app.screen.store = app.screenManager.invent({
 
     items.push({
       id: 'extend',
-      label: 'Extra life',
+      label: app.i18n.t('store.itemLife'),
       cost: 18 + s.storeSession,
       apply: () => { s.lives++; s.storeExtends++ },
       limit: () => s.storeExtends >= 3,
-      limitMsg: 'Limit 3 lives per store session',
+      limitMsg: app.i18n.t('store.limitLives'),
     })
 
     items.push({
       id: 'shield',
-      label: 'Shield bit',
+      label: app.i18n.t('store.itemShield'),
       cost: 12 + s.storeSession,
       apply: () => { s.shieldbits++; s.storeShieldbits++ },
       limit: () => s.storeShieldbits >= 5,
-      limitMsg: 'Limit 5 shieldbits per store session',
+      limitMsg: app.i18n.t('store.limitShields'),
     })
 
     items.push({
       id: 'burst',
-      label: 'Anti-aircraft burst',
+      label: app.i18n.t('store.itemBurst'),
       cost: 20 + s.storeSession,
       apply: () => { s.bursts++; s.storeBursts++ },
       limit: () => s.storeBursts >= 3,
-      limitMsg: 'Limit 3 bursts per store session',
+      limitMsg: app.i18n.t('store.limitBursts'),
     })
 
     return items
@@ -148,7 +148,7 @@ app.screen.store = app.screenManager.invent({
     this.state.items.forEach((item, i) => {
       const li = document.createElement('li')
       li.dataset.selected = String(i == this.state.selected)
-      li.textContent = item.label + ' - ' + item.cost + ' credits'
+      li.textContent = app.i18n.t('store.itemTpl', {label: item.label, cost: item.cost})
       this.list.appendChild(li)
     })
   },
@@ -161,14 +161,14 @@ app.screen.store = app.screenManager.invent({
       return
     }
     if (content.state.persistent.cash < item.cost) {
-      this.feedback.textContent = 'Not enough credits.'
+      this.feedback.textContent = app.i18n.t('store.notEnough')
       content.audio.tone({freq: 200, type: 'square', duration: 0.2, peak: 0.3})
       return
     }
     content.state.persistent.cash -= item.cost
     item.apply()
     content.audio.itemObtain()
-    this.feedback.textContent = 'Purchased: ' + item.label
+    this.feedback.textContent = app.i18n.t('store.purchased', {label: item.label})
     // Items may need to be rebuilt (caps may have been reached / stats changed)
     this.state.items = this.buildItems()
     if (this.state.selected >= this.state.items.length) {

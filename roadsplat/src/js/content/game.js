@@ -95,10 +95,11 @@ content.game = (() => {
     return f >= 1 && f <= state.roadWidth - 1
   }
   function positionLabel() {
-    if (isOnSouthSidewalk()) return 'south sidewalk'
-    if (isOnNorthSidewalk()) return 'north sidewalk'
-    return 'on the road'
+    if (isOnSouthSidewalk()) return app.i18n.t('pos.south')
+    if (isOnNorthSidewalk()) return app.i18n.t('pos.north')
+    return app.i18n.t('pos.road')
   }
+  function vehicleLabel(name) { return app.i18n.t('vehicle.' + name) }
 
   // ---------- Vehicle prop (lazily defined after buses exist) ----------
   let Vehicle = null
@@ -220,7 +221,7 @@ content.game = (() => {
       state.loiterStart = null
       state.gracePeriodEnd = Math.max(state.gracePeriodEnd, now + 1.0)
       content.audio.playRagdollLand()
-      app.announce.assertive('You crash-land on the ' + state.lastSidewalk + ' sidewalk.')
+      app.announce.assertive(app.i18n.t('ann.crashLand', {sidewalk: app.i18n.t('side.' + state.lastSidewalk)}))
       return true
     }
     const baseZ = 4 * t * (1 - t) * RAGDOLL_PEAK_HEIGHT
@@ -258,10 +259,10 @@ content.game = (() => {
     content.audio.playCollision()
     if (state.hp <= 0) {
       state.hp = 0
-      gameOver('Hit by ' + def.name)
+      gameOver(app.i18n.t('ann.hitByReason', {vehicle: vehicleLabel(def.name)}))
       return
     }
-    app.announce.assertive('Hit by ' + def.name + '! Health ' + Math.round(state.hp))
+    app.announce.assertive(app.i18n.t('ann.hitBy', {vehicle: vehicleLabel(def.name), hp: Math.round(state.hp)}))
     startRagdoll(car)
   }
 
@@ -270,10 +271,7 @@ content.game = (() => {
     state.running = false
     state.ragdoll = null
     content.audio.playGameOver()
-    app.announce.assertive(
-      'Game over. ' + reason + '. Reached level ' + state.level +
-      ' with ' + state.score + ' points. Reload to try again.'
-    )
+    app.announce.assertive(app.i18n.t('ann.gameOver', {reason, level: state.level, score: state.score}))
   }
 
   // ---------- Scoring & levels ----------
@@ -282,7 +280,7 @@ content.game = (() => {
     state.score += points
     state.scoreInLevel += points
     content.audio.playScore()
-    app.announce.polite(direction + '! Plus ' + points + '. Score ' + state.score)
+    app.announce.polite(app.i18n.t('ann.scoreLine', {direction, points, score: state.score}))
     checkLevelUp()
   }
 
@@ -309,10 +307,10 @@ content.game = (() => {
     state.loiterStart = null
     state.gracePeriodEnd = engine.time() + 2.0
     content.audio.playLevelUp()
-    const unlocks = content.vehicles.newlyUnlockedAt(state.level).map(v => v.name)
-    let msg = 'Level ' + state.level + '!'
-    if (widthGrew) msg += ' Road grew to ' + (newWidth - 1) + ' road steps.'
-    if (unlocks.length) msg += ' New traffic: ' + unlocks.join(', ') + '.'
+    const unlocks = content.vehicles.newlyUnlockedAt(state.level).map(v => vehicleLabel(v.name))
+    let msg = app.i18n.t('ann.levelUpMsg', {level: state.level})
+    if (widthGrew) msg += app.i18n.t('ann.roadGrew', {steps: newWidth - 1})
+    if (unlocks.length) msg += app.i18n.t('ann.newTraffic', {names: unlocks.join(', ')})
     app.announce.assertive(msg)
     if (state.scoreInLevel >= scoreToNextLevel(state.level)) checkLevelUp()
   }
@@ -321,10 +319,10 @@ content.game = (() => {
     if (state.ragdoll) return
     if (isOnNorthSidewalk() && state.lastSidewalk !== 'north') {
       state.lastSidewalk = 'north'
-      awardCross('Crossed north')
+      awardCross(app.i18n.t('ann.crossedNorth'))
     } else if (isOnSouthSidewalk() && state.lastSidewalk !== 'south') {
       state.lastSidewalk = 'south'
-      awardCross('Crossed back south')
+      awardCross(app.i18n.t('ann.crossedSouth'))
     }
   }
 
@@ -354,15 +352,9 @@ content.game = (() => {
     ensureVehicle()
     state.gracePeriodEnd = engine.time() + START_GRACE
     scheduleNextSpawn()
-    const starters = content.vehicles.newlyUnlockedAt(1).map(v => v.name).join(', ')
+    const starters = content.vehicles.newlyUnlockedAt(1).map(v => vehicleLabel(v.name)).join(', ')
     const roadSteps = state.roadWidth - 1
-    app.announce.assertive(
-      'Game started at level 1. ' + roadSteps + ' road steps to cross. ' +
-      'Starting traffic: ' + starters + '. ' +
-      'Hold up arrow to walk forward, down arrow to walk back. ' +
-      'Listen for cars and time your crossings between them. ' +
-      'Score 200 per crossing. Do not loiter on the sidewalk.'
-    )
+    app.announce.assertive(app.i18n.t('ann.startGame', {steps: roadSteps, starters}))
   }
 
   function update(dt) {
@@ -429,18 +421,18 @@ content.game = (() => {
   function togglePause() {
     if (state.dead || !state.running) return
     state.paused = !state.paused
-    app.announce.polite(state.paused ? 'Paused' : 'Resumed')
+    app.announce.polite(state.paused ? app.i18n.t('ann.paused') : app.i18n.t('ann.resumed'))
   }
 
   function announceStatus() {
     const need = Math.max(0, scoreToNextLevel(state.level) - state.scoreInLevel)
-    app.announce.polite(
-      'Level ' + state.level + '. ' +
-      'Health ' + Math.round(state.hp) + '. ' +
-      'Score ' + state.score + '. ' +
-      need + ' to next level. ' +
-      positionLabel() + '.'
-    )
+    app.announce.polite(app.i18n.t('ann.statusLine', {
+      level: state.level,
+      hp: Math.round(state.hp),
+      score: state.score,
+      need,
+      position: positionLabel(),
+    }))
   }
 
   return {

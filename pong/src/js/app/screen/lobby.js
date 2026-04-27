@@ -23,7 +23,7 @@ app.screen.lobby = app.screenManager.invent({
     root.querySelector('.a-lobby--join-btn').addEventListener('click', () => {
       const code = root.querySelector('.a-lobby--code-input').value.trim().toUpperCase()
       if (code.length !== 4) {
-        this._announce('Please enter a 4-letter room code.')
+        this._announce(app.i18n.t('lob.enterCode'))
         return
       }
       this._joinRoom(code)
@@ -33,7 +33,7 @@ app.screen.lobby = app.screenManager.invent({
       if (e.key === 'Enter') {
         const code = e.target.value.trim().toUpperCase()
         if (code.length !== 4) {
-          this._announce('Please enter a 4-letter room code.')
+          this._announce(app.i18n.t('lob.enterCode'))
           return
         }
         this._joinRoom(code)
@@ -101,7 +101,7 @@ app.screen.lobby = app.screenManager.invent({
     root.querySelector('.a-lobby--room').hidden = false
     if (code) {
       root.querySelector('.a-lobby--room-code').textContent =
-        `Room code: ${code.split('').join(' ')}`
+        app.i18n.t('lob.roomCode', {code: code.split('').join(' ')})
     }
   },
 
@@ -111,10 +111,10 @@ app.screen.lobby = app.screenManager.invent({
     this.state.players.forEach(p => {
       const el = document.createElement('div')
       el.setAttribute('role', 'listitem')
-      const teamStr = p.team ? `Team ${p.team}` : 'No team'
-      const readyStr = p.ready ? ', ready' : ''
-      const youStr = p.id === this.state.localId ? ' (you)' : ''
-      el.textContent = `${p.name} — ${teamStr}${readyStr}${youStr}`
+      const teamStr = p.team ? app.i18n.t('lob.team', {n: p.team}) : app.i18n.t('lob.noTeam')
+      const readyStr = p.ready ? app.i18n.t('lob.readySuffix') : ''
+      const youStr = p.id === this.state.localId ? app.i18n.t('lob.youSuffix') : ''
+      el.textContent = app.i18n.t('lob.entry', {name: p.name, team: teamStr, ready: readyStr, you: youStr})
       container.appendChild(el)
     })
   },
@@ -132,7 +132,7 @@ app.screen.lobby = app.screenManager.invent({
     if (players.length < 2) return
     if (!players.every(p => p.team)) return
     if (!players.every(p => p.ready)) return
-    this._announce('All players ready. Starting in 3 seconds.')
+    this._announce(app.i18n.t('lob.allReady'))
     network.broadcast({ type: 'allReady' })
     this.state.countdownId = setTimeout(() => this._startGame(), 3000)
   },
@@ -146,32 +146,32 @@ app.screen.lobby = app.screenManager.invent({
   },
 
   _createRoom: async function () {
-    this._announce('Creating room...')
+    this._announce(app.i18n.t('lob.creating'))
     try {
       const code = await network.createRoom()
       this.state.isHost = true
       this.state.localId = network.getLocalId()
       this.state.players = [{
-        id: this.state.localId, name: 'Player 1', team: 1, ready: false,
+        id: this.state.localId, name: app.i18n.t('lob.playerN', {n: 1}), team: 1, ready: false,
       }]
       this._showRoom(code)
       this._renderPlayers()
-      this._announce(`Room created. Code: ${code.split('').join(' ')}. Waiting for players.`)
+      this._announce(app.i18n.t('lob.created', {code: code.split('').join(' ')}))
     } catch (e) {
-      this._announce('Failed to create room. Please try again.')
+      this._announce(app.i18n.t('lob.createFailed'))
     }
   },
 
   _joinRoom: async function (code) {
-    this._announce(`Joining room ${code}...`)
+    this._announce(app.i18n.t('lob.joining', {code}))
     try {
       await network.joinRoom(code)
       this.state.isHost = false
       this.state.localId = network.getLocalId()
       this._showRoom(null)
-      this._announce('Joined room. Waiting for player list.')
+      this._announce(app.i18n.t('lob.joined'))
     } catch (e) {
-      this._announce('Could not join room. Check the code and try again.')
+      this._announce(app.i18n.t('lob.joinFailed'))
     }
   },
 
@@ -184,7 +184,7 @@ app.screen.lobby = app.screenManager.invent({
     if (this.state.isHost) {
       this._broadcastLobby()
       this._renderPlayers()
-      this._announce(`You joined Team ${n}.`)
+      this._announce(app.i18n.t('lob.youJoinedTeam', {n}))
     } else {
       network.sendToHost({ type: 'team', n })
     }
@@ -194,14 +194,14 @@ app.screen.lobby = app.screenManager.invent({
     const local = this._getLocalPlayer()
     if (!local) return
     if (!local.team) {
-      this._announce('Please join a team first.')
+      this._announce(app.i18n.t('lob.joinTeamFirst'))
       return
     }
     local.ready = !local.ready
     if (this.state.isHost) {
       this._broadcastLobby()
       this._renderPlayers()
-      this._announce(local.ready ? 'You are ready.' : 'You are not ready.')
+      this._announce(app.i18n.t(local.ready ? 'lob.youReady' : 'lob.youNotReady'))
       if (local.ready) this._checkAllReady()
     } else {
       network.sendToHost({ type: 'ready', v: local.ready })
@@ -228,19 +228,19 @@ app.screen.lobby = app.screenManager.invent({
   _onHostMessage: function (peerId, msg) {
     if (msg.type === 'peerConnect') {
       this.state.playerCounter++
-      const name = `Player ${this.state.playerCounter}`
+      const name = app.i18n.t('lob.playerN', {n: this.state.playerCounter})
       this.state.players.push({ id: peerId, name, team: null, ready: false })
       this._broadcastLobby()
       this._renderPlayers()
-      this._announce(`${name} joined. ${this.state.players.length} players in lobby.`)
+      this._announce(app.i18n.t('lob.peerJoined', {name, count: this.state.players.length}))
 
     } else if (msg.type === 'peerDisconnect') {
       const player = this.state.players.find(p => p.id === peerId)
-      const name = player ? player.name : 'A player'
+      const name = player ? player.name : app.i18n.t('lob.playerN', {n: '?'})
       this.state.players = this.state.players.filter(p => p.id !== peerId)
       this._broadcastLobby()
       this._renderPlayers()
-      this._announce(`${name} left.`)
+      this._announce(app.i18n.t('lob.peerLeft', {name}))
 
     } else if (msg.type === 'team') {
       const player = this.state.players.find(p => p.id === peerId)
@@ -249,7 +249,7 @@ app.screen.lobby = app.screenManager.invent({
       player.ready = false
       this._broadcastLobby()
       this._renderPlayers()
-      this._announce(`${player.name} joined Team ${msg.n}.`)
+      this._announce(app.i18n.t('lob.peerJoinedTeam', {name: player.name, n: msg.n}))
 
     } else if (msg.type === 'ready') {
       const player = this.state.players.find(p => p.id === peerId)
@@ -257,7 +257,7 @@ app.screen.lobby = app.screenManager.invent({
       player.ready = msg.v
       this._broadcastLobby()
       this._renderPlayers()
-      this._announce(`${player.name} is ${msg.v ? 'ready' : 'not ready'}.`)
+      this._announce(app.i18n.t(msg.v ? 'lob.peerReady' : 'lob.peerNotReady', {name: player.name}))
       if (msg.v) this._checkAllReady()
     }
   },
@@ -268,11 +268,11 @@ app.screen.lobby = app.screenManager.invent({
       this.state.players = msg.players
       this._renderPlayers()
       msg.players.forEach(p => {
-        if (!prevNames.has(p.name)) this._announce(`${p.name} joined.`)
+        if (!prevNames.has(p.name)) this._announce(app.i18n.t('lob.peerJoinedShort', {name: p.name}))
       })
 
     } else if (msg.type === 'allReady') {
-      this._announce('All players ready. Starting in 3 seconds.')
+      this._announce(app.i18n.t('lob.allReady'))
 
     } else if (msg.type === 'start') {
       const { team1, team2 } = msg
@@ -280,7 +280,7 @@ app.screen.lobby = app.screenManager.invent({
       app.screenManager.dispatch('startMultiplayer', { team1, team2, localId, isHost: false })
 
     } else if (msg.type === 'peerDisconnect') {
-      this._announce('Host disconnected. Returning to menu.')
+      this._announce(app.i18n.t('lob.hostDisconnected'))
       setTimeout(() => this._leave(), 1500)
     }
   },

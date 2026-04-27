@@ -156,10 +156,13 @@ content.car = (() => {
     if (car.speed <= 0.01) {
       car.speed = 0
       car.stopped = true
-      if (car.fuel <= 0) car.stopReason = 'You ran out of fuel.'
-      else if (car.crashes > 0 && car.crashTimer > 0) car.stopReason = 'A crash brought you to a halt.'
-      else if (car.offroad) car.stopReason = 'You went off the road and stalled.'
-      else car.stopReason = 'You stopped.'
+      // Store stop reason as an i18n key; resolve to text at render time so
+      // changing language post-stop still renders the right message.
+      if (car.fuel <= 0) car.stopReasonKey = 'stop.fuel'
+      else if (car.crashes > 0 && car.crashTimer > 0) car.stopReasonKey = 'stop.crash'
+      else if (car.offroad) car.stopReasonKey = 'stop.offroad'
+      else car.stopReasonKey = 'stop.generic'
+      car.stopReason = app.i18n.t(car.stopReasonKey)
     }
   }
 

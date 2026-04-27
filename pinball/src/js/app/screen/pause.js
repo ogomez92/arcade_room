@@ -13,7 +13,7 @@ app.screen.pause = app.screenManager.invent({
   state: {},
   onEnter: function () {
     content.game.setPaused(true)
-    app.announce.assertive('Paused. Press Escape or P to resume. Press Q to quit to title.')
+    app.announce.assertive(app.i18n.t('ann.pauseEnter'))
   },
   onFrame: function () {
     const ui = app.controls.ui()

@@ -51,11 +51,11 @@ app.screen.game = app.screenManager.invent({
     } else this.state.pPressed = false
 
     if (k.is('F1')) {
-      if (!this.state.f1) { this.state.f1 = true; app.announce.polite('Score ' + content.game.state.score) }
+      if (!this.state.f1) { this.state.f1 = true; app.announce.polite(app.i18n.t('ann.scoreOnly', {score: content.game.state.score})) }
     } else this.state.f1 = false
 
     if (k.is('F2')) {
-      if (!this.state.f2) { this.state.f2 = true; app.announce.polite('Health ' + Math.round(content.game.state.hp)) }
+      if (!this.state.f2) { this.state.f2 = true; app.announce.polite(app.i18n.t('ann.healthOnly', {hp: Math.round(content.game.state.hp)})) }
     } else this.state.f2 = false
 
     if (k.is('F3')) {
@@ -63,7 +63,7 @@ app.screen.game = app.screenManager.invent({
         this.state.f3 = true
         const s = content.game.state
         const need = Math.max(0, content.game.scoreToNextLevel(s.level) - s.scoreInLevel)
-        app.announce.polite('Level ' + s.level + ', ' + need + ' to next level')
+        app.announce.polite(app.i18n.t('ann.levelOnly', {level: s.level, need}))
       }
     } else this.state.f3 = false
 

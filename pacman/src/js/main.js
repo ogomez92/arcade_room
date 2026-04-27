@@ -10,6 +10,7 @@
   // Wire content event SFX
   if (content.wiring) content.wiring.init()
 
+  app.i18n.applyDom()
   app.screenManager.ready()
 
   // Initialize mix

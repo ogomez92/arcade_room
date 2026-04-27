@@ -27,7 +27,7 @@ app.screen.mech = app.screenManager.invent({
     this.state.mode = (data && data.mode) || 'ai'
     this.state.index = 0
     this.render()
-    content.util.announce('Choose your mech. ' + content.mechs.list()[0].name + '. Press next or previous to browse, confirm to select, or preview to hear the engine.', true)
+    content.util.announce(app.i18n.t('mech.welcome', {first: content.mechs.nameOf(content.mechs.list()[0])}), true)
   },
   onExit: function () {
     this.stopPreview()
@@ -48,20 +48,26 @@ app.screen.mech = app.screenManager.invent({
   render: function () {
     const mech = content.mechs.list()[this.state.index]
     const root = this.rootElement
-    root.querySelector('.c-mech-select--name').textContent = mech.name
-    root.querySelector('.c-mech-select--summary').textContent = mech.description
+    const t = (k, p) => app.i18n.t(k, p)
+    root.querySelector('.c-mech-select--name').textContent = content.mechs.nameOf(mech)
+    root.querySelector('.c-mech-select--summary').textContent = content.mechs.descOf(mech)
     const stats = root.querySelector('.c-mech-select--stats')
-    const weaponP = content.weapons[mech.primary]
-    const weaponS = content.weapons[mech.secondary]
+    const mPs = t('mech.stat.unit.metersPerSecond')
+    const radPs = t('mech.stat.unit.radPerSecond')
+    const meters = t('mech.stat.unit.meters')
+    const mobility = mech.canJetpack ? t('mech.mobility.jetpack')
+                   : mech.canJump    ? t('mech.mobility.jump')
+                                     : t('mech.mobility.ground')
+    const weaponLine = (id) => content.weapons.nameOf(id) + ' — ' + content.weapons.descOf(id)
     stats.innerHTML = ''
     const rows = [
-      ['Health', String(mech.health)],
-      ['Top speed', String(mech.maxSpeed) + ' m/s'],
-      ['Turn rate', mech.turnRate.toFixed(1) + ' rad/s'],
-      ['Size', mech.size.toFixed(1) + ' m'],
-      ['Mobility', mech.canJetpack ? 'Jetpack' : (mech.canJump ? 'Jump' : 'Ground')],
-      ['Primary', weaponP.name + ' — ' + weaponP.description],
-      ['Secondary', weaponS.name + ' — ' + weaponS.description],
+      [t('mech.stat.health'),     String(mech.health)],
+      [t('mech.stat.topSpeed'),   String(mech.maxSpeed) + ' ' + mPs],
+      [t('mech.stat.turnRate'),   mech.turnRate.toFixed(1) + ' ' + radPs],
+      [t('mech.stat.size'),       mech.size.toFixed(1) + ' ' + meters],
+      [t('mech.stat.mobility'),   mobility],
+      [t('mech.stat.primary'),    weaponLine(mech.primary)],
+      [t('mech.stat.secondary'),  weaponLine(mech.secondary)],
     ]
     for (const [k, v] of rows) {
       const dt = document.createElement('dt'); dt.textContent = k
@@ -102,7 +108,7 @@ app.screen.mech = app.screenManager.invent({
       }
       case 'confirm': {
         const mech = list[this.state.index]
-        content.util.announce(mech.name + ' selected.', true)
+        content.util.announce(app.i18n.t('mech.selected', {name: content.mechs.nameOf(mech)}), true)
         this.stopPreview()
         const opponentMech = pickOpponentMech(mech.id)
         app.screenManager.dispatch('confirm', {
@@ -120,7 +126,7 @@ app.screen.mech = app.screenManager.invent({
   },
   announceCurrent: function () {
     const mech = content.mechs.list()[this.state.index]
-    content.util.announce(mech.name + '. ' + mech.description, false)
+    content.util.announce(app.i18n.t('mech.describe', {name: content.mechs.nameOf(mech), description: content.mechs.descOf(mech)}), false)
   },
 })
 

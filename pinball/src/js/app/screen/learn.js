@@ -24,7 +24,7 @@ app.screen.learn = app.screenManager.invent({
   },
   onEnter: function () {
     this.state.entryFrames = 8
-    app.announce.assertive('Learn the sounds. Tab or arrow keys to move, Enter or Space to play. Escape to return.')
+    app.announce.assertive(app.i18n.t('ann.learnEnter'))
     const first = this.rootElement.querySelector('button[data-sound]')
     if (first) app.utility.focus.set(first)
   },

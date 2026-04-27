@@ -160,7 +160,7 @@ content.entities = (() => {
       audio().towerDestroy(this.ex, this.ey, S().y)
       this.dead = true
       S().checky = S().y
-      content.world.announce('Tower destroyed - checkpoint set')
+      content.world.announce(app.i18n.t('ann.towerDestroyed'))
     }
   }
 

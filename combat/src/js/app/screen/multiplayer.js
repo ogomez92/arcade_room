@@ -23,7 +23,7 @@ app.screen.multiplayer = app.screenManager.invent({
         // For host, wait for connection event (conn set in PeerJS)
       },
       onRemoteReady: () => {
-        setStatus('Opponent ready. Choose a mech.')
+        setStatus(app.i18n.t('mp.opponentReady'))
         app.screenManager.dispatch('connected')
       },
     })
@@ -60,7 +60,7 @@ app.screen.multiplayer = app.screenManager.invent({
         onOpen: () => {
           const code = content.net.getCode()
           root.querySelector('.c-mp-code').textContent = code
-          content.util.announce('Room code is ' + code.split('').join(' ') + '. Waiting for opponent.', true)
+          content.util.announce(app.i18n.t('mp.hostingCode', {code: code.split('').join(' ')}), true)
         },
       })
       content.net.host()
@@ -77,7 +77,7 @@ app.screen.multiplayer = app.screenManager.invent({
     } else {
       hostBox.hidden = true
       joinBox.hidden = false
-      content.util.announce('Enter the room code your opponent gave you, then press Connect.', true)
+      content.util.announce(app.i18n.t('mp.enterCode'), true)
     }
   },
   onExit: function () {
@@ -93,7 +93,7 @@ app.screen.multiplayer = app.screenManager.invent({
       case 'connect': {
         const code = root.querySelector('.c-mp-input').value
         if (!code || code.length < 4) {
-          content.util.announce('Please enter a valid room code.', true)
+          content.util.announce(app.i18n.t('mp.invalidCode'), true)
           return
         }
         content.net.join(code)
@@ -110,7 +110,7 @@ app.screen.multiplayer = app.screenManager.invent({
       case 'copy-code': {
         const code = content.net.getCode() || ''
         try { navigator.clipboard.writeText(code) } catch (_) {}
-        content.util.announce('Code copied to clipboard.', false)
+        content.util.announce(app.i18n.t('mp.codeCopied'), false)
         break
       }
       case 'back':

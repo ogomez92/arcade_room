@@ -18,7 +18,7 @@ app.screen.music = app.screenManager.invent({
     })
   },
   onEnter: function () {
-    app.announce.polite('Music preview. Press space or enter to play the intro.')
+    app.announce.polite(app.i18n.t('ann.music'))
     setTimeout(() => this.play(), 600)
   },
   onFrame: function () {

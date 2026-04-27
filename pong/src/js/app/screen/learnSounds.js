@@ -20,8 +20,9 @@ app.screen.learnSounds = app.screenManager.invent({
         if (this.state.demoActive) return
         this.state.demoActive = true
         const orig = btn.textContent
-        btn.setAttribute('aria-label', 'Playing…')
-        btn.textContent = 'Playing…'
+        const playingText = app.i18n.t('learn.playing')
+        btn.setAttribute('aria-label', playingText)
+        btn.textContent = playingText
         fn(() => {
           btn.textContent = orig
           btn.removeAttribute('aria-label')

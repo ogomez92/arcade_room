@@ -10,7 +10,12 @@ content.scoring = (() => {
   let lastScorer = null
 
   function opponentLabel() {
-    return (content.teamManager && content.teamManager.isMultiplayer()) ? 'Opponent' : 'Computer'
+    return (content.teamManager && content.teamManager.isMultiplayer())
+      ? app.i18n.t('ann.opponent') : app.i18n.t('ann.computer')
+  }
+  function opponentLabelLower() {
+    return (content.teamManager && content.teamManager.isMultiplayer())
+      ? app.i18n.t('ann.opponentLower') : app.i18n.t('ann.computerLower')
   }
 
   function announce(message) {
@@ -28,10 +33,10 @@ content.scoring = (() => {
     content.audio.playServeIndicator(who)
     if (who === 'player') {
       content.ball.setPosition(content.player.getX(), 0)
-      announce('You serve. You have 3 seconds.')
+      announce(app.i18n.t('ann.youServe'))
     } else {
       content.ball.setPosition(content.ai.getX(), content.table.LENGTH)
-      announce(`${opponentLabel()} serves.`)
+      announce(app.i18n.t('ann.opponentServes', {opponent: opponentLabel()}))
     }
   }
 
@@ -63,8 +68,8 @@ content.scoring = (() => {
         startServe(next)
         announce(
           next === 'player'
-            ? 'Serve transferred to you. You serve.'
-            : `Serve transferred to ${opponentLabel().toLowerCase()}. ${opponentLabel()} serves.`
+            ? app.i18n.t('ann.serveTransferYou')
+            : app.i18n.t('ann.serveTransferOther', {opponentLower: opponentLabelLower(), opponent: opponentLabel()})
         )
       }
     },
@@ -81,8 +86,8 @@ content.scoring = (() => {
       goalPauseTimer = 2.0
       content.audio.playGoal(scorer)
       const msg = scorer === 'player'
-        ? `Goal! You score. Score: ${playerScore} to ${aiScore}.`
-        : `Goal! ${opponentLabel()} scores. Score: ${playerScore} to ${aiScore}.`
+        ? app.i18n.t('ann.goalYou', {you: playerScore, them: aiScore})
+        : app.i18n.t('ann.goalOther', {opponent: opponentLabel(), you: playerScore, them: aiScore})
       announce(msg)
     },
 
@@ -92,8 +97,8 @@ content.scoring = (() => {
       if (playerScore >= scoreLimit || aiScore >= scoreLimit) {
         state = 'game_over'
         const msg = playerScore >= scoreLimit
-          ? `Game over. You win ${playerScore} to ${aiScore}.`
-          : `Game over. ${opponentLabel()} wins ${aiScore} to ${playerScore}.`
+          ? app.i18n.t('ann.gameOverWin', {you: playerScore, them: aiScore})
+          : app.i18n.t('ann.gameOverLose', {opponent: opponentLabel(), you: playerScore, them: aiScore})
         announce(msg)
       } else {
         state = 'serving'

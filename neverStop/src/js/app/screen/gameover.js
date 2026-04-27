@@ -44,7 +44,7 @@ app.screen.gameover = app.screenManager.invent({
     const car = this.state.pendingStats
     const cells = this.state.cells
     if (car && cells) {
-      if (cells.reason) cells.reason.textContent = car.stopReason || 'You stopped.'
+      if (cells.reason) cells.reason.textContent = car.stopReasonKey ? app.i18n.t(car.stopReasonKey) : (car.stopReason || app.i18n.t('stop.generic'))
       if (cells.distance) cells.distance.textContent = `${Math.round(car.distance)} m`
       if (cells.topSpeed) cells.topSpeed.textContent = `${Math.round(car.topSpeed * 3.6)} km/h`
       if (cells.topGear) cells.topGear.textContent = String(car.topGear)

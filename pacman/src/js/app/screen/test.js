@@ -28,7 +28,7 @@ app.screen.test = app.screenManager.invent({
     })
   },
   onEnter: function () {
-    app.announce.polite('Spatial audio test. Press 1 through 9 to hear the waka-waka at that game-speed level. Replay button repeats the spatial test.')
+    app.announce.polite(app.i18n.t('test.intro'))
     setTimeout(() => this.runTest(), 1200)
     this.state.digitPressed = {}
   },
@@ -64,7 +64,7 @@ app.screen.test = app.screenManager.invent({
     const speedMultiplier = 0.5 + (digit - 1) * 0.15
     const baseSpeed = 8 * 0.80 // SPEED_BASE × pacmanFactor at L1
     const period = 1 / (baseSpeed * speedMultiplier)
-    app.announce.polite(`Speed ${digit}, waka period ${Math.round(period * 1000)} ms.`)
+    app.announce.polite(app.i18n.t('test.speed', {digit, ms: Math.round(period * 1000)}))
     this.cancelTest()
     const fns = [
       content.sfx.chompA,
@@ -94,15 +94,15 @@ app.screen.test = app.screenManager.invent({
     content.audio.setStaticListener(Math.PI / 2)
 
     const steps = [
-      {label: 'Front (north)',  x:  0, y: -2},
-      {label: 'Right (east)',   x:  2, y:  0},
-      {label: 'Behind (south)', x:  0, y:  2},
-      {label: 'Left (west)',    x: -2, y:  0},
+      {labelKey: 'test.dirFront',  x:  0, y: -2},
+      {labelKey: 'test.dirRight',  x:  2, y:  0},
+      {labelKey: 'test.dirBehind', x:  0, y:  2},
+      {labelKey: 'test.dirLeft',   x: -2, y:  0},
     ]
 
     steps.forEach((s, i) => {
       const id = setTimeout(() => {
-        app.announce.polite(s.label)
+        app.announce.polite(app.i18n.t(s.labelKey))
         content.audio.emitTick(s.x, s.y, {freq: 900, dur: 0.25, gain: 0.7})
       }, i * 1500)
       this.state.timeouts.push(id)

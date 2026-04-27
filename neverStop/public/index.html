@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en-US">
   <head>
-    <title>neverStop</title>
+    <title data-i18n="doc.title">neverStop</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="./favicon.png" />
     <link rel="stylesheet" type="text/css" href="./styles.min.css" />
@@ -13,128 +13,140 @@
       <div class="a-app--screen a-app--splash">
         <section class="c-screen a-splash" tabindex="-1">
           <h1 class="a-splash--logo">neverStop</h1>
-          <p class="a-splash--tagline">An audio-first driving game</p>
+          <p class="a-splash--tagline" data-i18n="splash.tagline">An audio-first driving game</p>
           <div class="a-splash--details">
             <div class="a-splash--version"></div>
           </div>
-          <div class="a-splash--instruction">Press any key to begin</div>
+          <div class="a-splash--instruction" data-i18n="splash.instruction">Press any key to begin</div>
         </section>
       </div>
 
       <div class="a-app--screen a-app--menu">
-        <section class="c-screen a-menu" aria-label="Main menu">
+        <section class="c-screen a-menu" data-i18n-attr="aria-label:menu.aria">
           <h1 class="a-menu--logo">neverStop</h1>
           <ul class="a-menu--list" role="menu">
-            <li role="none"><button type="button" role="menuitem" data-menu-action="start">Start Game</button></li>
-            <li role="none"><button type="button" role="menuitem" data-menu-action="help">Help</button></li>
-            <li role="none"><button type="button" role="menuitem" data-menu-action="learn">Learn Sounds</button></li>
+            <li role="none"><button type="button" role="menuitem" data-menu-action="start" data-i18n="menu.start">Start Game</button></li>
+            <li role="none"><button type="button" role="menuitem" data-menu-action="help" data-i18n="menu.help">Help</button></li>
+            <li role="none"><button type="button" role="menuitem" data-menu-action="learn" data-i18n="menu.learn">Learn Sounds</button></li>
+            <li role="none"><button type="button" role="menuitem" data-menu-action="language" data-i18n="menu.language">Language</button></li>
           </ul>
-          <p class="a-menu--hint">Use arrow keys and Enter to navigate.</p>
+          <p class="a-menu--hint" data-i18n="menu.hint">Use arrow keys and Enter to navigate.</p>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
         </section>
       </div>
 
       <div class="a-app--screen a-app--help">
-        <section class="c-screen a-help" aria-label="Help">
-          <h1>How to play</h1>
+        <section class="c-screen a-help" data-i18n-attr="aria-label:help.aria">
+          <h1 data-i18n="help.title">How to play</h1>
           <div class="a-help--body">
-            <p><strong>Goal:</strong> Never stop. If your car ever comes to a halt, the game ends.</p>
+            <p data-i18n-html="help.goal"><strong>Goal:</strong> Never stop. If your car ever comes to a halt, the game ends.</p>
             <ul>
-              <li><strong>You only steer.</strong> Left/Right arrows or A/D. There are no accelerator or brake keys &mdash; speed and braking happen <em>to</em> you, not by you.</li>
-              <li><strong>Speed cones</strong> (soft sonar bleep) give you a few seconds of acceleration when you collect them. The first cones each lap give you the most boost; later ones give less and less. You'll hear them panned where they sit on the road.</li>
-              <li><strong>Fuel cans</strong> (low metallic clank) refill your tank when you collect them. Without fuel you can't accelerate, even from cones.</li>
-              <li><strong>Item boxes</strong> (twinkly arpeggio) give you a random inventory item — Boost, Shield, or Fuel pack. The choice is rolled at pickup time.</li>
-              <li><strong>Hazards</strong> (two-tone alarm) are wide obstacles. Crash into one and you lose ~28% of your speed instantly plus brake for ~1 second. Crashing at very low speed can stall you.</li>
-              <li>Your car has gears. There is <strong>no speed limit</strong>. Higher speeds burn more fuel and make crashes more punishing &mdash; balance ambition against survival.</li>
-              <li>Going off the road slows you down. As you drift toward the edge you'll hear <strong>warning beeps that get faster</strong> the closer you are to leaving the road.</li>
-              <li>Each gear change is <strong>announced</strong> on screen and to your screen reader.</li>
+              <li data-i18n-html="help.steer"></li>
+              <li data-i18n-html="help.cones"></li>
+              <li data-i18n-html="help.fuel"></li>
+              <li data-i18n-html="help.items"></li>
+              <li data-i18n-html="help.hazards"></li>
+              <li data-i18n-html="help.gears"></li>
+              <li data-i18n-html="help.offroad"></li>
+              <li data-i18n-html="help.gearChange"></li>
             </ul>
-            <p>Audio is top-down: the listener always faces up the road. Sounds to the left of the road are heard on your left, regardless of how you're steering. Try to keep your car centered in the audio field.</p>
-            <h2>Status hotkeys</h2>
-            <p>While driving, press these keys to hear the current value announced. Each key replaces the browser's default action.</p>
+            <p data-i18n="help.audio">Audio is top-down: the listener always faces up the road. Sounds to the left of the road are heard on your left, regardless of how you're steering. Try to keep your car centered in the audio field.</p>
+            <h2 data-i18n="help.statusHeader">Status hotkeys</h2>
+            <p data-i18n="help.statusBlurb">While driving, press these keys to hear the current value announced. Each key replaces the browser's default action.</p>
             <ul class="a-help--keys">
-              <li><kbd>F1</kbd> Speed in kilometers per hour</li>
-              <li><kbd>F2</kbd> Fuel remaining</li>
-              <li><kbd>F3</kbd> Current gear</li>
-              <li><kbd>F4</kbd> Distance driven</li>
-              <li><kbd>F5</kbd> Time alive</li>
-              <li><kbd>F6</kbd> Pickups and crashes (speed cones, fuel cans, crashes)</li>
-              <li><kbd>F7</kbd> Everything at once</li>
-              <li><kbd>G</kbd> Use Boost (3-second emergency acceleration). Says "no boosts" if you have none.</li>
-              <li><kbd>I</kbd> Inventory readout — what you're holding right now.</li>
+              <li data-i18n-html="help.keyF1"></li>
+              <li data-i18n-html="help.keyF2"></li>
+              <li data-i18n-html="help.keyF3"></li>
+              <li data-i18n-html="help.keyF4"></li>
+              <li data-i18n-html="help.keyF5"></li>
+              <li data-i18n-html="help.keyF6"></li>
+              <li data-i18n-html="help.keyF7"></li>
+              <li data-i18n-html="help.keyG"></li>
+              <li data-i18n-html="help.keyI"></li>
             </ul>
-            <h2>Inventory items</h2>
-            <p>Item boxes randomly give you one of these. Some auto-fire, some are manual.</p>
+            <h2 data-i18n="help.itemHeader">Inventory items</h2>
+            <p data-i18n="help.itemBlurb">Item boxes randomly give you one of these. Some auto-fire, some are manual.</p>
             <ul>
-              <li><strong>Boost</strong> — manual. Press <kbd>G</kbd> to add 3 seconds of acceleration.</li>
-              <li><strong>Shield</strong> — auto. Absorbs the next hazard hit instead of letting it slow you down.</li>
-              <li><strong>Fuel pack</strong> — auto. When fuel drops below 20%, instantly refills to 100%.</li>
+              <li data-i18n-html="help.itemBoost"></li>
+              <li data-i18n-html="help.itemShield"></li>
+              <li data-i18n-html="help.itemFuel"></li>
             </ul>
-            <p><strong>Pause / back to menu:</strong> Escape.</p>
+            <p data-i18n-html="help.pause"></p>
           </div>
           <div class="a-help--actions">
-            <button type="button" data-help-action="back">Back to menu</button>
+            <button type="button" data-help-action="back" data-i18n="help.back">Back to menu</button>
           </div>
         </section>
       </div>
 
       <div class="a-app--screen a-app--learn">
-        <section class="c-screen a-learn" aria-label="Learn sounds">
-          <h1>Learn the sounds</h1>
-          <p>Focus or click each item to hear it. Press Escape or use the Back button to return to the menu.</p>
+        <section class="c-screen a-learn" data-i18n-attr="aria-label:learn.aria">
+          <h1 data-i18n="learn.title">Learn the sounds</h1>
+          <p data-i18n="learn.subtitle">Focus or click each item to hear it. Press Escape or use the Back button to return to the menu.</p>
           <ul class="a-learn--list" role="list"></ul>
           <div class="a-learn--actions">
-            <button type="button" data-learn-action="back">Back to menu</button>
+            <button type="button" data-learn-action="back" data-i18n="learn.back">Back to menu</button>
           </div>
         </section>
       </div>
 
       <div class="a-app--screen a-app--soundtest">
-        <section class="c-screen a-soundtest" aria-label="Sound test">
-          <h1>Speed cone sound test</h1>
-          <p>Click a button to loop that variant. Click another to switch. Press Escape or use Back to return.</p>
-          <p class="a-soundtest--current">Current pick: <strong data-soundtest="current">—</strong></p>
+        <section class="c-screen a-soundtest" data-i18n-attr="aria-label:soundtest.aria">
+          <h1 data-i18n="soundtest.title">Speed cone sound test</h1>
+          <p data-i18n="soundtest.subtitle">Click a button to loop that variant. Click another to switch. Press Escape or use Back to return.</p>
+          <p class="a-soundtest--current"><span data-i18n="soundtest.current">Current pick:</span> <strong data-soundtest="current">—</strong></p>
           <ul class="a-soundtest--list" role="list"></ul>
           <div class="a-soundtest--actions">
-            <button type="button" data-soundtest-action="stop">Stop</button>
-            <button type="button" data-soundtest-action="back">Back to menu</button>
+            <button type="button" data-soundtest-action="stop" data-i18n="soundtest.stop">Stop</button>
+            <button type="button" data-soundtest-action="back" data-i18n="soundtest.back">Back to menu</button>
           </div>
         </section>
       </div>
 
       <div class="a-app--screen a-app--game">
-        <section class="c-screen a-game" tabindex="-1" aria-label="Game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
           <div class="a-game--hud">
             <div class="a-game--row">
-              <span class="a-game--label">Speed</span>
+              <span class="a-game--label" data-i18n="game.speed">Speed</span>
               <span class="a-game--value" data-hud="speed">0</span>
-              <span class="a-game--unit">km/h</span>
+              <span class="a-game--unit" data-i18n="game.unitKmh">km/h</span>
             </div>
             <div class="a-game--row">
-              <span class="a-game--label">Gear</span>
+              <span class="a-game--label" data-i18n="game.gear">Gear</span>
               <span class="a-game--value a-game--gear" data-hud="gear">1</span>
             </div>
             <div class="a-game--row">
-              <span class="a-game--label">Fuel</span>
+              <span class="a-game--label" data-i18n="game.fuel">Fuel</span>
               <span class="a-game--value" data-hud="fuel">100%</span>
             </div>
             <div class="a-game--row">
-              <span class="a-game--label">Distance</span>
+              <span class="a-game--label" data-i18n="game.distance">Distance</span>
               <span class="a-game--value" data-hud="distance">0 m</span>
             </div>
             <div class="a-game--row a-game--row-status">
               <span class="a-game--status" data-hud="status">&nbsp;</span>
             </div>
           </div>
-          <ul class="a-game--keys" aria-label="Status hotkeys">
-            <li><kbd>F1</kbd> Speed</li>
-            <li><kbd>F2</kbd> Fuel</li>
-            <li><kbd>F3</kbd> Gear</li>
-            <li><kbd>F4</kbd> Distance</li>
-            <li><kbd>F5</kbd> Time</li>
-            <li><kbd>F6</kbd> Pickups &amp; crashes</li>
-            <li><kbd>F7</kbd> All stats</li>
-            <li><kbd>G</kbd> Use boost</li>
-            <li><kbd>I</kbd> Inventory</li>
+          <ul class="a-game--keys" data-i18n-attr="aria-label:game.keysLabel">
+            <li><kbd>F1</kbd> <span data-i18n="game.keys.f1">Speed</span></li>
+            <li><kbd>F2</kbd> <span data-i18n="game.keys.f2">Fuel</span></li>
+            <li><kbd>F3</kbd> <span data-i18n="game.keys.f3">Gear</span></li>
+            <li><kbd>F4</kbd> <span data-i18n="game.keys.f4">Distance</span></li>
+            <li><kbd>F5</kbd> <span data-i18n="game.keys.f5">Time</span></li>
+            <li><kbd>F6</kbd> <span data-i18n="game.keys.f6">Pickups &amp; crashes</span></li>
+            <li><kbd>F7</kbd> <span data-i18n="game.keys.f7">All stats</span></li>
+            <li><kbd>G</kbd> <span data-i18n="game.keys.g">Use boost</span></li>
+            <li><kbd>I</kbd> <span data-i18n="game.keys.i">Inventory</span></li>
           </ul>
           <div class="u-screenReader" aria-live="polite" aria-atomic="true" data-announce></div>
           <div class="u-screenReader" aria-live="assertive" aria-atomic="true" data-announce-assertive></div>
@@ -142,21 +154,21 @@
       </div>
 
       <div class="a-app--screen a-app--gameover">
-        <section class="c-screen a-gameover" aria-label="Game over">
-          <h1>You stopped.</h1>
+        <section class="c-screen a-gameover" data-i18n-attr="aria-label:gameover.aria">
+          <h1 data-i18n="gameover.title">You stopped.</h1>
           <p class="a-gameover--reason" data-gameover="reason"></p>
           <dl class="a-gameover--stats">
-            <dt>Distance</dt><dd data-gameover="distance">0 m</dd>
-            <dt>Top speed</dt><dd data-gameover="topSpeed">0 km/h</dd>
-            <dt>Top gear</dt><dd data-gameover="topGear">1</dd>
-            <dt>Speed cones</dt><dd data-gameover="cones">0</dd>
-            <dt>Fuel cans</dt><dd data-gameover="fuelCans">0</dd>
-            <dt>Crashes</dt><dd data-gameover="crashes">0</dd>
-            <dt>Time</dt><dd data-gameover="time">0:00</dd>
+            <dt data-i18n="gameover.distance">Distance</dt><dd data-gameover="distance">0 m</dd>
+            <dt data-i18n="gameover.topSpeed">Top speed</dt><dd data-gameover="topSpeed">0 km/h</dd>
+            <dt data-i18n="gameover.topGear">Top gear</dt><dd data-gameover="topGear">1</dd>
+            <dt data-i18n="gameover.cones">Speed cones</dt><dd data-gameover="cones">0</dd>
+            <dt data-i18n="gameover.fuelCans">Fuel cans</dt><dd data-gameover="fuelCans">0</dd>
+            <dt data-i18n="gameover.crashes">Crashes</dt><dd data-gameover="crashes">0</dd>
+            <dt data-i18n="gameover.time">Time</dt><dd data-gameover="time">0:00</dd>
           </dl>
           <div class="a-gameover--actions">
-            <button type="button" data-gameover-action="restart">Drive again</button>
-            <button type="button" data-gameover-action="menu">Main menu</button>
+            <button type="button" data-gameover-action="restart" data-i18n="gameover.restart">Drive again</button>
+            <button type="button" data-gameover-action="menu" data-i18n="gameover.menu">Main menu</button>
           </div>
         </section>
       </div>

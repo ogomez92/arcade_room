@@ -6,6 +6,9 @@
   await app.storage.ready()
   app.updates.apply()
   app.settings.load()
+  // Apply detected/persisted locale to the static DOM before screens
+  // wire up; that way each screen's onReady sees translated text.
+  app.i18n.applyDom()
   app.screenManager.ready()
 
   // Initialize mix — reverb tuned for the road environment.

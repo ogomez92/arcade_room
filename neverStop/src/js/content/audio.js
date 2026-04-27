@@ -994,7 +994,7 @@ content.audio = (() => {
 
   // Choose the right game-over cue based on how the car stopped.
   function playGameOverFor(car) {
-    if (car && car.stopReason && /fuel/i.test(car.stopReason)) {
+    if (car && (car.stopReasonKey === 'stop.fuel' || (car.stopReason && /fuel|gasolin|combust/i.test(car.stopReason)))) {
       playGameOverFuel()
     } else {
       playGameOverJingle()

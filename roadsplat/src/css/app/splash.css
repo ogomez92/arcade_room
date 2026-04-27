@@ -25,6 +25,12 @@
   .a-splash--logo {
     font-size: 4em;
   }
+  .a-splash--actions {
+    margin-top: 1.5rem;
+    width: min(20em, 70vw);
+    position: relative;
+    z-index: 1;
+  }
 
 @keyframes a-splash--instruction {
   0% {

@@ -21,7 +21,7 @@ app.screen.game = app.screenManager.invent({
     if (content.game.state.running) {
       // Returning from pause — resume in place, don't reset.
       content.game.setPaused(false)
-      app.announce.polite('Resumed.')
+      app.announce.polite(app.i18n.t('ann.resumed'))
     } else {
       content.game.newGame()
     }

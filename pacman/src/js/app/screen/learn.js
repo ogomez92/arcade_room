@@ -14,35 +14,21 @@ app.screen.learn = app.screenManager.invent({
     const root = this.rootElement
     this.state.nav = root.querySelector('.a-learn--nav')
 
-    const sounds = [
-      {name: 'Blinky (red ghost)', key: 'blinky'},
-      {name: 'Pinky (pink ghost)', key: 'pinky'},
-      {name: 'Inky (cyan ghost)', key: 'inky'},
-      {name: 'Clyde (orange ghost)', key: 'clyde'},
-      {name: 'Frightened ghost', key: 'frightened'},
-      {name: 'Eaten ghost (eyes)', key: 'eaten'},
-      {name: 'Bonus fruit', key: 'fruit'},
-      {name: 'Power pellet — north-west corner (lowest, slowest)', key: 'powerNW'},
-      {name: 'Power pellet — north-east corner', key: 'powerNE'},
-      {name: 'Power pellet — south-west corner', key: 'powerSW'},
-      {name: 'Power pellet — south-east corner (highest, fastest)', key: 'powerSE'},
-      {name: 'Navigation beacon (nearest dot)', key: 'beacon'},
-      {name: 'Wall proximity', key: 'wall'},
-      {name: 'Chomp pellet', key: 'chompA'},
-      {name: 'Power pellet eaten', key: 'eatPower'},
-      {name: 'Ghost eaten jingle', key: 'eatGhost'},
-      {name: 'Fruit eaten jingle', key: 'eatFruit'},
-      {name: 'Death sound', key: 'death'},
-      {name: 'Extra life', key: 'extraLife'},
-      {name: 'Level cleared', key: 'levelClear'},
-      {name: 'Intro jingle', key: 'introJingle'},
+    const soundKeys = [
+      'blinky', 'pinky', 'inky', 'clyde',
+      'frightened', 'eaten', 'fruit',
+      'powerNW', 'powerNE', 'powerSW', 'powerSE',
+      'beacon', 'wall', 'chompA',
+      'eatPower', 'eatGhost', 'eatFruit',
+      'death', 'extraLife', 'levelClear', 'introJingle',
     ]
 
-    for (const s of sounds) {
+    for (const key of soundKeys) {
       const b = document.createElement('button')
       b.type = 'button'
-      b.textContent = s.name
-      b.dataset.sound = s.key
+      b.dataset.sound = key
+      b.dataset.i18n = 'learn.' + key
+      b.textContent = app.i18n.t('learn.' + key)
       this.state.nav.appendChild(b)
     }
 
@@ -60,7 +46,7 @@ app.screen.learn = app.screenManager.invent({
     content.audio.start()
     content.audio.silenceAll()
     content.audio.setStaticListener(0)
-    app.announce.polite('Sound Learning Menu. Tab through buttons to listen to each sound.')
+    app.announce.polite(app.i18n.t('ann.learnHello'))
   },
   onExit: function () {
     this.stopSample()
@@ -92,7 +78,7 @@ app.screen.learn = app.screenManager.invent({
   },
   playSample: function (key, label) {
     this.stopSample()
-    app.announce.polite('Playing: ' + label)
+    app.announce.polite(app.i18n.t('ann.playing', {label}))
 
     // Spatial loops — pin a temporary listener position and place sample 3 tiles ahead
     const props = content.audio._props

@@ -84,11 +84,11 @@ content.projectiles = (() => {
           if (c.kind === 'player') {
             content.player.applyDamage(p.weapon.damage)
             if (p.weapon.stunDuration) content.player.applyStun(p.weapon.stunDuration)
-            content.util.announce('Hit! ' + Math.round(p.weapon.damage) + ' damage taken', false)
+            content.util.announce(app.i18n.t('ann.youHit', {damage: Math.round(p.weapon.damage)}), false)
           } else {
             content.opponent.applyDamage(p.weapon.damage)
             if (p.weapon.stunDuration) content.opponent.applyStun(p.weapon.stunDuration)
-            content.util.announce('You hit. ' + Math.round(p.weapon.damage) + ' damage', false)
+            content.util.announce(app.i18n.t('ann.youDealt', {damage: Math.round(p.weapon.damage)}), false)
           }
           break
         }

@@ -132,9 +132,14 @@ content.items = (() => {
     const parts = []
     for (const item of Object.values(REGISTRY)) {
       const n = count(item.id)
-      if (n > 0) parts.push(`${n} ${n === 1 ? item.name.toLowerCase() : item.plural}`)
+      if (n > 0) {
+        const word = n === 1
+          ? app.i18n.t('item.' + item.id + '.lower')
+          : app.i18n.t('item.' + item.id + '.plural')
+        parts.push(`${n} ${word}`)
+      }
     }
-    return parts.length ? parts.join(', ') : 'Empty'
+    return parts.length ? parts.join(', ') : app.i18n.t('inv.empty')
   }
 
   function totalCollected() { return totalPickedUp }

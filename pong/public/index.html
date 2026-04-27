@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en-US">
   <head>
-    <title>Pong</title>
+    <title data-i18n="doc.title">Pong</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="./favicon.png" />
     <link rel="stylesheet" type="text/css" href="./styles.min.css" />
@@ -11,73 +11,85 @@
       <canvas class="a-app--overlaySupport"></canvas>
 
       <div class="a-app--screen a-app--game">
-        <section class="c-screen a-game" tabindex="-1" aria-label="Game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
           <div role="status" aria-live="polite" aria-atomic="true" class="js-announcer u-screenReader"></div>
 
           <div class="a-game--pregame">
-            <h2>New game</h2>
+            <h2 data-i18n="game.newGame">New game</h2>
             <div class="a-game--field">
-              <label for="a-game--score-limit">Score limit</label>
+              <label for="a-game--score-limit" data-i18n="game.scoreLimit">Score limit</label>
               <input type="number" id="a-game--score-limit" class="a-game--score-limit" value="7" min="1" max="99">
             </div>
-            <button class="a-game--start">Start game</button>
-            <button class="a-game--back-pregame">Back to menu</button>
+            <button class="a-game--start" data-i18n="game.start">Start game</button>
+            <button class="a-game--back-pregame" data-i18n="game.back">Back to menu</button>
           </div>
 
           <div class="a-game--gameover" hidden>
             <p class="a-game--gameover-msg u-screenReader"></p>
-            <button class="a-game--return">Return to menu</button>
+            <button class="a-game--return" data-i18n="game.return">Return to menu</button>
           </div>
         </section>
       </div>
 
       <div class="a-app--screen a-app--learn-sounds">
-        <section class="c-screen a-learn-sounds" tabindex="-1" aria-label="Learn sounds">
-          <h2>Learn sounds</h2>
+        <section class="c-screen a-learn-sounds" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h2 data-i18n="learn.title">Learn sounds</h2>
           <ul class="a-learn-sounds--list">
-            <li><button class="a-learn-sounds--ball-rolling">Ball rolling</button></li>
-            <li><button class="a-learn-sounds--serve-warning">Serve transfer warning</button></li>
-            <li><button class="a-learn-sounds--back">Back to main menu</button></li>
+            <li><button class="a-learn-sounds--ball-rolling" data-i18n="learn.ballRolling">Ball rolling</button></li>
+            <li><button class="a-learn-sounds--serve-warning" data-i18n="learn.serveWarning">Serve transfer warning</button></li>
+            <li><button class="a-learn-sounds--back" data-i18n="learn.back">Back to main menu</button></li>
           </ul>
         </section>
       </div>
 
       <div class="a-app--screen a-app--lobby">
-        <section class="c-screen a-lobby" tabindex="-1" aria-label="Multiplayer lobby">
+        <section class="c-screen a-lobby" tabindex="-1" data-i18n-attr="aria-label:lobby.aria">
           <div role="status" aria-live="polite" aria-atomic="true"
                class="js-lobby-announcer u-screenReader"></div>
 
           <div class="a-lobby--connect">
-            <button class="a-lobby--create-btn">Create room</button>
-            <label for="a-lobby--code-input">Room code (4 letters)</label>
+            <button class="a-lobby--create-btn" data-i18n="lobby.create">Create room</button>
+            <label for="a-lobby--code-input" data-i18n="lobby.codeLabel">Room code (4 letters)</label>
             <input id="a-lobby--code-input" class="a-lobby--code-input"
-                   maxlength="4" autocomplete="off" aria-label="4-letter room code">
-            <button class="a-lobby--join-btn">Join room</button>
-            <button class="a-lobby--back-btn">Back</button>
+                   maxlength="4" autocomplete="off" data-i18n-attr="aria-label:lobby.codeAria">
+            <button class="a-lobby--join-btn" data-i18n="lobby.join">Join room</button>
+            <button class="a-lobby--back-btn" data-i18n="lobby.back">Back</button>
           </div>
 
           <div class="a-lobby--room" hidden>
             <p class="a-lobby--room-code u-screenReader"></p>
-            <div class="a-lobby--players" role="list" aria-label="Players"></div>
-            <button class="a-lobby--team1-btn">Join Team 1</button>
-            <button class="a-lobby--team2-btn">Join Team 2</button>
-            <button class="a-lobby--ready-btn">Ready</button>
-            <button class="a-lobby--leave-btn">Leave room</button>
+            <div class="a-lobby--players" role="list" data-i18n-attr="aria-label:lobby.playersAria"></div>
+            <button class="a-lobby--team1-btn" data-i18n="lobby.team1">Join Team 1</button>
+            <button class="a-lobby--team2-btn" data-i18n="lobby.team2">Join Team 2</button>
+            <button class="a-lobby--ready-btn" data-i18n="lobby.ready">Ready</button>
+            <button class="a-lobby--leave-btn" data-i18n="lobby.leave">Leave room</button>
           </div>
         </section>
       </div>
 
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
       <div class="a-app--screen a-app--splash">
-        <section class="c-screen a-splash" tabindex="-1" aria-label="Welcome">
+        <section class="c-screen a-splash" tabindex="-1" data-i18n-attr="aria-label:splash.aria">
           <h1 class="a-splash--logo">Pong</h1>
           <div class="a-splash--details">
             <div class="a-splash--version"></div>
-            <div class="a-splash--author">by guilevi</div>
+            <div class="a-splash--author" data-i18n="splash.author">by guilevi</div>
           </div>
-          <nav class="a-splash--menu" aria-label="Main menu">
-            <button class="a-splash--play">Play game</button>
-            <button class="a-splash--multiplayer">Multiplayer</button>
-            <button class="a-splash--learn">Learn sounds</button>
+          <nav class="a-splash--menu" data-i18n-attr="aria-label:splash.menuAria">
+            <button class="a-splash--play" data-i18n="splash.play">Play game</button>
+            <button class="a-splash--multiplayer" data-i18n="splash.multi">Multiplayer</button>
+            <button class="a-splash--learn" data-i18n="splash.learn">Learn sounds</button>
+            <button class="a-splash--language" data-i18n="splash.language">Language</button>
           </nav>
         </section>
       </div>

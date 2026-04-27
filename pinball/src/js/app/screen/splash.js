@@ -6,6 +6,7 @@ app.screen.splash = app.screenManager.invent({
     interact: function () { this.change('game') },
     help: function () { this.change('help') },
     learn: function () { this.change('learn') },
+    language: function () { this.change('language') },
   },
   state: {},
   onReady: function () {
@@ -24,7 +25,7 @@ app.screen.splash = app.screenManager.invent({
     })
   },
   onEnter: function () {
-    app.announce.polite('Audio Pinball main menu. Three options. Use Tab or arrow keys to move, Enter or Space to choose.')
+    app.announce.polite(app.i18n.t('splash.announce'))
     // Focus the first menu item explicitly (base.focusWithin already does
     // this by selectFocusable, but being explicit is cheap insurance).
     const first = this.rootElement.querySelector('.a-splash--menu-item')

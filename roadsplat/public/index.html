@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en-US">
   <head>
-    <title>roadsplat</title>
+    <title data-i18n="doc.title">roadsplat</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="./favicon.png" />
     <link rel="stylesheet" type="text/css" href="./styles.min.css" />
@@ -14,16 +14,27 @@
       <div role="status" aria-live="assertive" aria-atomic="true" class="u-screenReader a-app--announce-assertive"></div>
 
       <div class="a-app--screen a-app--game">
-        <section class="c-screen a-game" tabindex="-1" aria-label="Game">
-          <h1 class="u-screenReader">roadsplat — game in progress</h1>
-          <dl class="a-game--hud" aria-label="Game status">
-            <dt>HP</dt><dd class="a-game--hp">100</dd>
-            <dt>Level</dt><dd class="a-game--level">1</dd>
-            <dt>Score</dt><dd class="a-game--score">0</dd>
-            <dt>Next</dt><dd class="a-game--next">1000</dd>
-            <dt>Position</dt><dd class="a-game--pos">south sidewalk</dd>
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <h1 class="u-screenReader" data-i18n="game.headline">roadsplat — game in progress</h1>
+          <dl class="a-game--hud" data-i18n-attr="aria-label:game.hudLabel">
+            <dt data-i18n="game.hp">HP</dt><dd class="a-game--hp">100</dd>
+            <dt data-i18n="game.level">Level</dt><dd class="a-game--level">1</dd>
+            <dt data-i18n="game.score">Score</dt><dd class="a-game--score">0</dd>
+            <dt data-i18n="game.next">Next</dt><dd class="a-game--next">1000</dd>
+            <dt data-i18n="game.position">Position</dt><dd class="a-game--pos">south sidewalk</dd>
           </dl>
-          <p class="a-game--help">Hold Up Arrow to walk forward, Down Arrow to walk back. F1 score · F2 health · F3 level · F4 position · I full status · Esc pause.</p>
+          <p class="a-game--help" data-i18n="game.help">Hold Up Arrow to walk forward, Down Arrow to walk back. F1 score · F2 health · F3 level · F4 position · I full status · Esc pause.</p>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
         </section>
       </div>
 
@@ -32,9 +43,12 @@
           <h1 class="a-splash--logo">roadsplat</h1>
           <div class="a-splash--details">
             <div class="a-splash--version"></div>
-            <div class="a-splash--author">audio-only road crossing</div>
+            <div class="a-splash--author" data-i18n="splash.author">audio-only road crossing</div>
           </div>
-          <div class="a-splash--instruction">Press any key or click to begin</div>
+          <div class="a-splash--instruction" data-i18n="splash.instruction">Press any key or click to begin</div>
+          <div class="a-splash--actions">
+            <button class="c-menu--button a-splash--language" data-action="language" data-i18n="language.button">Language</button>
+          </div>
         </section>
       </div>
 

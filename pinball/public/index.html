@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en-US">
   <head>
-    <title>Audio Pinball</title>
+    <title data-i18n="doc.title">Audio Pinball</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="./favicon.png" />
     <link rel="stylesheet" type="text/css" href="./styles.min.css" />
@@ -14,22 +14,22 @@
       <div class="a-app--announce-assertive u-screenReader" aria-live="assertive" aria-atomic="true"></div>
 
       <div class="a-app--screen a-app--game">
-        <section class="c-screen a-game" tabindex="-1" aria-label="Pinball Table">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
           <header class="a-game--hud">
             <div class="a-game--score" aria-live="off">
-              <span class="a-game--score-label">Score</span>
+              <span class="a-game--score-label" data-i18n="game.score">Score</span>
               <span class="a-game--score-value">0</span>
             </div>
             <div class="a-game--rank">
-              <span class="a-game--rank-label">Rank</span>
+              <span class="a-game--rank-label" data-i18n="game.rank">Rank</span>
               <span class="a-game--rank-value">Cadet</span>
             </div>
             <div class="a-game--balls">
-              <span class="a-game--balls-label">Balls</span>
+              <span class="a-game--balls-label" data-i18n="game.balls">Balls</span>
               <span class="a-game--balls-value">3</span>
             </div>
             <div class="a-game--mission">
-              <span class="a-game--mission-label">Mission</span>
+              <span class="a-game--mission-label" data-i18n="game.mission">Mission</span>
               <span class="a-game--mission-value">Hit the bumpers</span>
             </div>
           </header>
@@ -39,135 +39,147 @@
           </div>
 
           <footer class="a-game--legend">
-            <p>Z / Left Shift = left flipper. M / Right Shift = right flipper. Space = launch / nudge. P = position read-out. Esc = pause.</p>
+            <p data-i18n="game.legend">Z / Left Shift = left flipper. M / Right Shift = right flipper. Space = launch / nudge. P = position read-out. Esc = pause.</p>
           </footer>
         </section>
       </div>
 
       <div class="a-app--screen a-app--splash">
-        <section class="c-screen a-splash" tabindex="-1" aria-label="Audio Pinball main menu">
+        <section class="c-screen a-splash" tabindex="-1" data-i18n-attr="aria-label:splash.aria">
           <h1 class="a-splash--logo">Audio Pinball</h1>
-          <p class="a-splash--tagline">Space Cadet, by ear.</p>
-          <ul class="a-splash--menu" role="menu" aria-label="Main menu">
-            <li role="none"><button role="menuitem" class="a-splash--menu-item" data-action="start">Start Game</button></li>
-            <li role="none"><button role="menuitem" class="a-splash--menu-item" data-action="help">How to Play</button></li>
-            <li role="none"><button role="menuitem" class="a-splash--menu-item" data-action="learn">Learn the Sounds</button></li>
+          <p class="a-splash--tagline" data-i18n="splash.tagline">Space Cadet, by ear.</p>
+          <ul class="a-splash--menu" role="menu" data-i18n-attr="aria-label:splash.menuAria">
+            <li role="none"><button role="menuitem" class="a-splash--menu-item" data-action="start" data-i18n="splash.start">Start Game</button></li>
+            <li role="none"><button role="menuitem" class="a-splash--menu-item" data-action="help" data-i18n="splash.help">How to Play</button></li>
+            <li role="none"><button role="menuitem" class="a-splash--menu-item" data-action="learn" data-i18n="splash.learn">Learn the Sounds</button></li>
+            <li role="none"><button role="menuitem" class="a-splash--menu-item" data-action="language" data-i18n="splash.language">Language</button></li>
           </ul>
           <div class="a-splash--details">
             <div class="a-splash--version"></div>
-            <div class="a-splash--author">a syngen template demo</div>
+            <div class="a-splash--author" data-i18n="splash.author">a syngen template demo</div>
           </div>
         </section>
       </div>
 
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
       <div class="a-app--screen a-app--learn">
-        <section class="c-screen a-learn" tabindex="-1" aria-label="Learn the sounds">
-          <h1>Learn the Sounds</h1>
-          <p class="a-learn--instruction">Tab or arrow keys to move between sounds. Enter or Space to play. Press Escape to return to the menu.</p>
+        <section class="c-screen a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 data-i18n="learn.title">Learn the Sounds</h1>
+          <p class="a-learn--instruction" data-i18n="learn.subtitle">Tab or arrow keys to move between sounds. Enter or Space to play. Press Escape to return to the menu.</p>
 
-          <h2>Ball</h2>
+          <h2 data-i18n="learn.ball">Ball</h2>
           <ul class="a-learn--list" role="list">
-            <li><button data-sound="roll-slow">Ball rolling, slow, centre</button></li>
-            <li><button data-sound="roll-fast">Ball rolling, fast, centre</button></li>
-            <li><button data-sound="roll-left">Ball rolling on the left side</button></li>
-            <li><button data-sound="roll-right">Ball rolling on the right side</button></li>
-            <li><button data-sound="roll-far">Ball rolling far up the table (high pitch)</button></li>
-            <li><button data-sound="ballReady">Ball ready chime</button></li>
+            <li><button data-sound="roll-slow" data-i18n="learn.rollSlow">Ball rolling, slow, centre</button></li>
+            <li><button data-sound="roll-fast" data-i18n="learn.rollFast">Ball rolling, fast, centre</button></li>
+            <li><button data-sound="roll-left" data-i18n="learn.rollLeft">Ball rolling on the left side</button></li>
+            <li><button data-sound="roll-right" data-i18n="learn.rollRight">Ball rolling on the right side</button></li>
+            <li><button data-sound="roll-far" data-i18n="learn.rollFar">Ball rolling far up the table (high pitch)</button></li>
+            <li><button data-sound="ballReady" data-i18n="learn.ballReady">Ball ready chime</button></li>
           </ul>
 
-          <h2>Bumpers</h2>
+          <h2 data-i18n="learn.bumpers">Bumpers</h2>
           <ul class="a-learn--list" role="list">
-            <li><button data-sound="bumper-alpha">Alpha bumper, upper left, high pitch</button></li>
-            <li><button data-sound="bumper-beta">Beta bumper, upper right, mid pitch</button></li>
-            <li><button data-sound="bumper-gamma">Gamma bumper, top centre, low pitch</button></li>
+            <li><button data-sound="bumper-alpha" data-i18n="learn.bumperAlpha">Alpha bumper, upper left, high pitch</button></li>
+            <li><button data-sound="bumper-beta" data-i18n="learn.bumperBeta">Beta bumper, upper right, mid pitch</button></li>
+            <li><button data-sound="bumper-gamma" data-i18n="learn.bumperGamma">Gamma bumper, top centre, low pitch</button></li>
           </ul>
 
-          <h2>Slingshots</h2>
+          <h2 data-i18n="learn.slings">Slingshots</h2>
           <ul class="a-learn--list" role="list">
-            <li><button data-sound="sling-left">Left slingshot</button></li>
-            <li><button data-sound="sling-right">Right slingshot</button></li>
+            <li><button data-sound="sling-left" data-i18n="learn.slingLeft">Left slingshot</button></li>
+            <li><button data-sound="sling-right" data-i18n="learn.slingRight">Right slingshot</button></li>
           </ul>
 
-          <h2>Drop targets</h2>
+          <h2 data-i18n="learn.targets">Drop targets</h2>
           <ul class="a-learn--list" role="list">
-            <li><button data-sound="target-t1">Target one (left, C5)</button></li>
-            <li><button data-sound="target-t2">Target two (centre, E5)</button></li>
-            <li><button data-sound="target-t3">Target three (right, G5)</button></li>
+            <li><button data-sound="target-t1" data-i18n="learn.targetT1">Target one (left, C5)</button></li>
+            <li><button data-sound="target-t2" data-i18n="learn.targetT2">Target two (centre, E5)</button></li>
+            <li><button data-sound="target-t3" data-i18n="learn.targetT3">Target three (right, G5)</button></li>
           </ul>
 
-          <h2>Rollover lanes</h2>
+          <h2 data-i18n="learn.rollovers">Rollover lanes</h2>
           <ul class="a-learn--list" role="list">
-            <li><button data-sound="rollover-r1">Far left rollover, lowest</button></li>
-            <li><button data-sound="rollover-r2">Inner left rollover</button></li>
-            <li><button data-sound="rollover-r3">Inner right rollover</button></li>
-            <li><button data-sound="rollover-r4">Far right rollover, highest</button></li>
+            <li><button data-sound="rollover-r1" data-i18n="learn.rolloverR1">Far left rollover, lowest</button></li>
+            <li><button data-sound="rollover-r2" data-i18n="learn.rolloverR2">Inner left rollover</button></li>
+            <li><button data-sound="rollover-r3" data-i18n="learn.rolloverR3">Inner right rollover</button></li>
+            <li><button data-sound="rollover-r4" data-i18n="learn.rolloverR4">Far right rollover, highest</button></li>
           </ul>
 
-          <h2>Flippers</h2>
+          <h2 data-i18n="learn.flippers">Flippers</h2>
           <ul class="a-learn--list" role="list">
-            <li><button data-sound="flap-left">Left flipper button press</button></li>
-            <li><button data-sound="flap-right">Right flipper button press</button></li>
-            <li><button data-sound="flipperHit-left">Ball striking the left flipper</button></li>
-            <li><button data-sound="flipperHit-right">Ball striking the right flipper</button></li>
-            <li><button data-sound="prox-left">Proximity beep, ball approaching left flipper</button></li>
-            <li><button data-sound="prox-right">Proximity beep, ball approaching right flipper</button></li>
-            <li><button data-sound="prox-upper">Proximity beep, ball approaching upper flipper</button></li>
+            <li><button data-sound="flap-left" data-i18n="learn.flapLeft">Left flipper button press</button></li>
+            <li><button data-sound="flap-right" data-i18n="learn.flapRight">Right flipper button press</button></li>
+            <li><button data-sound="flipperHit-left" data-i18n="learn.flipperHitLeft">Ball striking the left flipper</button></li>
+            <li><button data-sound="flipperHit-right" data-i18n="learn.flipperHitRight">Ball striking the right flipper</button></li>
+            <li><button data-sound="prox-left" data-i18n="learn.proxLeft">Proximity beep, ball approaching left flipper</button></li>
+            <li><button data-sound="prox-right" data-i18n="learn.proxRight">Proximity beep, ball approaching right flipper</button></li>
+            <li><button data-sound="prox-upper" data-i18n="learn.proxUpper">Proximity beep, ball approaching upper flipper</button></li>
           </ul>
 
-          <h2>Plunger and walls</h2>
+          <h2 data-i18n="learn.plunger">Plunger and walls</h2>
           <ul class="a-learn--list" role="list">
-            <li><button data-sound="plunger-charge">Plunger charging tick</button></li>
-            <li><button data-sound="plunger-launch">Plunger launch</button></li>
-            <li><button data-sound="wall">Ball striking a wall</button></li>
+            <li><button data-sound="plunger-charge" data-i18n="learn.plungerCharge">Plunger charging tick</button></li>
+            <li><button data-sound="plunger-launch" data-i18n="learn.plungerLaunch">Plunger launch</button></li>
+            <li><button data-sound="wall" data-i18n="learn.wall">Ball striking a wall</button></li>
           </ul>
 
-          <h2>Game events</h2>
+          <h2 data-i18n="learn.gameEvents">Game events</h2>
           <ul class="a-learn--list" role="list">
-            <li><button data-sound="missionComplete">Mission complete fanfare</button></li>
-            <li><button data-sound="rankUp">Rank promotion fanfare</button></li>
-            <li><button data-sound="drain">Drain (lost ball)</button></li>
-            <li><button data-sound="gameOver">Game over</button></li>
+            <li><button data-sound="missionComplete" data-i18n="learn.missionComplete">Mission complete fanfare</button></li>
+            <li><button data-sound="rankUp" data-i18n="learn.rankUp">Rank promotion fanfare</button></li>
+            <li><button data-sound="drain" data-i18n="learn.drain">Drain (lost ball)</button></li>
+            <li><button data-sound="gameOver" data-i18n="learn.gameOver">Game over</button></li>
           </ul>
 
-          <p class="a-learn--footer"><button class="a-learn--back">Back to menu</button></p>
+          <p class="a-learn--footer"><button class="a-learn--back" data-i18n="learn.back">Back to menu</button></p>
         </section>
       </div>
 
       <div class="a-app--screen a-app--help">
-        <section class="c-screen a-help" tabindex="-1" aria-label="How to play">
-          <h1>How to play</h1>
-          <h2>Controls</h2>
+        <section class="c-screen a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 data-i18n="help.title">How to play</h1>
+          <h2 data-i18n="help.controls">Controls</h2>
           <ul>
-            <li><strong>Z</strong> or <strong>Left Shift</strong> — left flipper (also drives the upper-left mini-flipper).</li>
-            <li><strong>M</strong> or <strong>Right Shift</strong> — right flipper.</li>
-            <li><strong>Space</strong> — hold to pull the plunger, release to launch.</li>
-            <li><strong>P</strong> — speak the ball's current position (side and depth).</li>
-            <li><strong>Escape</strong> — pause during play, or return to the menu from this screen.</li>
-            <li><strong>Q</strong> from pause — quit to the title screen.</li>
+            <li data-i18n-html="help.controlZ"></li>
+            <li data-i18n-html="help.controlM"></li>
+            <li data-i18n-html="help.controlSpace"></li>
+            <li data-i18n-html="help.controlP"></li>
+            <li data-i18n-html="help.controlEscape"></li>
+            <li data-i18n-html="help.controlQ"></li>
           </ul>
-          <h2>How the audio works</h2>
-          <p>The listener is locked at the bottom of the table, facing up — as if you were sitting behind the machine. The ball is always in front of you and never behind. Left-right pan tells you which side of the table the ball is on. Quieter sounds are further away.</p>
-          <p>A continuous rolling sound follows the ball as it travels. The faster the ball moves, the louder and brighter the rumble. A pitched undertone rises the further up the table the ball travels — low when it's near the flippers, high near the bumpers — so distance is encoded as pitch as well as volume.</p>
-          <p>When the ball heads toward a flipper, a square-wave proximity beep starts up, panned to that flipper's side. The beep gets faster and higher as the ball gets closer — that's your cue to time the flip.</p>
-          <p>Each bumper, target, and rollover lane has its own pitch, so a quick listen tells you which one was struck. Pick "Learn the Sounds" from the main menu to hear them all in isolation.</p>
-          <h2>Goals</h2>
-          <p>You have three balls. Score points by hitting bumpers, slingshots, drop targets, and rolling through the lanes at the top. A queue of missions guides what to aim for; complete them for big bonuses. Score enough and your rank rises from Cadet through Fleet Admiral. Drain all three balls and the game ends.</p>
-          <p><button class="a-help--back">Back to menu</button></p>
+          <h2 data-i18n="help.audioHeader">How the audio works</h2>
+          <p data-i18n="help.audio1"></p>
+          <p data-i18n="help.audio2"></p>
+          <p data-i18n="help.audio3"></p>
+          <p data-i18n="help.audio4"></p>
+          <h2 data-i18n="help.goalsHeader">Goals</h2>
+          <p data-i18n="help.goals"></p>
+          <p><button class="a-help--back" data-i18n="help.back">Back to menu</button></p>
         </section>
       </div>
 
       <div class="a-app--screen a-app--pause">
-        <section class="c-screen a-pause" tabindex="-1" aria-label="Paused">
-          <h1>Paused</h1>
-          <p>Press Escape to resume. Press Q to quit to the title screen.</p>
+        <section class="c-screen a-pause" tabindex="-1" data-i18n-attr="aria-label:pause.aria">
+          <h1 data-i18n="pause.title">Paused</h1>
+          <p data-i18n="pause.body">Press Escape to resume. Press Q to quit to the title screen.</p>
         </section>
       </div>
 
       <div class="a-app--screen a-app--gameover">
-        <section class="c-screen a-gameover" tabindex="-1" aria-label="Game over">
-          <h1>Game Over</h1>
-          <p class="a-gameover--summary">Final score: <span class="a-gameover--score">0</span>. Final rank: <span class="a-gameover--rank">Cadet</span>.</p>
-          <p>Press Space or Enter to play again. Press Escape to return to the title screen.</p>
+        <section class="c-screen a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 data-i18n="gameover.title">Game Over</h1>
+          <p class="a-gameover--summary"></p>
+          <p data-i18n="gameover.body">Press Space or Enter to play again. Press Escape to return to the title screen.</p>
         </section>
       </div>
 

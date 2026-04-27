@@ -6,6 +6,7 @@ app.screen.splash = app.screenManager.invent({
     play: function () { this.change('game') },
     learnSounds: function () { this.change('learnSounds') },
     multiplayer: function () { this.change('lobby') },
+    language: function () { this.change('language') },
   },
   state: {},
   onReady: function () {
@@ -23,6 +24,10 @@ app.screen.splash = app.screenManager.invent({
 
     root.querySelector('.a-splash--multiplayer').addEventListener('click', () => {
       app.screenManager.dispatch('multiplayer')
+    })
+
+    root.querySelector('.a-splash--language').addEventListener('click', () => {
+      app.screenManager.dispatch('language')
     })
   },
   onEnter: function () {},

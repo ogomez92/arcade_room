@@ -20,7 +20,7 @@ app.screen.splash = app.screenManager.invent({
   },
   onEnter: function () {
     // Announce
-    content.util.announce('Welcome to Mech Duel. Press Enter or click anywhere to begin.', true)
+    content.util.announce(app.i18n.t('splash.welcome'), true)
   },
   onFrame: function () {
     const ui = app.controls.ui()

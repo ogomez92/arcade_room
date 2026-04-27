@@ -7,6 +7,7 @@ app.screen.menu = app.screenManager.invent({
     playOnlineHost: function () { this.change('multiplayer', { action: 'host' }) },
     playOnlineJoin: function () { this.change('multiplayer', { action: 'join' }) },
     learnSounds: function () { this.change('learn') },
+    language: function () { this.change('language') },
   },
   state: {},
   onReady: function () {
@@ -24,14 +25,15 @@ app.screen.menu = app.screenManager.invent({
         case 'play-online-host': app.screenManager.dispatch('playOnlineHost'); break
         case 'play-online-join': app.screenManager.dispatch('playOnlineJoin'); break
         case 'learn-sounds': app.screenManager.dispatch('learnSounds'); break
+        case 'language': app.screenManager.dispatch('language'); break
         case 'manual':
-          content.util.announce('How to play: Up and down arrows change speed. Left and right arrows turn. Shift plus left or right snaps to a cardinal direction. Space jumps or activates jetpack. F is primary weapon, R is secondary. Shift plus F or R switches sonar target. H reports your status, Q reports the opponent. Escape pauses. Use Tab and Enter to navigate menus.', true)
+          content.util.announce(app.i18n.t('menu.helpRead'), true)
           break
       }
     }
   },
   onEnter: function () {
-    content.util.announce('Main menu. Play versus computer, host or join an online duel, learn game sounds, or read how to play.', true)
+    content.util.announce(app.i18n.t('menu.welcome'), true)
   },
   onFrame: function () {
     const ui = app.controls.ui()

@@ -21,13 +21,13 @@ app.screen.gameOver = app.screenManager.invent({
     const msg = this.rootElement.querySelector('.c-go-message')
     const outcome = (data && data.outcome) || 'loss'
     if (outcome === 'win') {
-      title.textContent = 'Victory'
-      msg.textContent = 'You destroyed the opponent. Well fought.'
+      title.textContent = app.i18n.t('gameover.titleWin')
+      msg.textContent = app.i18n.t('gameover.win')
     } else {
-      title.textContent = 'Defeat'
-      msg.textContent = 'Your mech was destroyed. Better luck next time.'
+      title.textContent = app.i18n.t('gameover.titleLose')
+      msg.textContent = app.i18n.t('gameover.lose')
     }
-    content.util.announce(title.textContent + '. ' + msg.textContent, true)
+    content.util.announce(app.i18n.t('gameover.full', {title: title.textContent, msg: msg.textContent}), true)
     // Safety net: ensure all combat systems (including engine sounds) are stopped
     content.game.stop()
   },

@@ -7,6 +7,9 @@ app.screen.splash = app.screenManager.invent({
     interact: function () {
       this.change('game')
     },
+    language: function () {
+      this.change('language')
+    },
   },
   // State
   state: {
@@ -17,7 +20,12 @@ app.screen.splash = app.screenManager.invent({
   onReady: function () {
     const root = this.rootElement
 
-    root.addEventListener('click', () => {
+    root.addEventListener('click', (e) => {
+      const action = e.target.closest('button[data-action]')
+      if (action) {
+        app.screenManager.dispatch(action.dataset.action)
+        return
+      }
       app.screenManager.dispatch('interact')
     })
 

@@ -6,6 +6,9 @@ app.screen.menu = app.screenManager.invent({
     start: function () {
       this.change('game')
     },
+    language: function () {
+      this.change('language')
+    },
   },
   state: {},
   onReady: function () {
@@ -55,6 +58,8 @@ app.screen.menu = app.screenManager.invent({
       app.screenManager.dispatch('start')
     } else if (action == 'howto') {
       this.howto.hidden = !this.howto.hidden
+    } else if (action == 'language') {
+      app.screenManager.dispatch('language')
     } else if (action == 'quit') {
       if (app.isElectron()) app.quit()
     }

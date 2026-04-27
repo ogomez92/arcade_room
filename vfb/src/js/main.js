@@ -6,6 +6,7 @@
   await app.storage.ready()
   app.updates.apply()
   app.settings.load()
+  app.i18n.applyDom()
   app.screenManager.ready()
 
   // Initialize mix

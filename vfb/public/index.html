@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en-US">
   <head>
-    <title>Villains from Beyond</title>
+    <title data-i18n="doc.title">Villains from Beyond</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="./favicon.png" />
     <link rel="stylesheet" type="text/css" href="./styles.min.css" />
@@ -15,116 +15,128 @@
           <h1 class="a-splash--logo">Villains from Beyond</h1>
           <div class="a-splash--details">
             <div class="a-splash--version"></div>
-            <div class="a-splash--author">Audio-first scrolling shooter</div>
+            <div class="a-splash--author" data-i18n="splash.author">Audio-first scrolling shooter</div>
           </div>
-          <div class="a-splash--instruction">Press Enter or click to begin</div>
+          <div class="a-splash--instruction" data-i18n="splash.instruction">Press Enter or click to begin</div>
         </section>
       </div>
 
       <div class="a-app--screen a-app--menu">
-        <section class="c-screen a-menu" tabindex="-1" aria-label="Main menu">
-          <h1 class="a-menu--title">Villains from Beyond</h1>
-          <p class="a-menu--instructions">Use arrow keys to navigate, Enter to confirm. Escape to exit.</p>
+        <section class="c-screen a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="a-menu--title" data-i18n="menu.title">Villains from Beyond</h1>
+          <p class="a-menu--instructions" data-i18n="menu.instructions">Use arrow keys to navigate, Enter to confirm. Escape to exit.</p>
           <ul class="a-menu--list" role="menu">
-            <li role="none"><button role="menuitem" data-action="start" tabindex="0">Start Game</button></li>
-            <li role="none"><button role="menuitem" data-action="howto" tabindex="0">How to Play</button></li>
-            <li role="none"><button role="menuitem" data-action="quit" tabindex="0">Quit</button></li>
+            <li role="none"><button role="menuitem" data-action="start" tabindex="0" data-i18n="menu.start">Start Game</button></li>
+            <li role="none"><button role="menuitem" data-action="howto" tabindex="0" data-i18n="menu.howto">How to Play</button></li>
+            <li role="none"><button role="menuitem" data-action="language" tabindex="0" data-i18n="menu.language">Language</button></li>
+            <li role="none"><button role="menuitem" data-action="quit" tabindex="0" data-i18n="menu.quit">Quit</button></li>
           </ul>
           <div class="a-menu--howto" hidden>
-            <h2>How to Play</h2>
-            <p>You pilot the <strong>Solvalou</strong>, an endlessly forward-scrolling ship. Aerial enemies must be shot with the <strong>zapper beam</strong>. Ground targets are destroyed with <strong>bombs</strong>. Every three levels you face a Genesis mothership boss. Game is endless: try to reach as far as you can.</p>
+            <h2 data-i18n="howto.title">How to Play</h2>
+            <p data-i18n-html="howto.intro"></p>
 
-            <h3>Combat keys</h3>
+            <h3 data-i18n="howto.combatHeader">Combat keys</h3>
             <ul>
-              <li><kbd>Z</kbd> &mdash; Fire zapper beam (hold to fire continuously)</li>
-              <li><kbd>X</kbd> &mdash; Drop bomb (hold to drop continuously)</li>
-              <li><kbd>C</kbd> &mdash; Anti-aircraft burst (clears all aerial enemies; finite supply)</li>
-              <li><kbd>A</kbd> &mdash; Spend 3 shieldbits for an instant clearing beam</li>
+              <li data-i18n-html="howto.combatZ"></li>
+              <li data-i18n-html="howto.combatX"></li>
+              <li data-i18n-html="howto.combatC"></li>
+              <li data-i18n-html="howto.combatA"></li>
             </ul>
 
-            <h3>Movement</h3>
+            <h3 data-i18n="howto.moveHeader">Movement</h3>
             <ul>
-              <li><kbd>&larr;</kbd> / <kbd>&rarr;</kbd> &mdash; Strafe left / right (lateral position 0&ndash;10)</li>
-              <li><kbd>&uarr;</kbd> &mdash; Speed up (faster forward scroll)</li>
-              <li><kbd>&darr;</kbd> &mdash; Slow down</li>
+              <li data-i18n-html="howto.moveLR"></li>
+              <li data-i18n-html="howto.moveUp"></li>
+              <li data-i18n-html="howto.moveDown"></li>
             </ul>
 
-            <h3>Game flow</h3>
+            <h3 data-i18n="howto.flowHeader">Game flow</h3>
             <ul>
-              <li><kbd>Space</kbd> &mdash; Request store at end of level (level 4+, costs 15 credits)</li>
-              <li><kbd>P</kbd> &mdash; Pause / resume</li>
-              <li><kbd>Esc</kbd> &mdash; Quit current run, return to menu</li>
-              <li><kbd>Q</kbd> &mdash; Rage quit (immediate game over)</li>
+              <li data-i18n-html="howto.flowSpace"></li>
+              <li data-i18n-html="howto.flowP"></li>
+              <li data-i18n-html="howto.flowEsc"></li>
+              <li data-i18n-html="howto.flowQ"></li>
             </ul>
 
-            <h3>Status announcements (spoken via screen reader)</h3>
+            <h3 data-i18n="howto.statusHeader">Status announcements (spoken via screen reader)</h3>
             <ul>
-              <li><kbd>S</kbd> &mdash; Speak current score</li>
-              <li><kbd>L</kbd> &mdash; Speak lives remaining</li>
-              <li><kbd>E</kbd> &mdash; Speak current level</li>
-              <li><kbd>B</kbd> &mdash; Speak bursts remaining</li>
-              <li><kbd>D</kbd> &mdash; Speak shieldbits remaining</li>
-              <li><kbd>M</kbd> &mdash; Speak credits</li>
-              <li><kbd>V</kbd> &mdash; Speak level progress (percent of level traveled)</li>
+              <li data-i18n-html="howto.statusS"></li>
+              <li data-i18n-html="howto.statusL"></li>
+              <li data-i18n-html="howto.statusE"></li>
+              <li data-i18n-html="howto.statusB"></li>
+              <li data-i18n-html="howto.statusD"></li>
+              <li data-i18n-html="howto.statusM"></li>
+              <li data-i18n-html="howto.statusV"></li>
             </ul>
 
-            <h3>Scoring &amp; progression</h3>
+            <h3 data-i18n="howto.scoringHeader">Scoring &amp; progression</h3>
             <ul>
-              <li>Aerial enemies: more points the further away you kill them.</li>
-              <li>Combo: chain kills within 1.5 seconds for bonus points and credits.</li>
-              <li>Avoiding enemy shots gives a small bonus.</li>
-              <li>Extra lives: at 20,000 points, then 60,000, 120,000, &hellip;</li>
-              <li>Towers (when you hear the alarm, drop a bomb immediately): destroying a tower sets a checkpoint and gives a hefty score.</li>
-              <li>Items (from scorpion ships): rapid fire, bomb area, anti-aircraft burst, beam velocity, shieldbits.</li>
-              <li>Genesis mothership (every 3 levels): don&rsquo;t pass it&mdash;its forcefield kills you and clears your shields.</li>
+              <li data-i18n="howto.score1"></li>
+              <li data-i18n="howto.score2"></li>
+              <li data-i18n="howto.score3"></li>
+              <li data-i18n="howto.score4"></li>
+              <li data-i18n="howto.score5"></li>
+              <li data-i18n="howto.score6"></li>
+              <li data-i18n="howto.score7"></li>
             </ul>
 
-            <h3>Store (after every Genesis kill, or on request)</h3>
+            <h3 data-i18n="howto.storeHeader">Store (after every Genesis kill, or on request)</h3>
             <ul>
-              <li>Permanent upgrades to fire rate, beam velocity, bomb area, powerup duration.</li>
-              <li>Per-session limits: up to 3 lives, 5 shieldbits, 3 bursts.</li>
+              <li data-i18n="howto.store1"></li>
+              <li data-i18n="howto.store2"></li>
             </ul>
 
-            <p class="a-menu--howto-tip">Use headphones for the best stereo positioning of enemies and items.</p>
+            <p class="a-menu--howto-tip" data-i18n="howto.tip"></p>
           </div>
         </section>
       </div>
 
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
       <div class="a-app--screen a-app--game">
-        <section class="c-screen a-game" tabindex="-1" aria-label="Game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
           <header class="a-game--hud">
-            <div class="a-hud--row"><span class="a-hud--label">Level</span> <span class="a-hud--value" data-hud="level">1</span></div>
-            <div class="a-hud--row"><span class="a-hud--label">Score</span> <span class="a-hud--value" data-hud="score">0</span></div>
-            <div class="a-hud--row"><span class="a-hud--label">Lives</span> <span class="a-hud--value" data-hud="lives">5</span></div>
-            <div class="a-hud--row"><span class="a-hud--label">Shields</span> <span class="a-hud--value" data-hud="shields">0</span></div>
-            <div class="a-hud--row"><span class="a-hud--label">Bursts</span> <span class="a-hud--value" data-hud="bursts">0</span></div>
-            <div class="a-hud--row"><span class="a-hud--label">Credits</span> <span class="a-hud--value" data-hud="credits">0</span></div>
-            <div class="a-hud--row"><span class="a-hud--label">Progress</span> <span class="a-hud--value" data-hud="progress">0%</span></div>
-            <div class="a-hud--row"><span class="a-hud--label">Speed</span> <span class="a-hud--value" data-hud="speed">5</span></div>
-            <div class="a-hud--row"><span class="a-hud--label">Position</span> <span class="a-hud--value" data-hud="position">5</span></div>
+            <div class="a-hud--row"><span class="a-hud--label" data-i18n="game.level">Level</span> <span class="a-hud--value" data-hud="level">1</span></div>
+            <div class="a-hud--row"><span class="a-hud--label" data-i18n="game.score">Score</span> <span class="a-hud--value" data-hud="score">0</span></div>
+            <div class="a-hud--row"><span class="a-hud--label" data-i18n="game.lives">Lives</span> <span class="a-hud--value" data-hud="lives">5</span></div>
+            <div class="a-hud--row"><span class="a-hud--label" data-i18n="game.shields">Shields</span> <span class="a-hud--value" data-hud="shields">0</span></div>
+            <div class="a-hud--row"><span class="a-hud--label" data-i18n="game.bursts">Bursts</span> <span class="a-hud--value" data-hud="bursts">0</span></div>
+            <div class="a-hud--row"><span class="a-hud--label" data-i18n="game.credits">Credits</span> <span class="a-hud--value" data-hud="credits">0</span></div>
+            <div class="a-hud--row"><span class="a-hud--label" data-i18n="game.progress">Progress</span> <span class="a-hud--value" data-hud="progress">0%</span></div>
+            <div class="a-hud--row"><span class="a-hud--label" data-i18n="game.speed">Speed</span> <span class="a-hud--value" data-hud="speed">5</span></div>
+            <div class="a-hud--row"><span class="a-hud--label" data-i18n="game.position">Position</span> <span class="a-hud--value" data-hud="position">5</span></div>
           </header>
           <div class="u-screenReader" aria-live="polite" data-hud="announce"></div>
           <div class="u-screenReader" aria-live="assertive" data-hud="urgent"></div>
-          <p class="a-game--paused" data-hud="paused" hidden>Paused. Press P to resume.</p>
+          <p class="a-game--paused" data-hud="paused" hidden data-i18n="game.paused">Paused. Press P to resume.</p>
         </section>
       </div>
 
       <div class="a-app--screen a-app--store">
-        <section class="c-screen a-store" tabindex="-1" aria-label="Upgrade store">
-          <h1>Upgrade Store</h1>
-          <p>Credits available: <span data-store="credits">0</span></p>
-          <p class="a-store--instructions">Use arrow keys to choose an upgrade. Enter to buy. Escape to leave.</p>
+        <section class="c-screen a-store" tabindex="-1" data-i18n-attr="aria-label:store.aria">
+          <h1 data-i18n="store.title">Upgrade Store</h1>
+          <p><span data-i18n="store.creditsAvailable">Credits available:</span> <span data-store="credits">0</span></p>
+          <p class="a-store--instructions" data-i18n="store.instructions">Use arrow keys to choose an upgrade. Enter to buy. Escape to leave.</p>
           <ul class="a-store--list" role="menu" data-store="list"></ul>
           <p class="a-store--feedback" data-store="feedback" aria-live="polite"></p>
         </section>
       </div>
 
       <div class="a-app--screen a-app--gameover">
-        <section class="c-screen a-gameover" tabindex="-1" aria-label="Game over">
-          <h1>Game Over</h1>
-          <p>Final score: <span data-gameover="score">0</span></p>
-          <p>Reached level: <span data-gameover="level">1</span></p>
-          <button data-gameover="continue" tabindex="0">Continue</button>
+        <section class="c-screen a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 data-i18n="gameover.title">Game Over</h1>
+          <p><span data-i18n="gameover.finalScore">Final score:</span> <span data-gameover="score">0</span></p>
+          <p><span data-i18n="gameover.reachedLevel">Reached level:</span> <span data-gameover="level">1</span></p>
+          <button data-gameover="continue" tabindex="0" data-i18n="gameover.continue">Continue</button>
         </section>
       </div>
 

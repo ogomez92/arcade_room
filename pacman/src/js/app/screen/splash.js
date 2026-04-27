@@ -16,7 +16,7 @@ app.screen.splash = app.screenManager.invent({
     root.querySelector('.a-splash--version').innerHTML = `v${app.version()}`
   },
   onEnter: function () {
-    app.announce.polite('Audio Pac-Man. Press any key or click to begin.')
+    app.announce.polite(app.i18n.t('ann.splash'))
   },
   onFrame: function () {
     const ui = app.controls.ui()

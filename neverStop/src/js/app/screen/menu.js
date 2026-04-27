@@ -6,6 +6,7 @@ app.screen.menu = app.screenManager.invent({
     start: function () { this.change('game') },
     help: function () { this.change('help') },
     learn: function () { this.change('learn') },
+    language: function () { this.change('language') },
     soundtest: function () { this.change('soundtest') },
   },
   state: {

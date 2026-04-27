@@ -16,7 +16,7 @@ content.combat = (() => {
     if (weapon.boost) {
       if (owner === 'player') {
         content.player.applyBoost(weapon.boostDuration)
-        content.util.announce('Boost engaged', false)
+        content.util.announce(app.i18n.t('ann.boost'), false)
       } else if (owner === 'opponent') {
         // Apply similar concept to opponent
         content.opponent.get().boostTimer = weapon.boostDuration
@@ -38,11 +38,11 @@ content.combat = (() => {
         if (owner === 'player') {
           content.opponent.applyDamage(weapon.damage)
           content.opponent.applyKnockback(dx, dy, weapon.knockback || 0)
-          content.util.announce('Melee landed! ' + Math.round(weapon.damage) + ' damage', false)
+          content.util.announce(app.i18n.t('ann.meleeHit', {damage: Math.round(weapon.damage)}), false)
         } else {
           content.player.applyDamage(weapon.damage)
           content.player.applyKnockback(dx, dy, weapon.knockback || 0)
-          content.util.announce('Melee strike! ' + Math.round(weapon.damage) + ' damage taken', true)
+          content.util.announce(app.i18n.t('ann.meleeTaken', {damage: Math.round(weapon.damage)}), true)
         }
       }
       return true
@@ -99,7 +99,7 @@ content.combat = (() => {
       content.opponent.applyDamage(oDmg)
 
       content.sfx.play('explosion', { x: (p.x + o.x) / 2, y: (p.y + o.y) / 2, z: 1 })
-      content.util.announce('Collision! You took ' + Math.round(pDmg) + ', dealt ' + Math.round(oDmg), true)
+      content.util.announce(app.i18n.t('ann.collision', {you: Math.round(pDmg), them: Math.round(oDmg)}), true)
 
       // Separate them and kill speed
       const sep = collideDist - dist

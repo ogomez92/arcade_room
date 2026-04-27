@@ -34,7 +34,14 @@ app.screen.soundtest = app.screenManager.invent({
       btn.type = 'button'
       btn.setAttribute('data-soundtest-variant', variant.id)
       btn.setAttribute('aria-pressed', 'false')
-      btn.innerHTML = `<span class="a-soundtest--idx">${idx + 1}.</span><span>${variant.name}</span>`
+      const idxEl = document.createElement('span')
+      idxEl.className = 'a-soundtest--idx'
+      idxEl.textContent = `${idx + 1}.`
+      const nameEl = document.createElement('span')
+      nameEl.dataset.i18n = 'soundtest.variant.' + variant.id
+      nameEl.textContent = app.i18n.t('soundtest.variant.' + variant.id)
+      btn.appendChild(idxEl)
+      btn.appendChild(nameEl)
       btn.addEventListener('click', () => this.startPreview(variant.id))
       li.appendChild(btn)
       list.appendChild(li)
@@ -73,7 +80,9 @@ app.screen.soundtest = app.screenManager.invent({
     if (!this.state.currentLabel) return
     const id = content.audio.getSpeedConeVariant()
     const variant = content.audio.SPEED_CONE_VARIANTS.find(v => v.id === id)
-    this.state.currentLabel.textContent = variant ? `${variant.name} (${variant.id})` : '—'
+    this.state.currentLabel.textContent = variant
+      ? app.i18n.t('soundtest.label', {name: app.i18n.t('soundtest.variant.' + variant.id), id: variant.id})
+      : app.i18n.t('soundtest.dash')
   },
   onEnter: function () {
     this.buildList()

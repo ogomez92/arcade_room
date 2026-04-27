@@ -16,7 +16,7 @@ app.screen.pause = app.screenManager.invent({
     })
   },
   onEnter: function () {
-    app.announce.polite('Paused. Resume or quit to main menu.')
+    app.announce.polite(app.i18n.t('ann.pause'))
     content.game.setPaused(true)
   },
   onExit: function () {

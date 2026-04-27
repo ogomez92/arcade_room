@@ -42,7 +42,11 @@ content.game = (() => {
 
     // Announce start
     const initialDist = Math.round(Math.hypot(opponentSpawn.x - playerSpawn.x, opponentSpawn.y - playerSpawn.y))
-    content.util.announce('Combat start. You are piloting the ' + content.mechs[playerMech].name + ' against the ' + content.mechs[opponentMech].name + '. Opponent is ' + initialDist + ' meters away. Close the distance carefully.', true)
+    content.util.announce(app.i18n.t('ann.combatStart', {
+      playerMech: content.mechs.nameOf(content.mechs[playerMech]),
+      opponentMech: content.mechs.nameOf(content.mechs[opponentMech]),
+      distance: initialDist,
+    }), true)
 
     if (mode === 'ai') {
       content.ai.enable(opponentMech, opponentSpawn)
@@ -155,27 +159,28 @@ content.game = (() => {
     const dx = o.x - p.x, dy = o.y - p.y
     const dist = Math.hypot(dx, dy)
     const bearing = content.util.relativeYaw(p.yaw, dx, dy)
-    let dir
+    let dirKey
     const abs = Math.abs(bearing)
-    if (abs < Math.PI * 0.125) dir = 'directly ahead'
-    else if (abs > Math.PI * 0.875) dir = 'directly behind'
+    if (abs < Math.PI * 0.125) dirKey = 'dir.directlyAhead'
+    else if (abs > Math.PI * 0.875) dirKey = 'dir.directlyBehind'
     else if (bearing > 0) {
-      if (abs < Math.PI * 0.375) dir = 'to your front left'
-      else if (abs < Math.PI * 0.625) dir = 'to your left'
-      else dir = 'to your rear left'
+      if (abs < Math.PI * 0.375) dirKey = 'dir.frontLeft'
+      else if (abs < Math.PI * 0.625) dirKey = 'dir.left'
+      else dirKey = 'dir.rearLeft'
     } else {
-      if (abs < Math.PI * 0.375) dir = 'to your front right'
-      else if (abs < Math.PI * 0.625) dir = 'to your right'
-      else dir = 'to your rear right'
+      if (abs < Math.PI * 0.375) dirKey = 'dir.frontRight'
+      else if (abs < Math.PI * 0.625) dirKey = 'dir.right'
+      else dirKey = 'dir.rearRight'
     }
-    content.util.announce('Opponent ' + Math.round(dist) + ' meters ' + dir + '. Opponent health ' + Math.round(o.health) + '.', true)
+    const dir = app.i18n.t(dirKey)
+    content.util.announce(app.i18n.t('ann.opponentStatus', {distance: Math.round(dist), dir, hp: Math.round(o.health)}), true)
   }
 
   function selfReport() {
     const p = content.player.get()
     if (!p) return
     const heading = content.util.yawToCardinalName(p.yaw)
-    content.util.announce('Health ' + Math.round(p.health) + '. Speed ' + Math.round(p.currentSpeed) + '. Heading ' + heading + '.', true)
+    content.util.announce(app.i18n.t('ann.selfStatus', {hp: Math.round(p.health), speed: Math.round(p.currentSpeed), heading}), true)
   }
 
   function update(dt) {
@@ -186,11 +191,11 @@ content.game = (() => {
     // Handle edge-triggered actions
     if (controls.switchSonarToPrimary) {
       content.sonar.setMode('primary')
-      content.util.announce('Sonar switched to primary range', false)
+      content.util.announce(app.i18n.t('ann.sonarPrimary'), false)
     }
     if (controls.switchSonarToSecondary) {
       content.sonar.setMode('secondary')
-      content.util.announce('Sonar switched to secondary range', false)
+      content.util.announce(app.i18n.t('ann.sonarSecondary'), false)
     }
     if (controls.statusSelf) selfReport()
     if (controls.statusOpponent) statusReport()
@@ -264,13 +269,13 @@ content.game = (() => {
       const el = document.querySelector(sel)
       if (el) el.textContent = v
     }
-    set('.c-hud-mech', p.mech.name)
+    set('.c-hud-mech', content.mechs.nameOf(p.mech))
     set('.c-hud-health', String(Math.round(p.health)))
-    set('.c-hud-opp-mech', o.mech.name)
+    set('.c-hud-opp-mech', content.mechs.nameOf(o.mech))
     set('.c-hud-opp-health', String(Math.round(o.health)))
     set('.c-hud-speed', String(Math.round(p.currentSpeed)))
-    set('.c-hud-heading', content.util.yawToCardinalName(p.yaw))
-    set('.c-hud-sonar', content.sonar.getMode())
+    set('.c-hud-heading', app.i18n.t('dir.' + content.util.yawToCardinalKey(p.yaw)))
+    set('.c-hud-sonar', app.i18n.t('sonar.' + content.sonar.getMode()))
   }
 
   function finish(result) {
@@ -279,7 +284,7 @@ content.game = (() => {
     // Play a final explosion for the loser
     const loser = result === 'win' ? content.opponent.get() : content.player.get()
     if (loser) content.sfx.play('explosion', { x: loser.x, y: loser.y, z: 1 })
-    content.util.announce(result === 'win' ? 'Victory! You destroyed the opponent.' : 'Defeat. Your mech has been destroyed.', true)
+    content.util.announce(app.i18n.t(result === 'win' ? 'gameover.win' : 'gameover.lose'), true)
     setTimeout(() => {
       stop()
       app.screenManager.dispatch('gameOver', { outcome: result })

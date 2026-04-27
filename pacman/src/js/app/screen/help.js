@@ -18,7 +18,7 @@ app.screen.help = app.screenManager.invent({
     // immediately bounce us back. Same trick highscores.js uses.
     this.state.entryFrames = 6
     this.rootElement.scrollTop = 0
-    app.announce.polite('How to play. Press Escape to return to the main menu.')
+    app.announce.polite(app.i18n.t('ann.help'))
   },
   onFrame: function () {
     if (this.state.entryFrames > 0) {

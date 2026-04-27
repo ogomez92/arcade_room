@@ -97,7 +97,7 @@ content.world = (() => {
         s.towertime = E().rand(25, 50) * 1000
         if (s.y < s.level * 100 - 30) {
           content.audio.towerAlarm()
-          announce('Tower below', true)
+          announce(app.i18n.t('ann.towerBelow'), true)
           s.toweractive = true
           s.towerWindow = 1100
         }
@@ -146,20 +146,20 @@ content.world = (() => {
     s.poweruptimer = 0
     if (type == 1) {
       s.bursts++
-      announce('Burst gained')
+      announce(app.i18n.t('ann.burstGained'))
     } else if (type == 2) {
       s.zaptime = 100
-      announce('Aerial rapid fire')
+      announce(app.i18n.t('ann.rapidFire'))
     } else if (type == 3) {
       s.bombarea = 18
-      announce('Bomb area increase')
+      announce(app.i18n.t('ann.bombArea'))
     } else if (type == 4) {
       const ra = E().rand(1, 2)
       s.shieldbits += ra
-      announce(ra == 1 ? 'Single shieldbit' : 'Double shieldbit')
+      announce(app.i18n.t(ra == 1 ? 'ann.singleShield' : 'ann.doubleShield'))
     } else if (type == 5) {
       s.beamvel = 15
-      announce('Beam velocity increase')
+      announce(app.i18n.t('ann.beamVelocity'))
     }
   }
 
@@ -171,7 +171,7 @@ content.world = (() => {
     if (s.beamvel == 15) { s.beamvel = content.state.persistent.rBeamvel; expired = true }
     if (expired) {
       content.audio.tone({freq: 300, type: 'triangle', duration: 0.3, peak: 0.3, sweep: -150})
-      announce('Powerup ended')
+      announce(app.i18n.t('ann.powerupEnded'))
     }
   }
 
@@ -202,12 +202,12 @@ content.world = (() => {
       s.lives = 0
       s.alive = false
       s.playing = false
-      announce('Game over', true)
+      announce(app.i18n.t('ann.gameOver'), true)
       return
     }
     // Reset to checkpoint
     s.y = s.checky
-    announce('Lives left: ' + s.lives, true)
+    announce(app.i18n.t('ann.livesLeft', {n: s.lives}), true)
   }
 
   // ---- Tick ----
@@ -238,7 +238,7 @@ content.world = (() => {
     bombs.length = 0
 
     content.audio.levelUp()
-    announce('Level ' + s.level, true)
+    announce(app.i18n.t('ann.level', {n: s.level}), true)
     s.playing = true
   }
 
@@ -251,11 +251,11 @@ content.world = (() => {
     if (s.destroyedGenesis) {
       s.gotostore = true
       s.destroyedGenesis = false
-      announce('Mothership defeated - entering store', true)
+      announce(app.i18n.t('ann.motherDefeated'), true)
       return
     }
     if (s.gotostore) {
-      announce('Entering store')
+      announce(app.i18n.t('ann.enteringStore'))
       // The game screen detects `gotostore && !playing` and dispatches the
       // transition itself so it can also flag "resuming-from-store" mode.
       return
@@ -293,7 +293,7 @@ content.world = (() => {
     if (s.genesisActive || s.destroyedGenesis) return
     if (s.y < s.maxlev * 0.8) return
     content.audio.genesisAppear()
-    announce('Mothership detected', true)
+    announce(app.i18n.t('ann.motherDetected'), true)
     const hp = 3 + 2 * Math.floor(s.level / 3)
     enemies.push(new (E().Genesis)(E().rand(0, 10), s.y + 28, hp))
     s.genesisActive = true

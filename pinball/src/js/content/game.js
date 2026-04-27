@@ -8,30 +8,44 @@ content.game = (() => {
   const P = () => content.physics
   const A = () => content.audio
 
-  // Cadet → Fleet Admiral, every N points the player ranks up.
+  // Translate an event-carried label back through app.i18n by walking the
+  // table's BUMPERS/TARGETS/ROLLOVERS for the matching id.
+  function labelFor(id) {
+    const tab = T()
+    const all = [].concat(tab.BUMPERS, tab.TARGETS, tab.ROLLOVERS)
+    for (const it of all) {
+      if (it.id === id) return it.labelKey ? app.i18n.t(it.labelKey) : it.label
+    }
+    return id
+  }
+
+  // Cadet → Fleet Admiral, every N points the player ranks up. Display name
+  // is resolved through app.i18n at render time; `key` is stable.
   const RANKS = [
-    {name: 'Cadet',           min: 0},
-    {name: 'Ensign',          min: 8000},
-    {name: 'Lieutenant',      min: 30000},
-    {name: 'Commander',       min: 80000},
-    {name: 'Captain',         min: 160000},
-    {name: 'Commodore',       min: 280000},
-    {name: 'Rear Admiral',    min: 450000},
-    {name: 'Vice Admiral',    min: 700000},
-    {name: 'Admiral',         min: 1000000},
-    {name: 'Fleet Admiral',   min: 1500000},
+    {key: 'rank.cadet',         min: 0},
+    {key: 'rank.ensign',        min: 8000},
+    {key: 'rank.lieutenant',    min: 30000},
+    {key: 'rank.commander',     min: 80000},
+    {key: 'rank.captain',       min: 160000},
+    {key: 'rank.commodore',     min: 280000},
+    {key: 'rank.rearAdmiral',   min: 450000},
+    {key: 'rank.viceAdmiral',   min: 700000},
+    {key: 'rank.admiral',       min: 1000000},
+    {key: 'rank.fleetAdmiral',  min: 1500000},
   ]
+  const rankName = (i) => app.i18n.t(RANKS[i].key)
 
   // Mission scripts. Each requires either hitting all targets, or accumulating
   // bumper hits, or surviving N seconds. Drives the "Mission" HUD line and is
-  // announced to screen readers.
+  // announced to screen readers. Display name resolves through app.i18n.
   const MISSIONS = [
-    {id: 'm1', name: 'Hit all three drop targets', kind: 'targets', need: 3, reward: 5000},
-    {id: 'm2', name: 'Twenty bumper hits',        kind: 'bumpers', need: 20, reward: 8000},
-    {id: 'm3', name: 'Cross every rollover lane', kind: 'rollovers', need: 4, reward: 10000},
-    {id: 'm4', name: 'Light all targets again',   kind: 'targets', need: 3, reward: 12000},
-    {id: 'm5', name: 'Score thirty thousand without draining', kind: 'survive', need: 30000, reward: 20000},
+    {id: 'm1', kind: 'targets',   need: 3,     reward: 5000},
+    {id: 'm2', kind: 'bumpers',   need: 20,    reward: 8000},
+    {id: 'm3', kind: 'rollovers', need: 4,     reward: 10000},
+    {id: 'm4', kind: 'targets',   need: 3,     reward: 12000},
+    {id: 'm5', kind: 'survive',   need: 30000, reward: 20000},
   ]
+  const missionName = (m) => app.i18n.t('mission.' + m.id)
 
   const state = {
     score: 0,
@@ -61,12 +75,12 @@ content.game = (() => {
     const root = document.querySelector('.a-game')
     if (!root) return
     root.querySelector('.a-game--score-value').textContent = state.score.toLocaleString()
-    root.querySelector('.a-game--rank-value').textContent = RANKS[state.rankIdx].name
+    root.querySelector('.a-game--rank-value').textContent = rankName(state.rankIdx)
     root.querySelector('.a-game--balls-value').textContent = String(state.balls)
     root.querySelector('.a-game--mission-value').textContent =
       currentMission()
-        ? `${currentMission().name} (${state.missionProgress}/${currentMission().need})`
-        : 'All missions complete!'
+        ? `${missionName(currentMission())} (${state.missionProgress}/${currentMission().need})`
+        : app.i18n.t('ann.allMissions')
   }
 
   function currentMission() {
@@ -79,7 +93,7 @@ content.game = (() => {
     if (newRank > state.rankIdx) {
       state.rankIdx = newRank
       A().rankUp()
-      app.announce.assertive(`Promoted to ${RANKS[newRank].name}.`)
+      app.announce.assertive(app.i18n.t('ann.promotedTo', {rank: rankName(newRank)}))
     }
     if (opts.announce) {
       app.announce.polite(opts.announce)
@@ -104,7 +118,7 @@ content.game = (() => {
     A().resetTracker()
     A().resetProximity()
     A().ballReady()
-    app.announce.polite(`Ball ${4 - state.balls} ready. Press space to pull the plunger; release to launch.`)
+    app.announce.polite(app.i18n.t('ann.ballReady', {n: 4 - state.balls}))
     setHud()
   }
 
@@ -121,14 +135,14 @@ content.game = (() => {
     A().rollStart()
     setHud()
     startBall()
-    app.announce.assertive('Game start. Three balls. Mission: ' + currentMission().name + '.')
+    app.announce.assertive(app.i18n.t('ann.gameStart', {mission: missionName(currentMission())}))
   }
 
   function endGame() {
     state.running = false
     A().gameOver()
     A().rollStop()
-    app.announce.assertive(`Game over. Final score ${state.score.toLocaleString()}. Final rank ${RANKS[state.rankIdx].name}.`)
+    app.announce.assertive(app.i18n.t('ann.gameOver', {score: state.score.toLocaleString(), rank: rankName(state.rankIdx)}))
     app.screenManager.dispatch('finish')
   }
 
@@ -148,7 +162,7 @@ content.game = (() => {
       state.missionProgress = state.score - state.missionStartScore
     }
     if (state.missionProgress >= m.need) {
-      addScore(m.reward, {announce: `Mission complete: ${m.name}. Bonus ${m.reward.toLocaleString()}.`})
+      addScore(m.reward, {announce: app.i18n.t('ann.missionComplete', {mission: missionName(m), reward: m.reward.toLocaleString()})})
       A().missionComplete()
       state.missionIdx++
       state.missionProgress = 0
@@ -158,9 +172,9 @@ content.game = (() => {
       state.rolloverHits = new Set()
       const next = currentMission()
       if (next) {
-        app.announce.polite('New mission: ' + next.name + '.')
+        app.announce.polite(app.i18n.t('ann.newMission', {mission: missionName(next)}))
       } else {
-        app.announce.assertive('All missions complete! Bonus multiplier engaged.')
+        app.announce.assertive(app.i18n.t('ann.allMissions'))
       }
     }
     setHud()
@@ -193,14 +207,14 @@ content.game = (() => {
           if (!ts.down) {
             ts.down = true
             A().target(e.x, e.y, e.id)
-            addScore(500, {announce: `${e.label} down.`})
+            addScore(500, {announce: app.i18n.t('ann.targetDown', {label: labelFor(e.id)})})
             bumpMission('targets')
             // Restore targets if all are down so the level can be done again.
             const allDown = T().TARGETS.every(t => state.targetState[t.id] && state.targetState[t.id].down)
             if (allDown) {
               setTimeout(() => {
                 state.targetState = {}
-                app.announce.polite('Targets reset.')
+                app.announce.polite(app.i18n.t('ann.targetsReset'))
               }, 1500)
             }
           }
@@ -208,13 +222,13 @@ content.game = (() => {
         }
         case 'rollover':
           A().rollover(e.x, e.y, e.id)
-          addScore(250, {announce: `${e.label}.`})
+          addScore(250, {announce: app.i18n.t('ann.label', {label: labelFor(e.id)})})
           bumpMission('rollovers', {id: e.id})
           break
         case 'rearm':
           if (app.debugLog) app.debugLog('rearm', {x: +state.ball.x.toFixed(2), y: +state.ball.y.toFixed(2)})
           A().ballReady()
-          app.announce.polite('Ball returned to plunger. Press space to launch again.')
+          app.announce.polite(app.i18n.t('ann.ballRearmed'))
           break
         case 'drain':
           if (app.debugLog) app.debugLog('drain', {x: +state.ball.x.toFixed(2), y: +state.ball.y.toFixed(2), vx: +state.ball.vx.toFixed(2), vy: +state.ball.vy.toFixed(2)})
@@ -222,10 +236,10 @@ content.game = (() => {
           state.balls--
           state.rolloverHits = new Set()
           if (state.balls > 0) {
-            app.announce.assertive(`Drain. ${state.balls} ball${state.balls === 1 ? '' : 's'} left.`)
+            app.announce.assertive(state.balls === 1 ? app.i18n.t('ann.drain1') : app.i18n.t('ann.drainN', {balls: state.balls}))
             setTimeout(() => startBall(), 800)
           } else {
-            app.announce.assertive('Last ball drained.')
+            app.announce.assertive(app.i18n.t('ann.lastDrain'))
             setTimeout(() => endGame(), 1200)
           }
           break
@@ -262,7 +276,7 @@ content.game = (() => {
         if (!state.plunger.pulling) {
           state.plunger.pulling = true
           state.plunger.power = 0
-          app.announce.polite('Plunger pulling.')
+          app.announce.polite(app.i18n.t('ann.plungerPulling'))
         }
         // ramp up power over ~1.2s
         state.plunger.power = Math.min(1, state.plunger.power + dt / 1.2)
@@ -282,7 +296,7 @@ content.game = (() => {
         b.vy = speed
         if (app.debugLog) app.debugLog('launch', {power: +power.toFixed(2), vy: +speed.toFixed(2), x: +b.x.toFixed(2), y: +b.y.toFixed(2)})
         A().plungerLaunch(power)
-        app.announce.polite('Ball launched.')
+        app.announce.polite(app.i18n.t('ann.ballLaunched'))
       }
     }
   }
@@ -300,27 +314,25 @@ content.game = (() => {
   function announcePosition() {
     const b = state.ball
     if (!b.live) {
-      app.announce.polite('Ball not in play.')
+      app.announce.polite(app.i18n.t('ann.ballNotInPlay'))
       return
     }
-    // Side: left / right / center (fraction of half-width)
     const halfW = T().WIDTH / 2
     const xn = b.x / halfW
-    let side
-    if (xn < -0.6) side = 'far left'
-    else if (xn < -0.2) side = 'left'
-    else if (xn > 0.6) side = 'far right'
-    else if (xn > 0.2) side = 'right'
-    else side = 'center'
-    // Depth: bottom / lower / mid / upper / top
+    let sideKey
+    if (xn < -0.6) sideKey = 'pos.farLeft'
+    else if (xn < -0.2) sideKey = 'pos.left'
+    else if (xn > 0.6) sideKey = 'pos.farRight'
+    else if (xn > 0.2) sideKey = 'pos.right'
+    else sideKey = 'pos.center'
     const yn = b.y / T().HEIGHT
-    let depth
-    if (yn < 0.15) depth = 'near drain'
-    else if (yn < 0.35) depth = 'lower'
-    else if (yn < 0.6) depth = 'mid table'
-    else if (yn < 0.85) depth = 'upper'
-    else depth = 'top'
-    app.announce.polite(`Ball ${side}, ${depth}.`)
+    let depthKey
+    if (yn < 0.15) depthKey = 'pos.nearDrain'
+    else if (yn < 0.35) depthKey = 'pos.lower'
+    else if (yn < 0.6) depthKey = 'pos.midTable'
+    else if (yn < 0.85) depthKey = 'pos.upper'
+    else depthKey = 'pos.top'
+    app.announce.polite(app.i18n.t('ann.ballPosition', {side: app.i18n.t(sideKey), depth: app.i18n.t(depthKey)}))
   }
 
   // ---------- frame ----------
@@ -376,7 +388,7 @@ content.game = (() => {
     reset,
     setHud,
     announcePosition,
-    rankName: () => RANKS[state.rankIdx].name,
+    rankName: () => rankName(state.rankIdx),
     isPlaying: () => state.running && !state.paused,
     setPaused: (v) => { state.paused = v },
   }

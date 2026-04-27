@@ -54,18 +54,20 @@ content.table = (() => {
     activeAngle: -0.35 + 0.9,
   }
 
-  // Bumpers (thrust outward, give big velocity)
+  // Bumpers (thrust outward, give big velocity). `label` is resolved at use
+  // time through app.i18n via `labelKey`; the English string stays as a
+  // fallback for any code path that hasn't been migrated to t().
   const BUMPERS = [
-    {id: 'alpha',   x: -1.4, y: 12.0, radius: 0.55, label: 'alpha bumper'},
-    {id: 'beta',    x:  1.4, y: 12.0, radius: 0.55, label: 'beta bumper'},
-    {id: 'gamma',   x:  0.0, y: 13.4, radius: 0.55, label: 'gamma bumper'},
+    {id: 'alpha',   x: -1.4, y: 12.0, radius: 0.55, label: 'alpha bumper', labelKey: 'label.alphaBumper'},
+    {id: 'beta',    x:  1.4, y: 12.0, radius: 0.55, label: 'beta bumper',  labelKey: 'label.betaBumper'},
+    {id: 'gamma',   x:  0.0, y: 13.4, radius: 0.55, label: 'gamma bumper', labelKey: 'label.gammaBumper'},
   ]
 
   // Drop targets (mission targets) — when all hit, mission completes.
   const TARGETS = [
-    {id: 't1', x: -1.6, y: 14.6, w: 0.6, h: 0.25, label: 'target one'},
-    {id: 't2', x:  0.0, y: 14.9, w: 0.6, h: 0.25, label: 'target two'},
-    {id: 't3', x:  1.6, y: 14.6, w: 0.6, h: 0.25, label: 'target three'},
+    {id: 't1', x: -1.6, y: 14.6, w: 0.6, h: 0.25, label: 'target one',   labelKey: 'label.targetOne'},
+    {id: 't2', x:  0.0, y: 14.9, w: 0.6, h: 0.25, label: 'target two',   labelKey: 'label.targetTwo'},
+    {id: 't3', x:  1.6, y: 14.6, w: 0.6, h: 0.25, label: 'target three', labelKey: 'label.targetThree'},
   ]
 
   // Slingshots — circular kickers placed just above and inboard of each lower
@@ -161,10 +163,10 @@ content.table = (() => {
 
   // ---------------- rollover lanes near the top ----------------
   const ROLLOVERS = [
-    {id: 'r1', x: -3.0, y: HEIGHT - 0.5, radius: 0.35, label: 'left rollover'},
-    {id: 'r2', x: -1.0, y: HEIGHT - 0.5, radius: 0.35, label: 'inner left rollover'},
-    {id: 'r3', x:  1.0, y: HEIGHT - 0.5, radius: 0.35, label: 'inner right rollover'},
-    {id: 'r4', x:  3.0, y: HEIGHT - 0.5, radius: 0.35, label: 'right rollover'},
+    {id: 'r1', x: -3.0, y: HEIGHT - 0.5, radius: 0.35, label: 'left rollover',         labelKey: 'label.leftRollover'},
+    {id: 'r2', x: -1.0, y: HEIGHT - 0.5, radius: 0.35, label: 'inner left rollover',   labelKey: 'label.innerLeftRollover'},
+    {id: 'r3', x:  1.0, y: HEIGHT - 0.5, radius: 0.35, label: 'inner right rollover',  labelKey: 'label.innerRightRollover'},
+    {id: 'r4', x:  3.0, y: HEIGHT - 0.5, radius: 0.35, label: 'right rollover',        labelKey: 'label.rightRollover'},
   ]
 
   // ---------------- plunger ----------------

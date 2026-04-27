@@ -26,7 +26,7 @@ app.screen.gameover = app.screenManager.invent({
       const name = this.state.nameInput.value.trim() || 'Player'
       app.highscores.add(name, content.game.state.score, content.game.state.level)
       content.sfx.menuSelect()
-      app.announce.polite('Score saved.')
+      app.announce.polite(app.i18n.t('ann.scoreSaved'))
       app.screenManager.dispatch('continue')
     })
 
@@ -43,13 +43,12 @@ app.screen.gameover = app.screenManager.invent({
     this.state.rankMsg.hidden = !this.state.qualifies
     this.state.form.hidden = !this.state.qualifies
     if (this.state.qualifies) {
-      app.announce.assertive(`Game over! Final score ${score}. You earned a high score! Type your name and press Enter.`)
-      // Focus name input after entering
+      app.announce.assertive(app.i18n.t('ann.gameOverHigh', {score}))
       setTimeout(() => {
         if (this.state.nameInput) this.state.nameInput.focus()
       }, 250)
     } else {
-      app.announce.assertive(`Game over. Final score ${score}.`)
+      app.announce.assertive(app.i18n.t('ann.gameOver', {score}))
     }
   },
   onFrame: function () {

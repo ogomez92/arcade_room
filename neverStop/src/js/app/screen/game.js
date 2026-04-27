@@ -54,7 +54,7 @@ app.screen.game = app.screenManager.invent({
       if (e.code === 'KeyI') {
         e.preventDefault()
         e.stopPropagation()
-        this.speakAssertive(`Inventory: ${content.items.summary()}`)
+        this.speakAssertive(app.i18n.t('ann.inventory', {summary: content.items.summary()}))
         return
       }
     }
@@ -75,15 +75,25 @@ app.screen.game = app.screenManager.invent({
   announceStat: function (stat) {
     const car = content.game.getCar()
     if (!car) return
+    const t = app.i18n.t.bind(app.i18n)
     let msg
     switch (stat) {
-      case 'speed':    msg = `Speed ${Math.round(car.speed * 3.6)} kilometers per hour`; break
-      case 'fuel':     msg = `Fuel ${Math.round(car.fuel * 100)} percent`; break
-      case 'gear':     msg = `Gear ${car.gear}`; break
-      case 'distance': msg = `Distance ${Math.round(car.distance)} meters`; break
-      case 'time':     msg = `Time ${this.formatTime(car.timeAlive)}`; break
-      case 'cones':    msg = `${car.conesCollected} speed cones, ${car.fuelCansCollected} fuel cans, ${car.crashes} crashes`; break
-      case 'all':      msg = `Speed ${Math.round(car.speed * 3.6)}, gear ${car.gear}, fuel ${Math.round(car.fuel * 100)} percent, distance ${Math.round(car.distance)} meters, time ${this.formatTime(car.timeAlive)}, ${car.conesCollected} speed cones, ${car.fuelCansCollected} fuel cans, ${car.crashes} crashes`; break
+      case 'speed':    msg = t('ann.speed', {value: Math.round(car.speed * 3.6)}); break
+      case 'fuel':     msg = t('ann.fuel', {value: Math.round(car.fuel * 100)}); break
+      case 'gear':     msg = t('ann.gearOnly', {gear: car.gear}); break
+      case 'distance': msg = t('ann.distance', {value: Math.round(car.distance)}); break
+      case 'time':     msg = t('ann.time', {value: this.formatTime(car.timeAlive)}); break
+      case 'cones':    msg = t('ann.pickups', {cones: car.conesCollected, fuel: car.fuelCansCollected, crashes: car.crashes}); break
+      case 'all':      msg = t('ann.allStats', {
+        speed: Math.round(car.speed * 3.6),
+        gear: car.gear,
+        fuel: Math.round(car.fuel * 100),
+        distance: Math.round(car.distance),
+        time: this.formatTime(car.timeAlive),
+        cones: car.conesCollected,
+        fuelCans: car.fuelCansCollected,
+        crashes: car.crashes,
+      }); break
       default: return
     }
     this.speakAssertive(msg)
@@ -99,7 +109,7 @@ app.screen.game = app.screenManager.invent({
     const s = Math.floor(seconds)
     const m = Math.floor(s / 60)
     const r = s % 60
-    return `${m} minutes ${r} seconds`
+    return app.i18n.t('ann.timeFmt', {m, r})
   },
   bindGameListeners: function () {
     if (this.state.listenersBound) return
@@ -121,39 +131,37 @@ app.screen.game = app.screenManager.invent({
       const pan = car ? Math.max(-1, Math.min(1, (hazard.x - car.x) / 1.0)) : 0
       if (severity >= 0.5) {
         content.audio.playCrash(pan)
-        self.speakAssertive('Crash')
+        self.speakAssertive(app.i18n.t('ann.crash'))
       } else {
         content.audio.playScrape(pan)
-        self.speakAssertive('Scrape')
+        self.speakAssertive(app.i18n.t('ann.scrape'))
       }
     })
     content.game.on('shielded', () => {
-      // Shield audio fires from game.js; screen reader gets a clear message.
-      self.speakAssertive('Shield used')
+      self.speakAssertive(app.i18n.t('ann.shieldUsed'))
     })
+    const itemDisplayName = (itemId) => {
+      const key = 'item.' + itemId + '.name'
+      const translated = app.i18n.t(key)
+      return translated === key ? app.i18n.t('item.generic') : translated
+    }
     content.game.on('itemPickup', ({itemId}) => {
       content.audio.playItemPickup()
-      const item = content.items.describe(itemId)
-      const name = item ? item.name : 'Item'
-      self.speakAssertive(`Got ${name}`)
+      self.speakAssertive(app.i18n.t('ann.gotItem', {name: itemDisplayName(itemId)}))
     })
     content.game.on('itemUsed', (itemId) => {
-      const item = content.items.describe(itemId)
-      const name = item ? item.name : 'Item'
-      // For auto-fired items the player may not have asked for it — let them
-      // know what just happened. Boost/shield activations also speak.
-      self.speakAssertive(`${name} used`)
+      self.speakAssertive(app.i18n.t('ann.itemUsed', {name: itemDisplayName(itemId)}))
     })
     content.game.on('boostNoStock', () => {
       content.audio.playNoStock()
-      self.speakAssertive('No boosts')
+      self.speakAssertive(app.i18n.t('ann.noBoosts'))
     })
     content.game.on('stop', (car) => {
       content.audio.playGameOverFor(car)
       // Let the cue breathe before swapping screens. Fuel-out is longer
       // (sputter is ~1.4s) so we wait extra in that case.
       self.state.pendingGameOver = true
-      const isFuel = car.stopReason && /fuel/i.test(car.stopReason)
+      const isFuel = car.stopReasonKey === 'stop.fuel' || (car.stopReason && /fuel|gasolin|combust/i.test(car.stopReason))
       const wait = isFuel ? 1500 : 700
       setTimeout(() => {
         if (app.screenManager.is('game')) {
@@ -166,7 +174,7 @@ app.screen.game = app.screenManager.invent({
   },
   announceGear: function (gear) {
     if (this.state.hud.gear) this.state.hud.gear.textContent = String(gear)
-    this.speakAssertive(`Gear ${gear}`)
+    this.speakAssertive(app.i18n.t('ann.gear', {gear}))
   },
   onEnter: function () {
     this.bindGameListeners()
@@ -176,8 +184,8 @@ app.screen.game = app.screenManager.invent({
     this.state.pendingGameOver = false
     this.state.lastTime = engine.time()
     this.state.gearAnnounceCooldown = 0
-    if (this.state.announce) this.state.announce.textContent = 'Driving. Stay on the road. Do not stop.'
-    this.updateHud(content.game.getCar(), 'Get going.')
+    if (this.state.announce) this.state.announce.textContent = app.i18n.t('game.statusDriving')
+    this.updateHud(content.game.getCar(), app.i18n.t('game.statusGetGoing'))
   },
   onExit: function () {
     content.game.stop()
@@ -220,17 +228,17 @@ app.screen.game = app.screenManager.invent({
 
     let status = ''
     if (car.crashTimer > 0) {
-      status = 'CRASH! Braking.'
+      status = app.i18n.t('game.statusCrash')
     } else if (car.fuel <= 0 && !car.stopped) {
-      status = 'Out of fuel — coasting.'
+      status = app.i18n.t('game.statusOutOfFuel')
     } else if (car.edgeProximity > 1) {
-      status = 'OFF THE ROAD'
+      status = app.i18n.t('game.statusOffRoad')
     } else if (car.edgeProximity > 0.7) {
-      status = 'Edge!'
+      status = app.i18n.t('game.statusEdge')
     } else if (car.fuel < content.car.FUEL_LOW_THRESHOLD) {
-      status = 'Fuel low.'
+      status = app.i18n.t('game.statusFuelLow')
     } else if (car.boostTimer > 0) {
-      status = `Boost ${car.boostTimer.toFixed(1)}s`
+      status = app.i18n.t('game.statusBoost', {seconds: car.boostTimer.toFixed(1)})
     }
 
     this.updateHud(car, status)

@@ -120,3 +120,6 @@ content.weapons = {
     boost: true,
   },
 }
+
+content.weapons.nameOf = (id) => id ? app.i18n.t('weapon.' + id + '.name') : ''
+content.weapons.descOf = (id) => id ? app.i18n.t('weapon.' + id + '.description') : ''

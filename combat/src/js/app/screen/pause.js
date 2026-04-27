@@ -25,7 +25,7 @@ app.screen.pause = app.screenManager.invent({
   },
   onEnter: function () {
     engine.loop.pause()
-    content.util.announce('Paused. Choose resume or quit to menu.', true)
+    content.util.announce(app.i18n.t('pause.welcome'), true)
   },
   onExit: function () {
     engine.loop.resume()

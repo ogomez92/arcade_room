@@ -1,13 +1,16 @@
 content.util = (() => {
+  // `name` matches the legacy English string and is also the suffix used to
+  // build i18n keys (`dir.<name>` / `sonar.<name>` etc.). Compound directions
+  // use camelCase (`northEast`) to line up with the i18n dictionary keys.
   const cardinals = [
     { name: 'east',      yaw: 0 },
-    { name: 'northeast', yaw: Math.PI * 0.25 },
+    { name: 'northEast', yaw: Math.PI * 0.25 },
     { name: 'north',     yaw: Math.PI * 0.5 },
-    { name: 'northwest', yaw: Math.PI * 0.75 },
+    { name: 'northWest', yaw: Math.PI * 0.75 },
     { name: 'west',      yaw: Math.PI },
-    { name: 'southwest', yaw: -Math.PI * 0.75 },
+    { name: 'southWest', yaw: -Math.PI * 0.75 },
     { name: 'south',     yaw: -Math.PI * 0.5 },
-    { name: 'southeast', yaw: -Math.PI * 0.25 },
+    { name: 'southEast', yaw: -Math.PI * 0.25 },
   ]
 
   function wrapAngle(a) {
@@ -32,8 +35,23 @@ content.util = (() => {
       }
       return best
     },
-    // Convert yaw to compass name (8-way) for announcement
+    // Convert yaw to compass name (8-way) for announcement.
+    // Returns the localized direction string via i18n.
     yawToCardinalName: (yaw) => {
+      let best = cardinals[0],
+        bestDiff = Infinity
+      for (const c of cardinals) {
+        const diff = Math.abs(wrapAngle(yaw - c.yaw))
+        if (diff < bestDiff) {
+          bestDiff = diff
+          best = c
+        }
+      }
+      return app.i18n.t('dir.' + best.name)
+    },
+    // Same as yawToCardinalName but returns the raw key suffix, so callers
+    // can compose other i18n keys (`dir.north`, `sonar.primary`, ...).
+    yawToCardinalKey: (yaw) => {
       let best = cardinals[0],
         bestDiff = Infinity
       for (const c of cardinals) {
