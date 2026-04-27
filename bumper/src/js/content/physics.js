@@ -36,11 +36,11 @@ content.physics = (() => {
 
   function integrate(car, delta) {
     if (car.eliminated) {
-      // Coast to a stop after elimination.
-      car.velocity.x *= Math.max(0, 1 - 1.2 * delta)
-      car.velocity.y *= Math.max(0, 1 - 1.2 * delta)
-      car.position.x += car.velocity.x * delta
-      car.position.y += car.velocity.y * delta
+      // Eliminated cars are spectators — no body, no inputs, no inertia.
+      // Park them in place so a coasting body can't end up overlapping
+      // a live driver's listener position.
+      car.velocity.x = 0
+      car.velocity.y = 0
       return
     }
 

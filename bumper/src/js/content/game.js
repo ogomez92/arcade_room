@@ -25,6 +25,11 @@
 content.game = (() => {
   let cars = [],
     playerCar = null,
+    // Audio listener pivot. Defaults to playerCar; switched by the
+    // spectator hotkeys (1-6) once the local player is eliminated.
+    // Always points at a non-eliminated car if any are alive — see
+    // pickSpectatorTarget / autoSpectate.
+    spectatorCar = null,
     targeting = null,
     pickupsMgr = null,
     bulletsMgr = null,
@@ -87,6 +92,15 @@ content.game = (() => {
   const api = {
     get cars() { return cars },
     player: () => playerCar,
+    // Whichever car is currently driving the audio listener. Equal to
+    // playerCar while the local player is alive; spectator-bound after
+    // they're eliminated. Returns null between rounds.
+    listenerCar: () => {
+      if (spectatorCar && !spectatorCar.eliminated) return spectatorCar
+      if (playerCar && !playerCar.eliminated) return playerCar
+      return spectatorCar || playerCar
+    },
+    spectatorCar: () => spectatorCar,
     isRunning: () => running,
     isPaused: () => paused,
     getScore: () => playerCar ? (playerCar.score || 0) : 0,
@@ -129,6 +143,10 @@ content.game = (() => {
     const killer = byCarId ? cars.find((c) => c.id === byCarId) : null
     if (car === playerCar) {
       content.announcer.say(app.i18n.t('ann.youKilledBy'), 'assertive')
+      // Auto-bind the listener to a surviving car so the player can
+      // keep watching the round instead of being stuck at their dead
+      // position. Announces the new POV ("Watching X.").
+      autoSpectate({announce: true})
     } else {
       const youKilled = killer && killer === playerCar
       const text = youKilled
@@ -137,6 +155,10 @@ content.game = (() => {
       content.announcer.say(text, 'assertive')
       if (role !== 'client' && killer) {
         killer.score = (killer.score || 0) + 50
+      }
+      // If we were spectating this car, hop to the next survivor.
+      if (car === spectatorCar) {
+        autoSpectate({announce: true})
       }
     }
   })
@@ -702,6 +724,7 @@ content.game = (() => {
     }
 
     playerCar = cars.find((c) => c.controller === 'player') || null
+    spectatorCar = null
     targeting = playerCar ? content.targeting.create(api) : null
     if (mode === 'arcade') {
       pickupsMgr = content.pickups.createManager(api)
@@ -772,6 +795,7 @@ content.game = (() => {
     for (const c of cars) content.car.destroy(c)
     cars = []
     playerCar = null
+    spectatorCar = null
     paused = false
     pendingEvents = []
     remoteInputs.clear()
@@ -784,6 +808,62 @@ content.game = (() => {
 
   function setPaused(v) {
     paused = v
+  }
+
+  // ---- Spectator POV ----------------------------------------------------
+  // Once the local player is eliminated, the audio listener follows
+  // another car. Hotkeys 1-6 (in app/screen/game.js) call setSpectator
+  // with a 1-based slot. autoSpectate picks the first alive car other
+  // than the player as a fallback (on local death or when the current
+  // spectated car gets eliminated).
+
+  function pickFallbackSpectator() {
+    // Prefer any alive non-player car; if none, fall back to playerCar.
+    for (const c of cars) {
+      if (c === playerCar) continue
+      if (!c.eliminated) return c
+    }
+    return null
+  }
+
+  function autoSpectate({announce = false} = {}) {
+    const next = pickFallbackSpectator()
+    if (!next) {
+      spectatorCar = null
+      return
+    }
+    if (next === spectatorCar) return
+    spectatorCar = next
+    if (announce) {
+      content.announcer.say(
+        app.i18n.t('ann.spectatorWatching', {label: next.realLabel || next.label}),
+        'polite',
+      )
+    }
+  }
+
+  /**
+   * Bind the audio listener to the car at 1-based slot index `n`.
+   * Warns (and refuses to switch) if that slot is eliminated or empty.
+   */
+  function setSpectator(n) {
+    if (!running) return false
+    const idx = (n | 0) - 1
+    if (idx < 0 || idx >= cars.length) {
+      content.announcer.say(app.i18n.t('ann.spectatorNoSlot', {n}), 'polite')
+      return false
+    }
+    const target = cars[idx]
+    const label = target.realLabel || target.label
+    if (target.eliminated) {
+      content.announcer.say(app.i18n.t('ann.spectatorEliminated', {label}), 'polite')
+      return false
+    }
+    spectatorCar = target
+    // If the local player is alive and just picked themselves, this is
+    // a no-op for the listener; still announce so the user gets feedback.
+    content.announcer.say(app.i18n.t('ann.spectatorWatching', {label}), 'polite')
+    return true
   }
 
   function applyPlayerInput(input) {
@@ -994,11 +1074,13 @@ content.game = (() => {
     // Integrate
     for (const car of cars) content.physics.integrate(car, delta)
 
-    // Car-car collisions
+    // Car-car collisions. Eliminated cars are spectators — no body on
+    // the field, so a live car can pass straight through where they
+    // were last seen instead of bumping into a silent ghost.
     for (let i = 0; i < cars.length; i++) {
       for (let j = i + 1; j < cars.length; j++) {
         const a = cars[i], b = cars[j]
-        if (a.eliminated && b.eliminated) continue
+        if (a.eliminated || b.eliminated) continue
         const ev = content.physics.resolveCarCar(a, b)
         if (!ev) continue
 
@@ -1047,6 +1129,7 @@ content.game = (() => {
 
     // Wall collisions
     for (const car of cars) {
+      if (car.eliminated) continue
       const events = content.physics.resolveCarWall(car, content.arena)
       for (const ev of events) {
         if (ev.type === 'hit') {
@@ -1200,20 +1283,28 @@ content.game = (() => {
   }
 
   // Update listener position + per-car spatial voices. Shared host/client.
+  // Listener follows the spectated car when the local player is dead;
+  // otherwise it tracks playerCar.
   function updateAudioStage() {
     if (!playerCar) return
+    // If the spectated car got eliminated between frames (e.g. via a
+    // network snapshot), hop to the next survivor before reading it.
+    if (spectatorCar && spectatorCar.eliminated) autoSpectate()
+    const listener = (spectatorCar && !spectatorCar.eliminated && playerCar.eliminated)
+      ? spectatorCar
+      : playerCar
     engine.position.setVector({
-      x: playerCar.position.x,
-      y: playerCar.position.y,
+      x: listener.position.x,
+      y: listener.position.y,
       z: 0,
     })
-    engine.position.setEuler({yaw: playerCar.heading})
+    engine.position.setEuler({yaw: listener.heading})
     for (const car of cars) {
       if (!car.sound) continue
       car.sound.update({
         position: car.position,
-        listener: playerCar.position,
-        listenerYaw: playerCar.heading,
+        listener: listener.position,
+        listenerYaw: listener.heading,
         speed: Math.hypot(car.velocity.x, car.velocity.y),
         throttle: car.input.throttle,
         scrapeSpeed: car.scrapeSpeed,
@@ -1228,8 +1319,8 @@ content.game = (() => {
         const c = cars.find((c) => c.id === carId)
         return c ? c.position : null
       },
-      playerCar.position,
-      playerCar.heading,
+      listener.position,
+      listener.heading,
     )
   }
 
@@ -1494,6 +1585,7 @@ content.game = (() => {
     activateTeleport,
     startHonk,
     stopHonk,
+    setSpectator,
     setOnRoundOver: (fn) => { api.onRoundOver = fn },
     setRole,
     applyHostSnapshot,

@@ -108,7 +108,9 @@ content.targeting = (() => {
       const ear = engine.ear.binaural.create()
       ear.to(engine.mixer.output())
 
-      const player = game.player()
+      // Pivot beeps on whichever car the listener is bound to (player
+      // while alive, spectated car after elimination).
+      const player = game.listenerCar ? game.listenerCar() : game.player()
       const dx = worldX - player.position.x,
         dy = worldY - player.position.y
       const cos = Math.cos(-player.heading), sin = Math.sin(-player.heading)
@@ -252,12 +254,15 @@ content.targeting = (() => {
     }
 
     function update() {
-      const player = game.player()
-      if (!player || player.eliminated) {
-        // Spectator mode: kill all proximity audio. The world's car
-        // engines are still spatialised by content.game; they're enough
-        // to follow the action without the wall whoosh + car beeps
-        // attached to a now-irrelevant listener position.
+      // Track the listener's car (player while alive, spectated car
+      // after death) so proximity beeps + wall whoosh keep working in
+      // spectator mode. Skip pickup-radar / commentary while the
+      // local player is dead — those are player-aimed cues, not
+      // spectator cues.
+      const player = (game.listenerCar ? game.listenerCar() : game.player())
+      const realPlayer = game.player()
+      const playerAlive = !!realPlayer && !realPlayer.eliminated
+      if (!player) {
         state.clear()
         silenceWalls()
         return
@@ -358,8 +363,9 @@ content.targeting = (() => {
         )
       }
 
-      // Forward-aim pickup radar lock.
-      updatePickupLock(player)
+      // Forward-aim pickup radar lock — player-aim cue, only fires
+      // while the local player is still driving.
+      if (playerAlive) updatePickupLock(player)
 
       // Periodic AI/remote-player behaviour announcements.
       updateCommentary()
@@ -485,23 +491,26 @@ content.targeting = (() => {
     }
 
     function sweepText() {
+      // Sweep is relative to the listener so bearings line up with
+      // what the player is hearing — important once they're spectating.
+      const listener = game.listenerCar ? game.listenerCar() : game.player()
       const player = game.player()
-      if (!player) return ''
+      if (!listener) return ''
 
       const lines = []
       const others = []
       for (const other of game.cars) {
-        if (other.id === player.id || other.eliminated) continue
-        const dx = other.position.x - player.position.x,
-          dy = other.position.y - player.position.y
+        if (other.id === listener.id || other.eliminated) continue
+        const dx = other.position.x - listener.position.x,
+          dy = other.position.y - listener.position.y
         const dist = Math.hypot(dx, dy)
-        const cos = Math.cos(-player.heading), sin = Math.sin(-player.heading)
+        const cos = Math.cos(-listener.heading), sin = Math.sin(-listener.heading)
         const localX = dx * cos - dy * sin
         const localY = dx * sin + dy * cos
 
         // Approaching/leaving: relative velocity dotted with -direction-to-other
-        const rvx = other.velocity.x - player.velocity.x,
-          rvy = other.velocity.y - player.velocity.y
+        const rvx = other.velocity.x - listener.velocity.x,
+          rvy = other.velocity.y - listener.velocity.y
         const dirX = dx / (dist || 1), dirY = dy / (dist || 1)
         const closing = -(rvx * dirX + rvy * dirY)   // + = approaching
         const motionKey = closing > 0.5 ? 'target.motion.approaching'
@@ -522,7 +531,7 @@ content.targeting = (() => {
         }))
       }
 
-      if (player.eliminated) {
+      if (player && player.eliminated) {
         lines.unshift(app.i18n.t('target.youEliminated'))
       }
       if (!lines.length) {

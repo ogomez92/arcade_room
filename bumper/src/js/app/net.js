@@ -56,6 +56,13 @@ app.net = (() => {
   // (host) Map<peerId, {conn, name, lastSeen}>
   const clientConns = new Map()
   let heartbeatTimer = null
+  // (client) snapshot of the most recent lobby payload from the host.
+  // Used to diff incoming lobbies and synthesize peerJoin / peerLeave
+  // events so non-host peers get the same join/leave UI as the host.
+  // Set to null until the first lobby arrives — that initial payload
+  // is the client's own join, so we suppress the noisy "Alice joined.
+  // Bob joined. Charlie joined." reading and announce only deltas.
+  let clientLobbyCache = null
 
   // Event listeners. Names: open, close, peerJoin, peerLeave, message,
   // role, error, lobby. (lobby = updated peer list, host-side only.)
@@ -218,8 +225,44 @@ app.net = (() => {
     try { conn.send(msg); return true } catch (e) { return false }
   }
 
+  // -------------------------------------------------------------------
+  // Client-side lobby diff
+  // -------------------------------------------------------------------
+  // The host fires its own peerJoin/peerLeave when clients connect or
+  // disconnect, but those events never reach other clients — clients
+  // only receive a refreshed `lobby` payload. Without this diff, every
+  // non-host peer would silently miss the "Alice joined" / "Alice left"
+  // surface in the lobby (and the matching SFX). We diff each new
+  // lobby against the previous one and re-fire the same events the
+  // host fires locally so the multiplayer screen handlers can run on
+  // every peer with no extra wiring.
+  //
+  // The first payload after joining is suppressed: it represents the
+  // peer's own arrival into a lobby that already has people in it, so
+  // re-firing peerJoin for every existing peer would read out the
+  // whole roster as "joining now."
+  function diffLobbyOnClient(peers) {
+    const next = new Map((peers || []).map((p) => [p.peerId, p]))
+    const prev = clientLobbyCache
+    clientLobbyCache = next
+
+    if (!prev) return  // first lobby after join — suppress
+
+    for (const [peerId, p] of next) {
+      if (!prev.has(peerId)) {
+        fire('peerJoin', {peerId, name: p.name})
+      }
+    }
+    for (const [peerId, p] of prev) {
+      if (!next.has(peerId)) {
+        fire('peerLeave', {peerId, name: p.name})
+      }
+    }
+  }
+
   function disconnect(reason = 'left') {
     stopHeartbeat()
+    clientLobbyCache = null
     try {
       if (role === 'host') {
         for (const {conn} of clientConns.values()) {
@@ -481,7 +524,9 @@ app.net = (() => {
         conn.on('data', (msg) => {
           if (!msg || typeof msg !== 'object') return
           if (msg.type === 'lobby') {
-            fire('lobby', Array.isArray(msg.peers) ? msg.peers : [])
+            const peers = Array.isArray(msg.peers) ? msg.peers : []
+            diffLobbyOnClient(peers)
+            fire('lobby', peers)
             return
           }
           if (msg.type === 'kick') {

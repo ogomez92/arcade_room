@@ -1,0 +1,75 @@
+.a-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+  .a-game--hud {
+    font-family: monospace;
+    font-size: 1.4em;
+    line-height: 1.6;
+    max-width: 40em;
+  }
+  .a-game--score {
+    font-size: 2em;
+    line-height: 1.1;
+    margin: 0;
+    white-space: pre-line;
+  }
+  .a-game--instructions {
+    margin-top: 1rem;
+    opacity: 0.6;
+  }
+
+.a-help {
+  text-align: left;
+}
+  .a-help--list {
+    list-style: disc inside;
+    margin-top: 1rem;
+    max-width: 44em;
+    padding: 0;
+    text-align: left;
+  }
+    .a-help--list li {
+      margin: 0.4rem 0;
+    }
+    .a-help--list kbd {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 0.25em;
+      font-family: monospace;
+      padding: 0 0.4em;
+    }
+
+.a-lobby--code-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0.4rem;
+  color: #FFFFFF;
+  font-family: monospace;
+  font-size: 1.5em;
+  letter-spacing: 0.4em;
+  padding: 0.4em 0.6em;
+  text-align: center;
+  text-transform: uppercase;
+  width: 100%;
+}
+  .a-lobby--code-input:focus {
+    border-color: #FFFFFF;
+    outline: none;
+  }
+
+.a-lobby--players-text {
+  font-family: monospace;
+  margin: 1rem 0;
+  white-space: pre-line;
+}
+
+.a-lobby--room-code {
+  font-family: monospace;
+  font-size: 1.6em;
+  letter-spacing: 0.3em;
+  margin: 1rem 0;
+}

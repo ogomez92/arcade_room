@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Audio Tennis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div role="status" aria-live="polite" aria-atomic="true" class="js-announcer u-screenReader"></div>
+      <div role="status" aria-live="assertive" aria-atomic="true" class="js-announcer-assertive u-screenReader"></div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <div class="a-game--hud" aria-live="off">
+            <p class="a-game--score" aria-live="off"></p>
+            <p class="a-game--instructions u-screenReader" data-i18n="game.instructions">Arrows to move. D for forehand, A for backhand, S for smash. Listen for the ball as it nears your side; swing when it is close to swing.</p>
+          </div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Match over</h1>
+          <p class="c-menu--subtitle a-gameover--summary"></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="rematch" data-i18n="gameover.rematch">Play again</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="gameover.menu">Main menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--lobby">
+        <section class="c-screen c-menu a-lobby" tabindex="-1" data-i18n-attr="aria-label:lobby.aria">
+          <h1 class="c-menu--title" data-i18n="lobby.title">Multiplayer</h1>
+          <div role="status" aria-live="polite" aria-atomic="true" class="js-lobby-announcer u-screenReader"></div>
+
+          <div class="a-lobby--connect">
+            <p class="c-menu--subtitle" data-i18n="lobby.subtitle">Create a room and share the code, or join one.</p>
+            <ul class="c-menu--list">
+              <li><button class="c-menu--button a-lobby--create-btn" data-i18n="lobby.create">Create room</button></li>
+              <li>
+                <label for="a-lobby--code-input" data-i18n="lobby.codeLabel">Room code</label>
+                <input id="a-lobby--code-input" class="a-lobby--code-input" maxlength="8" autocomplete="off" data-i18n-attr="aria-label:lobby.codeAria">
+              </li>
+              <li><button class="c-menu--button a-lobby--join-btn" data-i18n="lobby.join">Join room</button></li>
+              <li><button class="c-menu--button" data-action="back" data-i18n="lobby.back">Back</button></li>
+            </ul>
+          </div>
+
+          <div class="a-lobby--room" hidden>
+            <p class="c-menu--subtitle a-lobby--room-code"></p>
+            <p class="a-lobby--players-text"></p>
+            <ul class="c-menu--list">
+              <li><button class="c-menu--button a-lobby--start-btn" data-i18n="lobby.start">Start match</button></li>
+              <li><button class="c-menu--button a-lobby--leave-btn" data-i18n="lobby.leave">Leave room</button></li>
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--settings">
+        <section class="c-screen c-menu a-settings" tabindex="-1" data-i18n-attr="aria-label:settings.aria">
+          <h1 class="c-menu--title" data-i18n="settings.title">Settings</h1>
+
+          <h2 class="c-menu--subtitle" data-i18n="settings.diffTitle">Difficulty</h2>
+          <p class="c-menu--subtitle" data-i18n="settings.diffSubtitle">Lower difficulties slow the ball so you have more time to react. AI footwork is unchanged. In multiplayer the host's choice applies to both players.</p>
+          <ul class="c-menu--list a-settings--diff-list">
+            <li><button class="c-menu--button" data-difficulty="easy" data-i18n="settings.diff.easy">Easy — slow ball</button></li>
+            <li><button class="c-menu--button" data-difficulty="normal" data-i18n="settings.diff.normal">Normal — medium pace</button></li>
+            <li><button class="c-menu--button" data-difficulty="hard" data-i18n="settings.diff.hard">Hard — full pace</button></li>
+          </ul>
+
+          <h2 class="c-menu--subtitle" data-i18n="settings.setsTitle">Match length</h2>
+          <p class="c-menu--subtitle" data-i18n="settings.setsSubtitle">Number of sets in a match. In multiplayer the host's choice applies.</p>
+          <ul class="c-menu--list a-settings--sets-list">
+            <li><button class="c-menu--button" data-sets="1" data-i18n="settings.sets.1">Best of 1 — single set</button></li>
+            <li><button class="c-menu--button" data-sets="3" data-i18n="settings.sets.3">Best of 3 — standard</button></li>
+            <li><button class="c-menu--button" data-sets="5" data-i18n="settings.sets.5">Best of 5 — long match</button></li>
+          </ul>
+
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="settings.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to play</h1>
+          <ul class="c-menu--list a-help--list">
+            <li data-i18n-html="help.move"><strong>Arrow keys</strong> — move around your half of the court.</li>
+            <li data-i18n-html="help.forehand"><kbd>D</kbd> — forehand (swing the racket to your right).</li>
+            <li data-i18n-html="help.backhand"><kbd>A</kbd> — backhand (swing the racket to your left, like a reverse).</li>
+            <li data-i18n-html="help.smash"><kbd>S</kbd> — smash (powerful, lower trajectory).</li>
+            <li data-i18n-html="help.serve"><strong>When you serve</strong>, press D, A, or S to toss and strike the ball. The serve must land in the diagonal service box.</li>
+            <li data-i18n-html="help.timing"><strong>Timing.</strong> Listen to the ball whoosh louder as it nears you. Swing while it is in your strike zone (within roughly two metres of your racket).</li>
+            <li data-i18n-html="help.audio"><strong>Audio map.</strong> The listener is fixed: north of the screen is in front of you, south is behind, east is to your right, west is to your left. The net runs east–west across the middle.</li>
+          </ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--splash">
+        <section class="c-screen c-menu a-splash" tabindex="-1" data-i18n-attr="aria-label:splash.aria">
+          <h1 class="c-menu--title a-splash--logo" data-i18n="splash.title">Audio Tennis</h1>
+          <p class="a-splash--details">
+            <span class="a-splash--version"></span>
+            <span class="a-splash--author" data-i18n="splash.author">an accessible audio game</span>
+          </p>
+          <nav class="a-splash--menu" data-i18n-attr="aria-label:splash.menuAria">
+            <ul class="c-menu--list">
+              <li><button class="c-menu--button" data-action="single" data-i18n="splash.single">Single player vs. computer</button></li>
+              <li><button class="c-menu--button" data-action="multiplayer" data-i18n="splash.multi">Multiplayer</button></li>
+              <li><button class="c-menu--button" data-action="help" data-i18n="splash.help">How to play</button></li>
+              <li><button class="c-menu--button" data-action="settings" data-i18n="splash.settings">Settings</button></li>
+              <li><button class="c-menu--button" data-action="language" data-i18n="splash.language">Language</button></li>
+            </ul>
+          </nav>
+        </section>
+      </div>
+
+    </main>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

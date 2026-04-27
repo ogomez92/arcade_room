@@ -69,6 +69,20 @@ app.screen.game = app.screenManager.invent({
         content.game.sweep()
         return
       }
+      // Spectator POV — 1..6 picks the listener car by 1-based slot.
+      // Works in any mode and any state of the local player; useful
+      // mostly after elimination to follow another driver. Refuses
+      // (with a warning) if the slot is empty or eliminated.
+      // Match both the row digits and the numpad so users can hit
+      // either set.
+      if (e.code.startsWith('Digit') || e.code.startsWith('Numpad')) {
+        const n = parseInt(e.code.slice(-1), 10)
+        if (n >= 1 && n <= 6 && !e.repeat) {
+          e.preventDefault()
+          content.game.setSpectator(n)
+          return
+        }
+      }
       // Horn — hold-to-honk. Auto-repeat keydowns are ignored inside
       // startHonk (it tracks the local "is honking" flag), so all the
       // handler does is suppress the browser's default Space-scroll.

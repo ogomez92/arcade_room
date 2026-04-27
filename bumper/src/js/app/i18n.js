@@ -227,7 +227,10 @@ app.i18n = (() => {
 
       // Live-region announcements (game)
       'ann.you': 'You',
-      'ann.youKilledBy': 'You are eliminated. Watching the round.',
+      'ann.youKilledBy': 'You are eliminated. Watching the round. Press 1 to 6 to switch view.',
+      'ann.spectatorWatching': 'Watching {label}.',
+      'ann.spectatorEliminated': '{label} is eliminated.',
+      'ann.spectatorNoSlot': 'No car in slot {n}.',
       'ann.youKilledOther': 'You eliminated {label}.',
       'ann.otherKilled': '{label} eliminated.',
       'ann.youHitOther': 'You hit {label}! {damage} damage. {label} at {health} health.',
@@ -568,7 +571,10 @@ app.i18n = (() => {
 
       // Live-region announcements (game)
       'ann.you': 'Tú',
-      'ann.youKilledBy': 'Estás eliminado. Mirando la ronda.',
+      'ann.youKilledBy': 'Estás eliminado. Mirando la ronda. Pulsa de 1 a 6 para cambiar de vista.',
+      'ann.spectatorWatching': 'Mirando a {label}.',
+      'ann.spectatorEliminated': '{label} está eliminado.',
+      'ann.spectatorNoSlot': 'No hay coche en el puesto {n}.',
       'ann.youKilledOther': 'Has eliminado a {label}.',
       'ann.otherKilled': '{label} eliminado.',
       'ann.youHitOther': '¡Has golpeado a {label}! {damage} de daño. {label} con {health} de salud.',
