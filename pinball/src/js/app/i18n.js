@@ -73,6 +73,7 @@ app.i18n = (() => {
       'learn.rolloverR2': 'Inner left rollover',
       'learn.rolloverR3': 'Inner right rollover',
       'learn.rolloverR4': 'Far right rollover, highest',
+      'learn.spinner': 'Spinner click',
       'learn.flapLeft': 'Left flipper button press',
       'learn.flapRight': 'Right flipper button press',
       'learn.flipperHitLeft': 'Ball striking the left flipper',
@@ -130,6 +131,7 @@ app.i18n = (() => {
       'ann.gameOver': 'Game over. Final score {score}. Final rank {rank}.',
       'ann.missionComplete': 'Mission complete: {mission}. Bonus {reward}.',
       'ann.extraBall': 'Extra ball! {balls} balls remaining.',
+      'ann.spinner': 'Spinner!',
       'ann.newMission': 'New mission: {mission}.',
       'ann.allMissions': 'All missions complete! Bonus multiplier engaged.',
       'ann.targetDown': '{label} down.',
@@ -173,7 +175,8 @@ app.i18n = (() => {
       'mission.m2': 'Twenty bumper hits',
       'mission.m3': 'Cross every rollover lane',
       'mission.m4': 'Light all targets again',
-      'mission.m5': 'Score thirty thousand without draining',
+      'mission.m5': 'Spin the spinner twenty-five times',
+      'mission.m6': 'Score thirty thousand without draining',
 
       // Bumper / target labels
       'label.alphaBumper': 'alpha bumper',
@@ -186,6 +189,7 @@ app.i18n = (() => {
       'label.innerLeftRollover': 'inner left rollover',
       'label.innerRightRollover': 'inner right rollover',
       'label.rightRollover': 'right rollover',
+      'label.spinner': 'spinner',
     },
 
     es: {
@@ -244,6 +248,7 @@ app.i18n = (() => {
       'learn.rolloverR2': 'Carril interior izquierdo',
       'learn.rolloverR3': 'Carril interior derecho',
       'learn.rolloverR4': 'Carril extremo derecho, el más agudo',
+      'learn.spinner': 'Click del spinner',
       'learn.flapLeft': 'Pulsación de aleta izquierda',
       'learn.flapRight': 'Pulsación de aleta derecha',
       'learn.flipperHitLeft': 'Bola golpeando la aleta izquierda',
@@ -297,6 +302,7 @@ app.i18n = (() => {
       'ann.gameOver': 'Fin del juego. Puntuación final {score}. Rango final {rank}.',
       'ann.missionComplete': 'Misión completa: {mission}. Bono {reward}.',
       'ann.extraBall': '¡Bola extra! Te quedan {balls} bolas.',
+      'ann.spinner': '¡Spinner!',
       'ann.newMission': 'Nueva misión: {mission}.',
       'ann.allMissions': '¡Todas las misiones completas! Multiplicador de bono activado.',
       'ann.targetDown': '{label} abatida.',
@@ -337,7 +343,8 @@ app.i18n = (() => {
       'mission.m2': 'Veinte golpes a bumpers',
       'mission.m3': 'Atraviesa todos los carriles',
       'mission.m4': 'Vuelve a iluminar todas las dianas',
-      'mission.m5': 'Marca treinta mil sin perder bola',
+      'mission.m5': 'Haz girar el spinner veinticinco veces',
+      'mission.m6': 'Marca treinta mil sin perder bola',
 
       'label.alphaBumper': 'bumper alfa',
       'label.betaBumper': 'bumper beta',
@@ -349,6 +356,7 @@ app.i18n = (() => {
       'label.innerLeftRollover': 'carril interior izquierdo',
       'label.innerRightRollover': 'carril interior derecho',
       'label.rightRollover': 'carril derecho',
+      'label.spinner': 'spinner',
     },
   }
 

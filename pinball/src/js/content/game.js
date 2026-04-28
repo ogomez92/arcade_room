@@ -12,7 +12,7 @@ content.game = (() => {
   // table's BUMPERS/TARGETS/ROLLOVERS for the matching id.
   function labelFor(id) {
     const tab = T()
-    const all = [].concat(tab.BUMPERS, tab.TARGETS, tab.ROLLOVERS)
+    const all = [].concat(tab.BUMPERS, tab.TARGETS, tab.ROLLOVERS, tab.SPINNERS || [])
     for (const it of all) {
       if (it.id === id) return it.labelKey ? app.i18n.t(it.labelKey) : it.label
     }
@@ -43,7 +43,8 @@ content.game = (() => {
     {id: 'm2', kind: 'bumpers',   need: 20,    reward: 8000},
     {id: 'm3', kind: 'rollovers', need: 4,     reward: 10000},
     {id: 'm4', kind: 'targets',   need: 3,     reward: 12000},
-    {id: 'm5', kind: 'survive',   need: 30000, reward: 20000},
+    {id: 'm5', kind: 'spinners',  need: 25,    reward: 15000},
+    {id: 'm6', kind: 'survive',   need: 30000, reward: 20000},
   ]
   const missionName = (m) => app.i18n.t('mission.' + m.id)
 
@@ -74,6 +75,10 @@ content.game = (() => {
     paused: false,
     flipperPressed: {left: false, right: false, upper: false},
     lastPositionAnnounce: 0,
+    // Spinner-chain bookkeeping — debounce the screen-reader announce so a
+    // 6-spin pass doesn't interrupt with "Spinner!" six times in a row.
+    spinChainCount: 0,
+    spinChainAnnouncedAt: 0,
   }
 
   function rankFor(score) {
@@ -130,6 +135,9 @@ content.game = (() => {
     state.rolloverState = {}
     state.rolloverHits = new Set()
     state.plunger = {pulling: false, power: 0, releasing: false}
+    state.spinChainCount = 0
+    state.spinChainAnnouncedAt = 0
+    P().resetSpinners()
     if (!state.ball) state.ball = P().makeBall()
     const b = state.ball
     b.live = true
@@ -177,6 +185,8 @@ content.game = (() => {
     if (kind === 'targets') {
       state.missionProgress++
     } else if (kind === 'bumpers') {
+      state.missionProgress++
+    } else if (kind === 'spinners') {
       state.missionProgress++
     } else if (kind === 'rollovers') {
       if (payload && payload.id) state.rolloverHits.add(payload.id)
@@ -248,6 +258,22 @@ content.game = (() => {
           addScore(250, {announce: app.i18n.t('ann.label', {label: labelFor(e.id)})})
           bumpMission('rollovers', {id: e.id})
           break
+        case 'spin': {
+          // Each spin always plays its click and scores 100 points. Announces
+          // are debounced: the FIRST spin in a chain says "Spinner!", then we
+          // hold off for a second so a 6-spin pass doesn't spam the SR. After
+          // the chain finishes, the next pass starts a fresh announce.
+          A().spinner(e.x, e.y, e.id)
+          const now = engine.time()
+          if (now - state.spinChainAnnouncedAt > 1.0) {
+            app.announce.polite(app.i18n.t('ann.spinner'))
+            state.spinChainAnnouncedAt = now
+          }
+          state.spinChainCount++
+          addScore(100)
+          bumpMission('spinners')
+          break
+        }
         case 'rearm':
           A().ballReady()
           app.announce.polite(app.i18n.t('ann.ballRearmed'))

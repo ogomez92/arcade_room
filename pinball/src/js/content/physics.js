@@ -186,6 +186,62 @@ content.physics = (() => {
     return {a: f.def.pivot, b: tip}
   }
 
+  // ---------- spinner physics ----------
+  // A spinner is modelled as a thin sensor segment the ball passes *through*
+  // (no reflection — the real-life blade pivots out of the way). Each crossing
+  // imparts angular velocity proportional to the ball's velocity component
+  // perpendicular to the blade's footprint. Rotation then decays exponentially
+  // due to axle friction. Every π radians traveled (in either direction) is
+  // counted as one "spin" — matching the real-life reed-switch trigger that
+  // fires once per blade pass through vertical.
+  //
+  // Calibration: at SPIN_KICK_PER_SPEED = 0.7 a perpendicular ball speed of
+  // 25 u/s imparts ω₀ ≈ 17.5 rad/s. With damping 0.4/s the integrated angle
+  // is ω₀ / ln(1/0.4) ≈ 19 rad ≈ 6 spins. Real spinners give 4–12 per pass.
+  const SPIN_KICK_PER_SPEED = 0.7
+  const SPIN_DAMPING_PER_SEC = 0.4
+  const SPIN_STOP_THRESHOLD = 0.05
+  let spinners = null
+  function ensureSpinners() {
+    if (spinners) return spinners
+    const T = content.table
+    spinners = (T.SPINNERS || []).map((def) => {
+      const ax = def.b.x - def.a.x, ay = def.b.y - def.a.y
+      const segLen = Math.hypot(ax, ay) || 1
+      // Unit vector perpendicular to the blade footprint. Sign is arbitrary
+      // (we keep angularVel signed); a positive ω just means "rotating one
+      // way" — the ear can't tell direction anyway.
+      return {
+        def,
+        cx: (def.a.x + def.b.x) / 2,
+        cy: (def.a.y + def.b.y) / 2,
+        // Perpendicular = (-ay, ax) / |seg|
+        nx: -ay / segLen,
+        ny:  ax / segLen,
+        angle: 0,
+        angularVel: 0,
+        angleTraveled: 0,
+        spinsEmitted: 0,
+      }
+    })
+    return spinners
+  }
+
+  // Segment AB vs segment CD. Returns the parametric `t` in [0,1] along AB
+  // at which they cross, or null. Uses the standard 2D cross-product form;
+  // numerically stable as long as the segments aren't near-parallel.
+  function segmentsIntersect(ax, ay, bx, by, cx, cy, dx, dy) {
+    const r1x = bx - ax, r1y = by - ay
+    const r2x = dx - cx, r2y = dy - cy
+    const denom = r1x * r2y - r1y * r2x
+    if (Math.abs(denom) < 1e-9) return null
+    const sx = cx - ax, sy = cy - ay
+    const t = (sx * r2y - sy * r2x) / denom
+    const u = (sx * r1y - sy * r1x) / denom
+    if (t < 0 || t > 1 || u < 0 || u > 1) return null
+    return t
+  }
+
   // ---------- collisions ----------
   const events = []  // queued for game module to consume
   function pushEvent(kind, data = {}) {
@@ -396,6 +452,8 @@ content.physics = (() => {
       return
     }
 
+    const allSpinners = ensureSpinners()
+
     // Adaptive sub-stepping. We pick `numSubSteps` so per-sub-step travel
     // for a maximum-speed ball stays under 70% of the ball radius. At
     // dt=1/60 with MAX_SPEED=120 this works out to ~16 sub-steps; at the
@@ -413,8 +471,25 @@ content.physics = (() => {
       ball.vx *= DAMPING; ball.vy *= DAMPING
       clampSpeed(ball)
       // Integrate
+      const prevX = ball.x, prevY = ball.y
       ball.x += ball.vx * subActual
       ball.y += ball.vy * subActual
+      // Spinner crossings — segment(prev, new) vs the spinner blade footprint.
+      // Each crossing kicks the blade with the perpendicular component of the
+      // ball's velocity (signed → spinner can rotate either way depending on
+      // approach direction). Non-blocking: ball passes through unchanged.
+      for (const sp of allSpinners) {
+        const t = segmentsIntersect(
+          prevX, prevY, ball.x, ball.y,
+          sp.def.a.x, sp.def.a.y, sp.def.b.x, sp.def.b.y,
+        )
+        if (t === null) continue
+        const vPerp = ball.vx * sp.nx + ball.vy * sp.ny
+        sp.angularVel += SPIN_KICK_PER_SPEED * vPerp
+        // Crossing point for the audio cue.
+        sp.lastCrossX = prevX + (ball.x - prevX) * t
+        sp.lastCrossY = prevY + (ball.y - prevY) * t
+      }
       // Iterative collision resolution. First pass reflects velocity off
       // the surfaces the ball actually hit; subsequent passes only apply
       // position correction (their velocity-changing branches are gated on
@@ -469,6 +544,32 @@ content.physics = (() => {
         ball.live = false
         pushEvent('drain', {x: ball.x, y: ball.y})
         return
+      }
+    }
+
+    // Spinner rotation update — once per frame is plenty (no collision
+    // dependence). Exponential decay with a hard stop threshold so we don't
+    // accumulate floating-point dust forever. Each π of unsigned travel
+    // emits a 'spin' event for the game module to score and audibilise.
+    for (const sp of allSpinners) {
+      if (sp.angularVel !== 0) {
+        sp.angle += sp.angularVel * dt
+        sp.angleTraveled += Math.abs(sp.angularVel * dt)
+        sp.angularVel *= Math.pow(SPIN_DAMPING_PER_SEC, dt)
+        if (Math.abs(sp.angularVel) < SPIN_STOP_THRESHOLD) sp.angularVel = 0
+      }
+      const totalSpins = Math.floor(sp.angleTraveled / Math.PI)
+      while (sp.spinsEmitted < totalSpins) {
+        sp.spinsEmitted++
+        pushEvent('spin', {
+          id: sp.def.id,
+          x: sp.lastCrossX != null ? sp.lastCrossX : sp.cx,
+          y: sp.lastCrossY != null ? sp.lastCrossY : sp.cy,
+          label: sp.def.label,
+          // Ride-out count for this spin chain (how many spins since the
+          // most recent kick). Not currently used but cheap to expose.
+          ride: sp.spinsEmitted,
+        })
       }
     }
 
@@ -539,10 +640,26 @@ content.physics = (() => {
     return out
   }
 
+  // Snap spinner motion to zero. Called between balls so a still-rotating
+  // spinner from the previous ball doesn't queue spins onto the new one.
+  function resetSpinners() {
+    const all = ensureSpinners()
+    for (const sp of all) {
+      sp.angle = 0
+      sp.angularVel = 0
+      sp.angleTraveled = 0
+      sp.spinsEmitted = 0
+      sp.lastCrossX = null
+      sp.lastCrossY = null
+    }
+  }
+
   return {
     makeBall,
     get flippers() { return ensureFlippers() },
+    get spinners() { return ensureSpinners() },
     setFlipper,
+    resetSpinners,
     step,
     consumeEvents,
     flipperTipPosition,

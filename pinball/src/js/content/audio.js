@@ -229,6 +229,35 @@ content.audio = (() => {
     }, {gain: 1.2})
   }
 
+  // Spinner — short metallic ratchet click. One per "spin" event, panned to
+  // the spinner's table position. Real spinners click at a fixed pitch (it's
+  // the rate that conveys speed); the only spectral wobble is a tiny
+  // bandwidth jitter so chained clicks don't sound like one held tone.
+  function spinner(x, y, _id) {
+    playAt(x, y, (out, t0) => {
+      const ctx = engine.context()
+      // A high triangle pluck for the metallic body…
+      const o = ctx.createOscillator(); o.type = 'triangle'
+      o.frequency.setValueAtTime(2400, t0)
+      o.frequency.exponentialRampToValueAtTime(1600, t0 + 0.04)
+      const e = envGain(out, t0, 0.001, 0.005, 0.05, 0.45)
+      o.connect(e)
+      o.start(t0); o.stop(t0 + 0.07)
+      // …plus a bandpass-filtered noise burst for the click transient.
+      const buf = ctx.createBuffer(1, 512, ctx.sampleRate)
+      const d = buf.getChannelData(0)
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1
+      const n = ctx.createBufferSource(); n.buffer = buf
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'
+      bp.frequency.value = 4200 + (Math.random() * 200 - 100)
+      bp.Q.value = 9
+      const ne = envGain(out, t0, 0.001, 0.002, 0.025, 0.45)
+      n.connect(bp).connect(ne)
+      n.start(t0); n.stop(t0 + 0.04)
+      return 0.1
+    }, {gain: 1.1})
+  }
+
   function plungerCharge(power) {
     // power 0..1 — pitch climbs as plunger pulls back
     const f = content.table.PLUNGER
@@ -556,7 +585,7 @@ content.audio = (() => {
   return {
     setListener,
     tableToAudio,
-    bumper, sling, wall, target, rollover,
+    bumper, sling, wall, target, rollover, spinner,
     flipperHit, flipperFlap,
     ballReady,
     rollStart, rollStop, rollUpdate,

@@ -76,8 +76,8 @@ If you add a new content module, follow the same pattern. Don't capture `content
 ## Files
 
 - `src/js/content/table.js` — pure data: dimensions, walls, bumpers, slings, targets, rollovers, plunger, listener position. No physics or audio code.
-- `src/js/content/physics.js` — 2D circle-vs-segment + circle-vs-circle physics. Adaptive sub-stepping (8 floor, climbs to ~32 at the dt cap; see "Tunneling-prevention invariants" below). Pushes events into a queue (`bumper`, `sling`, `wall`, `target`, `rollover`, `flipperHit`, `flipperBlock`, `drain`, `rearm`) consumed by the game module.
-- `src/js/content/audio.js` — per-event spatial SFX (`bumper(x,y,id)`, `target(x,y,id)`, `rollover(x,y,id)`, `sling`, `wall`, `flipperHit`, `flipperFlap`, `plungerCharge`, `plungerLaunch`); continuous spatial rumble (`rollStart`/`rollUpdate`/`rollStop`); per-flipper proximity beep (`proximityUpdate`/`resetProximity`); a `ballReady` chime; and non-spatial big-event SFX (`drain`, `missionComplete`, `rankUp`, `gameOver`). Each per-event SFX takes both the contact point and an `id` (so each bumper/target/rollover has its own pitch family).
+- `src/js/content/physics.js` — 2D circle-vs-segment + circle-vs-circle physics. Adaptive sub-stepping (8 floor, climbs to ~32 at the dt cap; see "Tunneling-prevention invariants" below). Pushes events into a queue (`bumper`, `sling`, `wall`, `target`, `rollover`, `flipperHit`, `flipperBlock`, `spin`, `drain`, `rearm`) consumed by the game module. Also owns spinner rotation state — see "Spinners" below.
+- `src/js/content/audio.js` — per-event spatial SFX (`bumper(x,y,id)`, `target(x,y,id)`, `rollover(x,y,id)`, `sling`, `wall`, `flipperHit`, `flipperFlap`, `spinner(x,y,id)`, `plungerCharge`, `plungerLaunch`); continuous spatial rumble (`rollStart`/`rollUpdate`/`rollStop`); per-flipper proximity beep (`proximityUpdate`/`resetProximity`); a `ballReady` chime; and non-spatial big-event SFX (`drain`, `missionComplete`, `rankUp`, `extraBall`, `gameOver`). Each per-event SFX takes both the contact point and an `id` (so each bumper/target/rollover has its own pitch family).
 - `src/js/content/game.js` — score, lives, ranks, mission progression, plunger state machine, event-to-audio-and-announcement routing, position read-out (`P` key).
 - `src/js/content/render.js` — optional 2D canvas visualizer of walls / bumpers / flippers / ball. Decorative.
 - `src/js/app/announce.js` — wraps the two aria-live regions; debounces repeated polite text.
@@ -205,6 +205,16 @@ Segment `(3.3, 14) → (3.3, 16)` with `kind: 'oneway'` and `normal: (-1, 0)`. A
 ### Auto-rearm: `gutterFrames > 30`
 
 `physics.step` increments `ball.gutterFrames` whenever the ball satisfies `inGutter && slow` (inside the gutter x range, `y < 1.0`, speed `< 0.6`); resets it otherwise. After 30 consecutive frames (~0.5 s) a `rearm` event fires, the ball snaps to the plunger pose, and `onPlunger` flips back to true. The 30-frame debounce is what stops a freshly-launched ball — which briefly satisfies "y < 1, low speed" right at release before gravity has done its work — from instantly false-rearming.
+
+### Spinners
+
+A spinner is modelled as a thin sensor segment (`table.SPINNERS[i].a → b`) the ball passes *through* — no collision response, just a momentum-transfer event. Real spinners pivot the blade out of the way as the ball passes underneath.
+
+- **Crossing detection.** Per sub-step, segment-segment intersection between the ball's path `(prevX, prevY) → (ball.x, ball.y)` and the blade footprint. Treats the ball as a point trajectory; the radius doesn't matter because the blade rotates out of the way in 3D. A straight line crosses a straight line at most once per sub-step, so no double-counting.
+- **Momentum transfer.** `angularVel += SPIN_KICK_PER_SPEED · (v · n̂)` where `n̂` is the unit perpendicular to the blade. Signed → ball going one way spins one direction, ball going the other way spins the opposite direction. `SPIN_KICK_PER_SPEED = 0.7`.
+- **Decay.** Exponential at `SPIN_DAMPING_PER_SEC = 0.4` per second (`ω *= 0.4^dt` per frame). Below `SPIN_STOP_THRESHOLD = 0.05 rad/s` we snap to zero so floating-point dust doesn't accumulate. With those constants, a 25 u/s perpendicular hit gives ω₀ ≈ 17.5 rad/s and total angle ≈ 19 rad ≈ 6 spins — matches the 4–12 spin range a real Bally/Williams unit produces.
+- **Spin events.** Each π of *unsigned* travel (`angleTraveled`) emits one `spin` event — matching the real-life reed switch firing once per blade pass through vertical, regardless of rotation direction. The game module debounces the screen-reader announce (one "Spinner!" per chain) but plays the click on every spin and scores 100 each.
+- **Reset between balls.** `physics.resetSpinners()` is called from `startBall()`. Without this, a ball draining mid-spin would queue up pending `spin` events that the next ball "inherits" — easy to test by holding the spinner on a long pass right before drain.
 
 ## Calibration math
 

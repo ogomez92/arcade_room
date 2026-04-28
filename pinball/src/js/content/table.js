@@ -70,6 +70,31 @@ content.table = (() => {
     {id: 't3', x:  1.6, y: 14.6, w: 0.6, h: 0.25, label: 'target three', labelKey: 'label.targetThree'},
   ]
 
+  // Spinners — flat blades pivoted on a horizontal axle that the ball passes
+  // *through* in the top-down view. Each pass imparts angular momentum to the
+  // blade; physics integrates rotation, decays it with friction, and counts
+  // each π of rotation as a "spin" point award. Real Bally/Williams spinners
+  // give 4-12 spins per fast pass.
+  //
+  // `a` and `b` define the blade's footprint as a line segment in the
+  // playfield. The spinner's "axis" (the imaginary horizontal axle in 3D) is
+  // PERPENDICULAR to that segment in 2D, so the ball's velocity component
+  // perpendicular to the segment is what spins the blade.
+  //
+  // Placement: across the natural upper-flipper → alpha-bumper feed lane. A
+  // ball kicked by the upper flipper at (-2.6, 8.5) travels up-and-right
+  // toward alpha at (-1.4, 12), passing right through the spinner footprint
+  // at y = 10.
+  const SPINNERS = [
+    {
+      id: 'spinner1',
+      a: {x: -2.0, y: 10.0},
+      b: {x: -0.8, y: 10.0},
+      label: 'spinner',
+      labelKey: 'label.spinner',
+    },
+  ]
+
   // Slingshots — circular kickers placed just above and inboard of each lower
   // flipper, where the side rail meets the flipper pivot. A ball drifting
   // down the rail toward the flipper gets nudged outward toward the pivot.
@@ -187,7 +212,7 @@ content.table = (() => {
     DRAIN_LEFT, DRAIN_RIGHT,
     GUTTER_WIDTH, GUTTER_INNER,
     LEFT_FLIPPER, RIGHT_FLIPPER, UPPER_FLIPPER,
-    BUMPERS, TARGETS, SLINGS, ROLLOVERS,
+    BUMPERS, TARGETS, SLINGS, ROLLOVERS, SPINNERS,
     PLUNGER,
     segments,
     LISTENER: {x: 0, y: -1.5},

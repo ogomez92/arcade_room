@@ -121,6 +121,16 @@ function playSample(name) {
     return
   }
 
+  if (name === 'spinner') {
+    const sp = T.SPINNERS && T.SPINNERS[0]
+    if (!sp) return
+    const cx = (sp.a.x + sp.b.x) / 2, cy = (sp.a.y + sp.b.y) / 2
+    // Six clicks at decaying rate to demo the chain rhythm.
+    const periods = [0, 0.10, 0.22, 0.36, 0.55, 0.80]
+    periods.forEach((p) => setTimeout(() => A.spinner(cx, cy, sp.id), p * 1000))
+    return
+  }
+
   if (name === 'flap-left')  { A.flipperFlap('left');  return }
   if (name === 'flap-right') { A.flipperFlap('right'); return }
   if (name.startsWith('prox-')) {

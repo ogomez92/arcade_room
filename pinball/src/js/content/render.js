@@ -74,6 +74,29 @@ content.render = (() => {
       ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.stroke()
     }
 
+    // Spinners — draw the blade footprint as a yellow line, plus a small tick
+    // perpendicular to it whose orientation tracks the spinner's `angle` so
+    // you can see it whirling.
+    const sps = P().spinners || []
+    for (const sp of sps) {
+      const [ax, ay] = project(sp.def.a.x, sp.def.a.y, w, h)
+      const [bx, by] = project(sp.def.b.x, sp.def.b.y, w, h)
+      ctx.strokeStyle = '#ee8'
+      ctx.lineWidth = 3
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke()
+      // Rotation tick: 0.4 unit pointer pivoting on the spinner centre.
+      const [ccx, ccy] = project(sp.cx, sp.cy, w, h)
+      const tickLen = (0.4 / t.WIDTH) * w
+      const a = sp.angle
+      ctx.strokeStyle = '#fc4'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(ccx, ccy)
+      ctx.lineTo(ccx + Math.cos(a) * tickLen, ccy - Math.sin(a) * tickLen)
+      ctx.stroke()
+      ctx.lineWidth = 2
+    }
+
     // Flippers
     ctx.strokeStyle = '#eef'
     ctx.lineWidth = 6
