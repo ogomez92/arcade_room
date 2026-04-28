@@ -75,10 +75,11 @@ content.game = (() => {
     paused: false,
     flipperPressed: {left: false, right: false, upper: false},
     lastPositionAnnounce: 0,
-    // Spinner-chain bookkeeping — debounce the screen-reader announce so a
-    // 6-spin pass doesn't interrupt with "Spinner!" six times in a row.
+    // Spinner-chain bookkeeping — count silently while the blade is rotating,
+    // then announce "Spinner! N times" once when the chain ends (spinner
+    // decays back to rest). Avoids spamming the screen reader during the
+    // 5-second decay tail of a fast pass.
     spinChainCount: 0,
-    spinChainAnnouncedAt: 0,
   }
 
   function rankFor(score) {
@@ -136,7 +137,6 @@ content.game = (() => {
     state.rolloverHits = new Set()
     state.plunger = {pulling: false, power: 0, releasing: false}
     state.spinChainCount = 0
-    state.spinChainAnnouncedAt = 0
     P().resetSpinners()
     if (!state.ball) state.ball = P().makeBall()
     const b = state.ball
@@ -175,6 +175,20 @@ content.game = (() => {
     A().rollStop()
     app.announce.assertive(app.i18n.t('ann.gameOver', {score: state.score.toLocaleString(), rank: rankName(state.rankIdx)}))
     app.screenManager.dispatch('finish')
+  }
+
+  // Announce the total number of spins from the chain that just ended.
+  // Called when every spinner has come to rest (typical: ~5 s after the last
+  // ball pass), or when the ball drains mid-chain.
+  function flushSpinnerChain() {
+    const n = state.spinChainCount
+    if (n === 0) return
+    state.spinChainCount = 0
+    if (n === 1) {
+      app.announce.polite(app.i18n.t('ann.spinner'))
+    } else {
+      app.announce.polite(app.i18n.t('ann.spinnerN', {count: n}))
+    }
   }
 
   // ---------- mission progression ----------
@@ -258,27 +272,27 @@ content.game = (() => {
           addScore(250, {announce: app.i18n.t('ann.label', {label: labelFor(e.id)})})
           bumpMission('rollovers', {id: e.id})
           break
-        case 'spin': {
-          // Each spin always plays its click and scores 100 points. Announces
-          // are debounced: the FIRST spin in a chain says "Spinner!", then we
-          // hold off for a second so a 6-spin pass doesn't spam the SR. After
-          // the chain finishes, the next pass starts a fresh announce.
+        case 'spin':
+          // Each spin plays its click and scores 100 points. The screen-
+          // reader announce is deferred — we tally spinChainCount silently
+          // and fire one "Spinner! N times" at chain end (see
+          // flushSpinnerChain below), so a 6-spin pass doesn't queue up six
+          // separate utterances mid-action.
           A().spinner(e.x, e.y, e.id)
-          const now = engine.time()
-          if (now - state.spinChainAnnouncedAt > 1.0) {
-            app.announce.polite(app.i18n.t('ann.spinner'))
-            state.spinChainAnnouncedAt = now
-          }
           state.spinChainCount++
           addScore(100)
           bumpMission('spinners')
           break
-        }
         case 'rearm':
           A().ballReady()
           app.announce.polite(app.i18n.t('ann.ballRearmed'))
           break
         case 'drain':
+          // If the ball was still mid-spinner-chain when it drained, flush
+          // the tally first so the player still hears how many spins they
+          // racked up — otherwise the chain count would silently die when
+          // resetSpinners() runs at the next ball start.
+          flushSpinnerChain()
           A().drain()
           state.balls--
           state.rolloverHits = new Set()
@@ -395,6 +409,13 @@ content.game = (() => {
       rolloverState: state.rolloverState,
     })
     handleEvents(P().consumeEvents())
+
+    // Spinner chain end: when every spinner has come to rest after a chain,
+    // announce the total. Cheap check — only one spinner exists today, but
+    // the .every() guard scales to multiple.
+    if (state.spinChainCount > 0 && P().spinners.every((sp) => sp.angularVel === 0)) {
+      flushSpinnerChain()
+    }
 
     // Mission "survive": progress is just current minus start; check on every frame.
     const m = currentMission()
