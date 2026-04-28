@@ -160,6 +160,7 @@ content.carEngine = (() => {
     out.gain.linearRampToValueAtTime(targetGain, c.currentTime + 0.3)
 
     let destroyed = false
+    let silenced = false
 
     return {
       profile,
@@ -203,11 +204,22 @@ content.carEngine = (() => {
         }
 
         if (state.eliminated) {
-          out.gain.cancelScheduledValues(t)
-          out.gain.linearRampToValueAtTime(0, t + 0.3)
-          scrapeGain.gain.cancelScheduledValues(t)
-          scrapeGain.gain.linearRampToValueAtTime(0, t + 0.05)
+          if (!silenced) {
+            silenced = true
+            out.gain.cancelScheduledValues(t)
+            out.gain.linearRampToValueAtTime(0, t + 0.3)
+            scrapeGain.gain.cancelScheduledValues(t)
+            scrapeGain.gain.linearRampToValueAtTime(0, t + 0.05)
+          }
           return
+        }
+
+        // Deathmatch respawn: voice was silenced on elimination but the
+        // car is alive again. Ramp the master gain back to its target.
+        if (silenced) {
+          silenced = false
+          out.gain.cancelScheduledValues(t)
+          out.gain.linearRampToValueAtTime(targetGain, t + 0.3)
         }
 
         // Engine response. Speed dominates the *pitch* (so the engine
