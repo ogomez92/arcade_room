@@ -386,8 +386,9 @@ content.game = (() => {
   // host's snapshot echo) is a no-op in sounds.js.
   content.events.on('hornStart', ({carId}) => {
     if (!running || !carId) return
-    if (!cars.find((c) => c.id === carId)) return
-    content.sounds.startHorn(carId)
+    const hornCar = cars.find((c) => c.id === carId)
+    if (!hornCar) return
+    content.sounds.startHorn(carId, hornCar.hornOffset || 0)
   })
   content.events.on('hornStop', ({carId}) => {
     if (!carId) return

@@ -379,68 +379,75 @@ content.sounds = (() => {
    */
   const hornVoices = new Map()  // carId -> {ear, out, voices}
 
-  function startHorn(carId) {
+  function startHorn(carId, hornOffset) {
     if (hornVoices.has(carId)) return
+    if (hornOffset === undefined) hornOffset = 0
     const c = ctx()
     const t0 = now()
+    // Trumpet-like four-note motif looping while held. Two detuned saws
+    // (7 Hz apart) through a lowpass give a muted-brass texture; per-note
+    // attack/release give distinct articulation rather than a sustained tone.
+    const NOTES    = [620, 700, 800, 700]
+    const NOTE_DUR = 0.080   // 90 ms per note
+    const ATTACK   = 0.010   // 10 ms attack
+    const HOLD_END = 0.075   // release starts at 75 ms (15 ms release to NOTE_DUR)
+    const DETUNE   = 7       // Hz between the two saws
+    const PEAK     = 0.13    // capped low so a lobby of honkers can't bury cues
 
     const ear = engine.ear.binaural.create()
     ear.to(engine.mixer.output())
 
-    // Master gain — fast attack so the honk is on its feet within ~15 ms,
-    // capped at 0.18 so a stack of horns can't bury collision cues.
     const out = c.createGain()
-    out.gain.setValueAtTime(0, t0)
-    out.gain.linearRampToValueAtTime(0.18, t0 + 0.015)
+    out.gain.value = 0
 
-    // Lowpass off the very high partials. Saws at 400 Hz with a stack of
-    // partials get harsh past 3-4 kHz — keep the bite, drop the dental drill.
     const lp = c.createBiquadFilter()
     lp.type = 'lowpass'
-    lp.frequency.value = 2400
-    lp.Q.value = 0.7
+    lp.frequency.value = 1500
+    lp.Q.value = 1.0
     lp.connect(out)
 
-    // Two detuned sawtooth oscillators around 400 Hz produce slow beating
-    // (~2 Hz) — that "stuck horn" warble that real car horns have because
-    // their two reeds are tuned slightly apart on purpose.
     const sawA = c.createOscillator()
     sawA.type = 'sawtooth'
-    sawA.frequency.value = 396
     const sawB = c.createOscillator()
     sawB.type = 'sawtooth'
-    sawB.frequency.value = 404
-    const sawGain = c.createGain()
-    sawGain.gain.value = 0.55
-    sawA.connect(sawGain)
-    sawB.connect(sawGain)
-    sawGain.connect(lp)
-
-    // A square at the perfect-fifth above adds the bright "honnnnk"
-    // bite without making the fundamental feel any higher-pitched.
-    const fifth = c.createOscillator()
-    fifth.type = 'square'
-    fifth.frequency.value = 600
-    const fifthGain = c.createGain()
-    fifthGain.gain.value = 0.18
-    fifth.connect(fifthGain).connect(lp)
+    sawA.connect(lp)
+    sawB.connect(lp)
 
     ear.from(out)
-
     sawA.start(t0)
     sawB.start(t0)
-    fifth.start(t0)
 
-    hornVoices.set(carId, {ear, out, voices: [sawA, sawB, fifth]})
+    let noteIndex = 0
+    let scheduleTime = t0
+
+    function scheduleChunk() {
+      const lookahead = now() + 0.6
+      while (scheduleTime < lookahead) {
+        const freq = NOTES[noteIndex % NOTES.length] + hornOffset
+        const t = scheduleTime
+        sawA.frequency.setValueAtTime(freq, t)
+        sawB.frequency.setValueAtTime(freq + DETUNE, t)
+        out.gain.setValueAtTime(0, t)
+        out.gain.linearRampToValueAtTime(PEAK, t + ATTACK)
+        out.gain.setValueAtTime(PEAK, t + HOLD_END)
+        out.gain.linearRampToValueAtTime(0, t + NOTE_DUR)
+        scheduleTime += NOTE_DUR
+        noteIndex++
+      }
+    }
+
+    scheduleChunk()
+    const interval = setInterval(scheduleChunk, 250)
+
+    hornVoices.set(carId, {ear, out, voices: [sawA, sawB], interval})
   }
 
   function stopHorn(carId) {
     const v = hornVoices.get(carId)
     if (!v) return
     hornVoices.delete(carId)
+    clearInterval(v.interval)
     const t = ctx().currentTime
-    // Quick ramp-down — long enough to avoid a click, short enough that
-    // a tap-release feels instant.
     v.out.gain.cancelScheduledValues(t)
     v.out.gain.setValueAtTime(v.out.gain.value, t)
     v.out.gain.linearRampToValueAtTime(0, t + 0.025)

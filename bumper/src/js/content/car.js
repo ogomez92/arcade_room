@@ -48,6 +48,7 @@ content.car = (() => {
       // snapshots so clients drive their listener voice and HUD off
       // the same value.
       boostUntil: 0,
+      hornOffset: Math.round(Math.random() * 100 - 50),
       sound: content.carEngine.create(profileIndex, {
         isSelf: controller === 'player',
       }),
