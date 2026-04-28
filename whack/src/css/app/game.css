@@ -1,0 +1,63 @@
+.a-app--announce,
+.a-app--announceAssertive {
+  clip: rect(1px, 1px, 1px, 1px);
+  height: 1px;
+  left: -10000px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.a-game {
+  align-items: center;
+  text-align: center;
+}
+  .a-game--title {
+    font-size: 2.6em;
+    margin-bottom: 0.5rem;
+  }
+  .a-game--instruction {
+    margin-bottom: 1.5rem;
+    opacity: 0.85;
+  }
+  .a-game--hud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+    margin-top: 1rem;
+  }
+  .a-game--label {
+    margin-right: 0.4em;
+    opacity: 0.8;
+  }
+  .a-game--scoreValue,
+  .a-game--missesValue,
+  .a-game--levelValue {
+    font-family: monospace;
+    font-size: 1.4em;
+  }
+
+.a-menu {
+  align-items: center;
+  text-align: center;
+}
+  .a-menu--high {
+    margin-top: 1.5rem;
+    opacity: 0.75;
+  }
+    .a-menu--high .js-high {
+      font-family: monospace;
+      margin-left: 0.4em;
+    }
+
+.a-help { align-items: center; text-align: center; }
+.a-learn { align-items: center; text-align: center; }
+.a-gameover {
+  align-items: center;
+  text-align: center;
+}
+  .a-gameover--summary {
+    font-size: 1.2em;
+  }

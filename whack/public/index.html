@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Whack-a-Critter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div class="a-app--announce" aria-live="polite" aria-atomic="true"></div>
+      <div class="a-app--announceAssertive" aria-live="assertive" aria-atomic="true"></div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <h1 class="a-game--title" data-i18n="game.title">Whack the Critters</h1>
+          <p class="a-game--instruction" data-i18n="game.instruction">Press Z C B Q E T to whack each lair.</p>
+          <div class="a-game--hud">
+            <div class="a-game--score">
+              <span class="a-game--label" data-i18n="game.scoreLabel">Score:</span>
+              <span class="a-game--scoreValue js-score">0</span>
+            </div>
+            <div class="a-game--misses">
+              <span class="a-game--label" data-i18n="game.missesLabel">Misses left:</span>
+              <span class="a-game--missesValue js-misses">5</span>
+            </div>
+            <div class="a-game--level">
+              <span class="a-game--label" data-i18n="game.levelLabel">Level:</span>
+              <span class="a-game--levelValue js-level">1</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Whack-a-Critter</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">An audio-first whack-a-mole.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="play" data-i18n="menu.play">Play</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn the critters</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to play</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="menu.language">Language</button></li>
+          </ul>
+          <div class="a-menu--high">
+            <span data-i18n="menu.highLabel">Best:</span>
+            <span class="js-high">0</span>
+          </div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to play</h1>
+          <div class="c-menu--prose">
+            <p data-i18n="help.intro">Six critters live around you. They poke their heads out of their lairs and you must whack them with the rubber hammer before they hide again.</p>
+            <h2 data-i18n="help.layoutTitle">Lair layout</h2>
+            <ul>
+              <li data-i18n-html="help.layoutQ"><kbd>Q</kbd> — front-left lair</li>
+              <li data-i18n-html="help.layoutE"><kbd>E</kbd> — straight ahead</li>
+              <li data-i18n-html="help.layoutT"><kbd>T</kbd> — front-right lair</li>
+              <li data-i18n-html="help.layoutZ"><kbd>Z</kbd> — back-left lair</li>
+              <li data-i18n-html="help.layoutC"><kbd>C</kbd> — directly behind</li>
+              <li data-i18n-html="help.layoutB"><kbd>B</kbd> — back-right lair</li>
+            </ul>
+            <p data-i18n="help.layoutNote">You stand on D in the centre. D is empty — never whacked. Each lair has its own creature with its own voice, so you can tell them apart by sound.</p>
+            <h2 data-i18n="help.scoringTitle">Scoring</h2>
+            <ul>
+              <li data-i18n="help.scoringEarly">Hit early for more points. A fresh popup is worth up to 150; a dying popup is worth as little as 30.</li>
+              <li data-i18n="help.scoringMisses">If a critter hides without being hit, you lose one miss. Five misses ends the run.</li>
+              <li data-i18n="help.scoringSpeed">The longer you survive, the faster the critters pop and the more pop at once. The music layers up too.</li>
+            </ul>
+            <h2 data-i18n="help.statusTitle">Status keys</h2>
+            <ul>
+              <li data-i18n-html="help.statusF1"><kbd>F1</kbd> — read score</li>
+              <li data-i18n-html="help.statusF2"><kbd>F2</kbd> — read misses left</li>
+              <li data-i18n-html="help.statusF3"><kbd>F3</kbd> — read current level</li>
+              <li data-i18n-html="help.statusEsc"><kbd>Esc</kbd> — back to the menu</li>
+            </ul>
+          </div>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen c-menu a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 class="c-menu--title" data-i18n="learn.title">Learn the critters</h1>
+          <p class="c-menu--subtitle" data-i18n="learn.subtitle">Click each button to hear that critter pop out of its lair from your point of view at the centre.</p>
+          <ul class="c-menu--list a-learn--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="learn.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Run over</h1>
+          <p class="c-menu--subtitle a-gameover--summary"></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="play" data-i18n="gameover.again">Play again</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="gameover.menu">Main menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--splash">
+        <section class="c-screen a-splash" tabindex="-1">
+          <h1 class="a-splash--logo" data-i18n="splash.title">Whack-a-Critter</h1>
+          <div class="a-splash--details">
+            <div class="a-splash--version"></div>
+            <div class="a-splash--author" data-i18n="splash.author">an audio-first arcade game</div>
+          </div>
+          <div class="a-splash--instruction" data-i18n="splash.instruction">Press any key to begin</div>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>
