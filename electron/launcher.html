@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choose a game to play</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --fg: #1a1a1a;
+    --bg: #fafafa;
+    --accent: #2d6cdf;
+    --card: #fff;
+    --border: #ddd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg: #eee; --bg: #111; --accent: #6ea8ff; --card: #1c1c1c; --border: #333; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    margin: 0;
+    padding: 2rem 1rem;
+    line-height: 1.5;
+  }
+  main { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 2rem; margin: 0 0 .25rem; }
+  .lead { color: var(--fg); opacity: .75; margin: 0 0 2rem; }
+  ul.games { list-style: none; padding: 0; margin: 0 0 2rem; display: grid; gap: .75rem; }
+  ul.games a {
+    display: block;
+    padding: 1rem 1.25rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--fg);
+    font-size: 1.125rem;
+  }
+  ul.games a:hover, ul.games a:focus {
+    border-color: var(--accent);
+    color: var(--accent);
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .quit {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--fg);
+    border-radius: 8px;
+    padding: .6rem 1rem;
+    font: inherit;
+    cursor: pointer;
+  }
+  .quit:hover, .quit:focus {
+    border-color: var(--accent);
+    color: var(--accent);
+    outline: none;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Choose a game to play</h1>
+  <p class="lead">A small collection of audio and arcade games by Oriol Gómez.</p>
+  <ul class="games" id="gameList"></ul>
+  <button class="quit" id="quitBtn" type="button">Quit</button>
+</main>
+
+<script>
+  const list = document.getElementById('gameList')
+  const games = (window.ElectronApi && window.ElectronApi.listGames)
+    ? window.ElectronApi.listGames()
+    : []
+
+  if (games.length === 0) {
+    const li = document.createElement('li')
+    li.textContent = 'No games found.'
+    list.appendChild(li)
+  } else {
+    for (const name of games) {
+      const li = document.createElement('li')
+      const a = document.createElement('a')
+      a.href = `../${name}/public/index.html`
+      a.textContent = name.charAt(0).toUpperCase() + name.slice(1)
+      li.appendChild(a)
+      list.appendChild(li)
+    }
+  }
+
+  document.getElementById('quitBtn').addEventListener('click', () => {
+    if (window.ElectronApi && window.ElectronApi.exit) window.ElectronApi.exit()
+  })
+
+  // Esc on the launcher quits the app.
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && window.ElectronApi && window.ElectronApi.exit) {
+      window.ElectronApi.exit()
+    }
+  })
+</script>
+</body>
+</html>

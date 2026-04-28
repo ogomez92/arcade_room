@@ -1,15 +1,11 @@
 const cleancss = require('gulp-clean-css')
 const concat = require('gulp-concat')
-const electron = require('gulp-run-electron')
 const footer = require('gulp-footer')
 const gulp = require('gulp')
 const header = require('gulp-header')
 const gulpif = require('gulp-if')
 const iife = require('gulp-iife')
-const merge = require('merge-stream')
 const package = require('./package.json')
-const packager = require('electron-packager')
-const rename = require('gulp-rename')
 const serve = require('gulp-serve')
 const uglify = require('gulp-uglify-es').default
 const yargs = require('yargs')
@@ -52,51 +48,6 @@ gulp.task('build-js', () => {
 
 gulp.task('build', gulp.series('build-css', 'build-js'))
 
-gulp.task('dist-electron', async () => {
-  // Builds only for current platform, e.g. must build separately on Windows and Linux
-  const platforms = [process.platform]
-
-  const paths = await packager({
-    arch: 'x64',
-    asar: true,
-    dir: '.',
-    icon: 'assets/icon/favicon',
-    ignore: [
-      '.gitignore',
-      'dist',
-      'docs',
-      'Gulpfile.js',
-      'node_modules',
-      'package-lock.json',
-      'README.md',
-      'src',
-    ],
-    out: 'dist',
-    overwrite: true,
-    platform: platforms,
-  })
-
-  // XXX: Archives have no root directory
-  return Promise.all(paths.map((path) => {
-    const build = gulp.src(path + '/**/*')
-
-    const manual = gulp.src([
-      'public/font/*',
-      'public/manual.html'
-    ], {base: 'public'}).pipe(
-      rename((path) => {
-        path.dirname = '/documentation/' + path.dirname
-      })
-    )
-
-    return merge(build, manual).pipe(
-      zip(path.replace('dist\\', '') + '.zip')
-    ).pipe(
-      gulp.dest('dist')
-    )
-  }))
-})
-
 gulp.task('dist-html5', () => {
   // XXX: Archive has no root directory
   return gulp.src([
@@ -113,15 +64,7 @@ gulp.task('dist-html5', () => {
   )
 })
 
-gulp.task('dist', gulp.series('build', 'dist-electron', 'dist-html5'))
-
-gulp.task('electron', () => {
-  return gulp.src('.').pipe(
-    electron()
-  )
-})
-
-gulp.task('electron-rebuild', gulp.series('build', 'electron'))
+gulp.task('dist', gulp.series('build', 'dist-html5'))
 
 gulp.task('serve', serve('public'))
 

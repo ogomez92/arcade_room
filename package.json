@@ -1,0 +1,17 @@
+{
+  "name": "oriolgomez-games",
+  "productName": "Oriol Gómez Games",
+  "version": "1.0.0",
+  "description": "A collection of accessible audio games by Oriol Gómez.",
+  "license": "Unlicense",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "package": "node electron/build.js"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.0.0",
+    "electron": "^41.3.0"
+  }
+}
