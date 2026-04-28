@@ -47,9 +47,20 @@ content.game = (() => {
   ]
   const missionName = (m) => app.i18n.t('mission.' + m.id)
 
+  // Extra balls — first awarded at 10k, each subsequent threshold is the
+  // previous one × 2.5, rounded to the nearest 1000. Yields:
+  //   #1 10k  #2 25k  #3 63k  #4 156k  #5 391k  #6 977k  #7 2.44M …
+  // The HUD only has room for one digit, so cap at 9.
+  const EXTRA_BALL_BASE = 10000
+  const EXTRA_BALL_FACTOR = 2.5
+  const EXTRA_BALL_MAX = 9
+  const nextExtraBallScore = (n) =>
+    Math.round(EXTRA_BALL_BASE * Math.pow(EXTRA_BALL_FACTOR, n) / 1000) * 1000
+
   const state = {
     score: 0,
     balls: 3,
+    extraBallsAwarded: 0,
     rankIdx: 0,
     missionIdx: 0,
     missionProgress: 0,
@@ -95,6 +106,17 @@ content.game = (() => {
       A().rankUp()
       app.announce.assertive(app.i18n.t('ann.promotedTo', {rank: rankName(newRank)}))
     }
+    // Award an extra ball each time the score crosses the next threshold.
+    // Loop in case a single big reward (e.g. mission bonus) crosses more than
+    // one. Threshold is consumed even at the cap so it can't be re-earned.
+    while (state.score >= nextExtraBallScore(state.extraBallsAwarded)) {
+      state.extraBallsAwarded++
+      if (state.balls < EXTRA_BALL_MAX) {
+        state.balls++
+        A().extraBall()
+        app.announce.assertive(app.i18n.t('ann.extraBall', {balls: state.balls}))
+      }
+    }
     if (opts.announce) {
       app.announce.polite(opts.announce)
     }
@@ -125,6 +147,7 @@ content.game = (() => {
   function newGame() {
     state.score = 0
     state.balls = 3
+    state.extraBallsAwarded = 0
     state.rankIdx = 0
     state.missionIdx = 0
     state.missionProgress = 0
@@ -226,12 +249,10 @@ content.game = (() => {
           bumpMission('rollovers', {id: e.id})
           break
         case 'rearm':
-          if (app.debugLog) app.debugLog('rearm', {x: +state.ball.x.toFixed(2), y: +state.ball.y.toFixed(2)})
           A().ballReady()
           app.announce.polite(app.i18n.t('ann.ballRearmed'))
           break
         case 'drain':
-          if (app.debugLog) app.debugLog('drain', {x: +state.ball.x.toFixed(2), y: +state.ball.y.toFixed(2), vx: +state.ball.vx.toFixed(2), vy: +state.ball.vy.toFixed(2)})
           A().drain()
           state.balls--
           state.rolloverHits = new Set()
@@ -294,7 +315,6 @@ content.game = (() => {
         b.onPlunger = false
         b.vx = 0
         b.vy = speed
-        if (app.debugLog) app.debugLog('launch', {power: +power.toFixed(2), vy: +speed.toFixed(2), x: +b.x.toFixed(2), y: +b.y.toFixed(2)})
         A().plungerLaunch(power)
         app.announce.polite(app.i18n.t('ann.ballLaunched'))
       }
@@ -367,6 +387,7 @@ content.game = (() => {
   function reset() {
     state.score = 0
     state.balls = 3
+    state.extraBallsAwarded = 0
     state.rankIdx = 0
     state.missionIdx = 0
     state.missionProgress = 0

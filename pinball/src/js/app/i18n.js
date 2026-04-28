@@ -85,6 +85,7 @@ app.i18n = (() => {
       'learn.wall': 'Ball striking a wall',
       'learn.missionComplete': 'Mission complete fanfare',
       'learn.rankUp': 'Rank promotion fanfare',
+      'learn.extraBall': 'Extra ball awarded',
       'learn.drain': 'Drain (lost ball)',
       'learn.gameOver': 'Game over',
 
@@ -128,6 +129,7 @@ app.i18n = (() => {
       'ann.gameStart': 'Game start. Three balls. Mission: {mission}.',
       'ann.gameOver': 'Game over. Final score {score}. Final rank {rank}.',
       'ann.missionComplete': 'Mission complete: {mission}. Bonus {reward}.',
+      'ann.extraBall': 'Extra ball! {balls} balls remaining.',
       'ann.newMission': 'New mission: {mission}.',
       'ann.allMissions': 'All missions complete! Bonus multiplier engaged.',
       'ann.targetDown': '{label} down.',
@@ -254,6 +256,7 @@ app.i18n = (() => {
       'learn.wall': 'Bola golpeando una pared',
       'learn.missionComplete': 'Fanfarria de misión completa',
       'learn.rankUp': 'Fanfarria de ascenso de rango',
+      'learn.extraBall': 'Bola extra concedida',
       'learn.drain': 'Drenaje (bola perdida)',
       'learn.gameOver': 'Fin del juego',
 
@@ -293,6 +296,7 @@ app.i18n = (() => {
       'ann.gameStart': 'Comienza la partida. Tres bolas. Misión: {mission}.',
       'ann.gameOver': 'Fin del juego. Puntuación final {score}. Rango final {rank}.',
       'ann.missionComplete': 'Misión completa: {mission}. Bono {reward}.',
+      'ann.extraBall': '¡Bola extra! Te quedan {balls} bolas.',
       'ann.newMission': 'Nueva misión: {mission}.',
       'ann.allMissions': '¡Todas las misiones completas! Multiplicador de bono activado.',
       'ann.targetDown': '{label} abatida.',

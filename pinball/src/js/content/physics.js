@@ -190,9 +190,6 @@ content.physics = (() => {
   const events = []  // queued for game module to consume
   function pushEvent(kind, data = {}) {
     events.push({kind, ...data})
-    if (typeof app !== 'undefined' && app.debugLog) {
-      app.debugLog('event', {kind, ...data})
-    }
   }
 
   // Each collide* below returns `true` if any overlap was detected, so the
@@ -533,20 +530,6 @@ content.physics = (() => {
       ball.live = false
       pushEvent('drain', {x: ball.x, y: ball.y, reason: 'stuck'})
       return
-    }
-
-    // Per-frame trace for offline debugging.
-    if (typeof app !== 'undefined' && app.debugLog) {
-      app.debugLog('frame', {
-        x: +ball.x.toFixed(3),
-        y: +ball.y.toFixed(3),
-        vx: +ball.vx.toFixed(2),
-        vy: +ball.vy.toFixed(2),
-        sp: +speed.toFixed(2),
-        op: ball.onPlunger ? 1 : 0,
-        gf: ball.gutterFrames,
-        sf: ball.stuckFrames,
-      })
     }
   }
 

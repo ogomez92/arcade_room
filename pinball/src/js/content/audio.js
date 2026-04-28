@@ -319,6 +319,31 @@ content.audio = (() => {
     setTimeout(() => { try { out.disconnect() } catch (_) {} }, 1500)
   }
 
+  function extraBall() {
+    const ctx = engine.context()
+    const t0 = ctx.currentTime
+    const out = ctx.createGain(); out.gain.value = 0.85
+    out.connect(engine.mixer.input())
+    // Quick ascending five-note run (C5 → G6) — square waves, tightly spaced.
+    const notes = [523.25, 783.99, 1046.5, 1318.5, 1568.0]
+    notes.forEach((f, i) => {
+      const t = t0 + i * 0.07
+      const o = ctx.createOscillator(); o.type = 'square'
+      o.frequency.setValueAtTime(f, t)
+      const e = envGain(out, t, 0.003, 0.02, 0.12, 0.3)
+      o.connect(e)
+      o.start(t); o.stop(t + 0.18)
+    })
+    // Sparkle ping on top — high triangle a beat later.
+    const tEnd = t0 + 0.45
+    const s = ctx.createOscillator(); s.type = 'triangle'
+    s.frequency.setValueAtTime(2093, tEnd)   // C7
+    const se = envGain(out, tEnd, 0.002, 0.06, 0.35, 0.45)
+    s.connect(se)
+    s.start(tEnd); s.stop(tEnd + 0.5)
+    setTimeout(() => { try { out.disconnect() } catch (_) {} }, 1500)
+  }
+
   function gameOver() {
     const ctx = engine.context()
     const t0 = ctx.currentTime
@@ -538,6 +563,6 @@ content.audio = (() => {
     proximityUpdate, resetProximity,
     resetTracker,
     plungerCharge, plungerLaunch,
-    drain, missionComplete, rankUp, gameOver,
+    drain, missionComplete, rankUp, extraBall, gameOver,
   }
 })()

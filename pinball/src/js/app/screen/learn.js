@@ -171,6 +171,7 @@ function playSample(name) {
 
   if (name === 'missionComplete') { A.missionComplete(); return }
   if (name === 'rankUp')          { A.rankUp(); return }
+  if (name === 'extraBall')       { A.extraBall(); return }
   if (name === 'drain')           { A.drain(); return }
   if (name === 'gameOver')        { A.gameOver(); return }
 }
