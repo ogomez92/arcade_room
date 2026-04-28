@@ -58,7 +58,7 @@ content.game = (() => {
       content.powerup.checkSwingHit(playerX, 'player')
 
       const forceMult = content.powerup.getSwingMult('player')
-      content.audio.playSwing(forceMult)
+      content.audio.playSwing(playerX, 0, forceMult)
 
       const hasCurve = content.powerup.hasEffect('player', 'curve')
       if (hasCurve) content.powerup.consumeEffect('curve', 'player')
@@ -88,7 +88,7 @@ content.game = (() => {
         setTimeout(() => content.audio.playSwingHit(playerX, 0, forceMult), 55)
       } else {
         content.player.startCooldown()
-        content.audio.playSwingMiss()
+        content.audio.playSwingMiss(playerX, 0)
       }
     },
 

@@ -513,37 +513,44 @@ content.audio = (() => {
       setTimeout(() => { try { bus.disconnect() } catch(e) {} }, (dur + 0.2) * 1000)
     },
 
-    playSwingMiss: () => { relay('playSwingMiss', [])
+    playSwingMiss: (x, y) => { relay('playSwingMiss', [x, y])
       const ctx = engine.context()
       const bus = engine.mixer.createBus()
       const now = ctx.currentTime
       const dur = 0.09
+      const depth = (y != null) ? depthGainAt(y) : 1
       const buf = engine.buffer.whiteNoise({ channels: 1, duration: dur + 0.01 })
       const src = ctx.createBufferSource()
       const filt = ctx.createBiquadFilter()
       const g = ctx.createGain()
+      const panner = ctx.createStereoPanner()
+      panner.pan.value = (x != null) ? calcPan(x) : 0
       src.buffer = buf
       filt.type = 'highpass'
       filt.frequency.setValueAtTime(3500, now)
       filt.frequency.exponentialRampToValueAtTime(9000, now + dur)
-      g.gain.setValueAtTime(0.3, now)
+      g.gain.setValueAtTime(0.3 * depth, now)
       g.gain.exponentialRampToValueAtTime(0.0001, now + dur)
       src.connect(filt)
       filt.connect(g)
-      g.connect(bus)
+      g.connect(panner)
+      panner.connect(bus)
       src.start(now)
       setTimeout(() => { try { bus.disconnect() } catch(e) {} }, (dur + 0.2) * 1000)
     },
 
-    playSwing: (forceMult = 1) => { relay('playSwing', [forceMult])
+    playSwing: (x, y, forceMult = 1) => { relay('playSwing', [x, y, forceMult])
       const ctx = engine.context()
       const bus = engine.mixer.createBus()
       const now = ctx.currentTime
       const dur = 0.22
+      const depth = (y != null) ? depthGainAt(y) : 1
       const buf = engine.buffer.whiteNoise({ channels: 1, duration: dur + 0.01 })
       const src = ctx.createBufferSource()
       const filt = ctx.createBiquadFilter()
       const g = ctx.createGain()
+      const panner = ctx.createStereoPanner()
+      panner.pan.value = (x != null) ? calcPan(x) : 0
       const f = Math.min(forceMult, 2)
       src.buffer = buf
       filt.type = 'bandpass'
@@ -552,11 +559,12 @@ content.audio = (() => {
       filt.frequency.exponentialRampToValueAtTime(90, now + dur)
       filt.Q.value = 1.2
       g.gain.setValueAtTime(0.0001, now)
-      g.gain.linearRampToValueAtTime(0.38 * f, now + dur * 0.08)
+      g.gain.linearRampToValueAtTime(0.38 * f * depth, now + dur * 0.08)
       g.gain.exponentialRampToValueAtTime(0.0001, now + dur)
       src.connect(filt)
       filt.connect(g)
-      g.connect(bus)
+      g.connect(panner)
+      panner.connect(bus)
       src.start(now)
       setTimeout(() => { try { bus.disconnect() } catch(e) {} }, (dur + 0.2) * 1000)
     },

@@ -40,6 +40,7 @@ content.player = (() => {
   return {
     getStep: () => step,
     getX: () => step + 0.5,
+    setStep: (n) => { step = n },
 
     reset: () => {
       step = 5

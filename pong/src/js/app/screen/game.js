@@ -218,6 +218,10 @@ app.screen.game = app.screenManager.invent({
     const s = this.state.receivedState
     if (!s) return
 
+    // Keep paddle positions current for continuous audio updates (updateBall, updatePowerupRoll).
+    content.player.setStep(s.t1x - 0.5)
+    content.ai.setStep(s.t2x - 0.5)
+
     const gs = s.gs
     const prevGs = this.state.prevGs
 
@@ -257,6 +261,10 @@ app.screen.game = app.screenManager.invent({
   _onClientMessage: function (msg) {
     if (msg.type === 'state') {
       this.state.receivedState = msg
+      // Sync paddle positions before replaying audio events so calcPan
+      // uses the current listener position, not the reset default.
+      content.player.setStep(msg.t1x - 0.5)
+      content.ai.setStep(msg.t2x - 0.5)
       // Replay any host-emitted audio events through the local audio
       // module. Each call routes through calcPan/calcDepthT here, so
       // sounds land in the listener's own team perspective.

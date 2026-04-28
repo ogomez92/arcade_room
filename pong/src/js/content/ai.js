@@ -31,6 +31,7 @@ content.ai = (() => {
   return {
     getStep: () => step,
     getX: () => step + 0.5,
+    setStep: (n) => { step = n },
 
     reset: () => {
       step = 6
@@ -146,6 +147,7 @@ content.ai = (() => {
       const forceMult = content.powerup.getSwingMult('ai')
       const hasCurve = content.powerup.hasEffect('ai', 'curve')
       if (hasCurve) content.powerup.consumeEffect('curve', 'ai')
+      content.audio.playSwing(aiX, content.table.LENGTH, forceMult)
       if (inRange && inZone) {
         content.powerup.checkSwingHit(aiX, 'ai')
         cooldown = content.table.SWING_COOLDOWN
@@ -162,7 +164,7 @@ content.ai = (() => {
         }
         content.audio.playSwingHit(step + 0.5, content.table.LENGTH, forceMult)
       } else {
-        content.audio.playSwingMiss()
+        content.audio.playSwingMiss(aiX, content.table.LENGTH)
       }
     },
   }
