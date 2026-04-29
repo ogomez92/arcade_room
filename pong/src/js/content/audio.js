@@ -220,9 +220,13 @@ content.audio = (() => {
 
   function calcPan(x) {
     const lx = getListenerX()
+    // Pan tracks the canonical x axis for both teams so the arrow keys
+    // and the audio agree (ArrowLeft moves the paddle to lower x and
+    // sounds left). Flipping it for team 2 would be physically realistic
+    // — they're facing the opposite way — but it makes the controls feel
+    // mirrored, which is what players actually notice.
     const raw = (x - lx) / 6
-    const pan = (content.teamManager && content.teamManager.isTeam2()) ? -raw : raw
-    return Math.max(-1, Math.min(1, pan))
+    return Math.max(-1, Math.min(1, raw))
   }
 
   function calcDepthT(y) {

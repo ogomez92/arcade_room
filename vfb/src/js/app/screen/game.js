@@ -34,10 +34,15 @@ app.screen.game = app.screenManager.invent({
 
     // Block default browser actions for arrow keys / space / page scroll keys
     // while the game screen is active so the page doesn't scroll under us.
+    // F1 normally opens the browser's help; F1–F4 are reclaimed here for
+    // accessible HUD announcements.
     window.addEventListener('keydown', (e) => {
       if (!app.screenManager.is('game')) return
       const k = e.code
       if (k == 'ArrowUp' || k == 'ArrowDown' || k == 'ArrowLeft' || k == 'ArrowRight' || k == 'Space') {
+        e.preventDefault()
+      }
+      if (k == 'F1' || k == 'F2' || k == 'F3' || k == 'F4') {
         e.preventDefault()
       }
     })
@@ -159,6 +164,34 @@ app.screen.game = app.screenManager.invent({
       content.audio.startEngine()
       content.audio.setEnginePitch(content.state.session.speed)
     }
+    // Status checks should be available while paused too — the player may
+    // pause specifically to check their inventory.
+    this.handleHudKeys(press)
+  },
+
+  // Function-key HUD announcements. F1-F4 are reserved for accessible status
+  // checks so the player never has to look at the screen to know where they
+  // stand. The letter-key versions (S/L/E/B/D/M/V) remain for muscle memory
+  // — the F-keys are just a more conventional, never-ambiguous mapping.
+  handleHudKeys: function (press) {
+    const s = content.state.session
+    if (press.F1) {
+      content.world.announce(app.i18n.t('ann.hud.score', {n: s.score}), true)
+    }
+    if (press.F2) {
+      const pct = s.maxlev > 0 ? Math.floor((s.y / s.maxlev) * 100) : 0
+      content.world.announce(app.i18n.t('ann.hud.levelProgress', {lvl: s.level, pct}), true)
+    }
+    if (press.F3) {
+      content.world.announce(app.i18n.t('ann.hud.inventory', {
+        bursts: s.bursts,
+        shields: s.shieldbits,
+        credits: content.state.persistent.cash,
+      }), true)
+    }
+    if (press.F4) {
+      content.world.announce(app.i18n.t('ann.hud.lives', {n: s.lives}), true)
+    }
   },
 
   handleInputs: function (dt, {down, press}) {
@@ -201,6 +234,7 @@ app.screen.game = app.screenManager.invent({
       const pct = Math.floor((s.y / s.maxlev) * 100)
       content.world.announce('Progress ' + pct + ' percent', true)
     }
+    this.handleHudKeys(press)
 
     if (press.ArrowUp && s.speed > 300) {
       s.speed -= 50
@@ -214,11 +248,11 @@ app.screen.game = app.screenManager.invent({
     }
 
     this.state.turnAccum += dt
-    if (down.ArrowRight && this.state.turnAccum >= 180) {
+    if (down.ArrowRight && this.state.turnAccum >= 150) {
       this.state.turnAccum = 0
       if (s.x < 10) { s.x++; content.audio.turnSound(false) }
       else { content.audio.edgeWarn() }
-    } else if (down.ArrowLeft && this.state.turnAccum >= 120) {
+    } else if (down.ArrowLeft && this.state.turnAccum >= 150) {
       this.state.turnAccum = 0
       if (s.x > 0) { s.x--; content.audio.turnSound(true) }
       else { content.audio.edgeWarn() }

@@ -4,8 +4,34 @@ content.ai = (() => {
   let moveTimer = 0
   let manualMode = false
   let manualKeys = { left: false, right: false }
-  let manualMoveTimer = 0
-  let manualMoveHeld = 0
+  let manualLeftWas = false
+  let manualRightWas = false
+  let manualLeftHeld = 0
+  let manualRightHeld = 0
+
+  function tryManualMove(dir) {
+    const next = step + dir
+    if (next < 0 || next >= content.table.NUM_STEPS) return
+    step = next
+    content.audio.playAiStepClick(step + 0.5)
+  }
+
+  function processManualKey(held, wasHeld, heldTime, dir, dt) {
+    if (!held) return { wasHeld: false, heldTime: 0 }
+    if (!wasHeld) {
+      tryManualMove(dir)
+      return { wasHeld: true, heldTime: 0 }
+    }
+    const nextTime = heldTime + dt
+    const DELAY = content.table.MOVE_HOLD_DELAY
+    const REPEAT = content.table.MOVE_HOLD_REPEAT
+    if (nextTime >= DELAY) {
+      const prevRepeats = heldTime < DELAY ? 0 : Math.floor((heldTime - DELAY) / REPEAT)
+      const nextRepeats = Math.floor((nextTime - DELAY) / REPEAT)
+      if (nextRepeats > prevRepeats) tryManualMove(dir)
+    }
+    return { wasHeld: true, heldTime: nextTime }
+  }
 
   const BUFFER_SIZE = 180
   const xBuffer = new Array(BUFFER_SIZE).fill(6)
@@ -44,31 +70,21 @@ content.ai = (() => {
 
     update: (dt, ballState) => {
       if (manualMode) {
-        if (content.powerup.hasEffect('ai', 'freeze')) return
-        const leftHeld = manualKeys.left
-        const rightHeld = manualKeys.right
-        if (leftHeld || rightHeld) {
-          manualMoveHeld += dt
-          const DELAY = content.table.MOVE_HOLD_DELAY
-          const REPEAT = content.table.MOVE_HOLD_REPEAT
-          if (manualMoveHeld >= DELAY) {
-            manualMoveTimer += dt
-            if (manualMoveTimer >= REPEAT) {
-              manualMoveTimer -= REPEAT
-              const dir = leftHeld ? -1 : 1
-              const next = step + dir
-              if (next >= 0 && next < content.table.NUM_STEPS) {
-                step = next
-                content.audio.playAiStepClick(step + 0.5)
-              }
-            }
-          } else {
-            manualMoveTimer = 0
-          }
-        } else {
-          manualMoveHeld = 0
-          manualMoveTimer = 0
+        if (cooldown > 0) {
+          cooldown = Math.max(0, cooldown - dt)
+          manualLeftWas = false
+          manualRightWas = false
+          manualLeftHeld = 0
+          manualRightHeld = 0
+          return
         }
+        if (content.powerup.hasEffect('ai', 'freeze')) return
+        const left = processManualKey(!!manualKeys.left, manualLeftWas, manualLeftHeld, -1, dt)
+        manualLeftWas = left.wasHeld
+        manualLeftHeld = left.heldTime
+        const right = processManualKey(!!manualKeys.right, manualRightWas, manualRightHeld, 1, dt)
+        manualRightWas = right.wasHeld
+        manualRightHeld = right.heldTime
         return
       }
       if (content.powerup.hasEffect('ai', 'freeze')) return
@@ -130,9 +146,11 @@ content.ai = (() => {
 
     setManualMode: (on) => {
       manualMode = on
-      manualMoveTimer = 0
-      manualMoveHeld = 0
       manualKeys = { left: false, right: false }
+      manualLeftWas = false
+      manualRightWas = false
+      manualLeftHeld = 0
+      manualRightHeld = 0
     },
 
     setManualKeys: (keys) => { manualKeys = keys },

@@ -9,22 +9,6 @@ content.scoring = (() => {
   let nextBeepIndex = 0
   let lastScorer = null
 
-  function opponentLabel() {
-    return (content.teamManager && content.teamManager.isMultiplayer())
-      ? app.i18n.t('ann.opponent') : app.i18n.t('ann.computer')
-  }
-  function opponentLabelLower() {
-    return (content.teamManager && content.teamManager.isMultiplayer())
-      ? app.i18n.t('ann.opponentLower') : app.i18n.t('ann.computerLower')
-  }
-
-  function announce(message) {
-    const el = document.querySelector('.js-announcer')
-    if (!el) return
-    el.textContent = ''
-    setTimeout(() => { el.textContent = message }, 50)
-  }
-
   function startServe(who) {
     servingPlayer = who
     serveTimer = content.table.SERVE_TIMEOUT
@@ -33,11 +17,10 @@ content.scoring = (() => {
     content.audio.playServeIndicator(who)
     if (who === 'player') {
       content.ball.setPosition(content.player.getX(), 0)
-      announce(app.i18n.t('ann.youServe'))
     } else {
       content.ball.setPosition(content.ai.getX(), content.table.LENGTH)
-      announce(app.i18n.t('ann.opponentServes', {opponent: opponentLabel()}))
     }
+    content.announcer.serveStart(who)
   }
 
   return {
@@ -66,11 +49,7 @@ content.scoring = (() => {
       if (serveTimer <= 0) {
         const next = servingPlayer === 'player' ? 'ai' : 'player'
         startServe(next)
-        announce(
-          next === 'player'
-            ? app.i18n.t('ann.serveTransferYou')
-            : app.i18n.t('ann.serveTransferOther', {opponentLower: opponentLabelLower(), opponent: opponentLabel()})
-        )
+        content.announcer.serveTransfer(next)
       }
     },
 
@@ -85,10 +64,7 @@ content.scoring = (() => {
       state = 'goal_pause'
       goalPauseTimer = 2.0
       content.audio.playGoal(scorer)
-      const msg = scorer === 'player'
-        ? app.i18n.t('ann.goalYou', {you: playerScore, them: aiScore})
-        : app.i18n.t('ann.goalOther', {opponent: opponentLabel(), you: playerScore, them: aiScore})
-      announce(msg)
+      content.announcer.goal(scorer, playerScore, aiScore)
     },
 
     updateGoalPause: (dt) => {
@@ -96,10 +72,8 @@ content.scoring = (() => {
       if (goalPauseTimer > 0) return
       if (playerScore >= scoreLimit || aiScore >= scoreLimit) {
         state = 'game_over'
-        const msg = playerScore >= scoreLimit
-          ? app.i18n.t('ann.gameOverWin', {you: playerScore, them: aiScore})
-          : app.i18n.t('ann.gameOverLose', {opponent: opponentLabel(), you: playerScore, them: aiScore})
-        announce(msg)
+        const winner = playerScore >= scoreLimit ? 'player' : 'ai'
+        content.announcer.gameOver(winner, playerScore, aiScore)
       } else {
         state = 'serving'
         const next = lastScorer === 'player' ? 'ai' : 'player'

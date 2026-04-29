@@ -9,17 +9,6 @@ content.powerup = (() => {
     ai:     { widePaddle: 0, shield: 0, strongSwing: 0, freeze: 0, curve: 0, bouncyWalls: 0 },
   }
 
-  function opponentLabel() {
-    return (content.teamManager && content.teamManager.isMultiplayer()) ? 'Opponent' : 'Computer'
-  }
-
-  function announce(msg) {
-    const el = document.querySelector('.js-announcer')
-    if (!el) return
-    el.textContent = ''
-    setTimeout(() => { el.textContent = msg }, 50)
-  }
-
   function spawnBall(owner) {
     const type = TYPES[Math.floor(Math.random() * TYPES.length)]
     const fromLeft = Math.random() < 0.5
@@ -42,30 +31,21 @@ content.powerup = (() => {
         const wasActive = effects[owner].widePaddle > 0
         effects[owner].widePaddle += t.POWERUP_WIDEN_DURATION
         if (!wasActive) content.audio.startPowerupActive('widePaddle', owner)
-        const total = effects[owner].widePaddle
-        announce(owner === 'player'
-          ? `Powerup: wider paddle for ${total.toFixed(0)} seconds.`
-          : `${opponentLabel()}: wider paddle.`)
+        content.announcer.powerup('widePaddle', owner, effects[owner].widePaddle)
         break
       }
       case 'shield': {
         const wasActive = effects[owner].shield > 0
         effects[owner].shield += t.POWERUP_SHIELD_DURATION
         if (!wasActive) content.audio.startPowerupActive('shield', owner)
-        const total = effects[owner].shield
-        announce(owner === 'player'
-          ? `Powerup: shield active for ${total.toFixed(0)} seconds.`
-          : `${opponentLabel()}: shield active.`)
+        content.announcer.powerup('shield', owner, effects[owner].shield)
         break
       }
       case 'strongSwing': {
         const wasActive = effects[owner].strongSwing > 0
         effects[owner].strongSwing += t.POWERUP_SWING_DURATION
         if (!wasActive) content.audio.startPowerupActive('strongSwing', owner)
-        const total = effects[owner].strongSwing
-        announce(owner === 'player'
-          ? `Powerup: stronger swings for ${total.toFixed(0)} seconds.`
-          : `${opponentLabel()}: stronger swings.`)
+        content.announcer.powerup('strongSwing', owner, effects[owner].strongSwing)
         break
       }
       case 'freeze': {
@@ -73,28 +53,21 @@ content.powerup = (() => {
         const wasActive = effects[opponent].freeze > 0
         effects[opponent].freeze += dur
         if (!wasActive) content.audio.startPowerupActive('freeze', opponent)
-        announce(owner === 'player'
-          ? `Powerup: ${opponentLabel().toLowerCase()} frozen for ${effects[opponent].freeze.toFixed(1)} seconds.`
-          : `${opponentLabel()} froze your paddle for ${effects[opponent].freeze.toFixed(1)} seconds.`)
+        content.announcer.powerup('freeze', owner, effects[opponent].freeze)
         break
       }
       case 'curve': {
         const wasActive = effects[owner].curve > 0
         effects[owner].curve = t.POWERUP_CURVE_DURATION
         if (!wasActive) content.audio.startPowerupActive('curve', owner)
-        announce(owner === 'player'
-          ? 'Powerup: spin shot charged. Swing to release.'
-          : `${opponentLabel()}: spin shot charged.`)
+        content.announcer.powerup('curve', owner, null)
         break
       }
       case 'bouncyWalls': {
         const wasActive = effects[owner].bouncyWalls > 0
         effects[owner].bouncyWalls += t.POWERUP_BOUNCE_DURATION
         if (!wasActive) content.audio.startPowerupActive('bouncyWalls', owner)
-        const total = effects[owner].bouncyWalls
-        announce(owner === 'player'
-          ? `Powerup: bouncy walls for ${total.toFixed(0)} seconds.`
-          : `${opponentLabel()} activated bouncy walls.`)
+        content.announcer.powerup('bouncyWalls', owner, effects[owner].bouncyWalls)
         break
       }
     }

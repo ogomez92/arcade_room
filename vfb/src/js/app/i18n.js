@@ -53,6 +53,10 @@ app.i18n = (() => {
       'howto.statusD': '<kbd>D</kbd> — Speak shieldbits remaining',
       'howto.statusM': '<kbd>M</kbd> — Speak credits',
       'howto.statusV': '<kbd>V</kbd> — Speak level progress (percent of level traveled)',
+      'howto.statusF1': '<kbd>F1</kbd> — Speak score',
+      'howto.statusF2': '<kbd>F2</kbd> — Speak level and percent until cleared',
+      'howto.statusF3': '<kbd>F3</kbd> — Speak inventory (bursts, shields, credits)',
+      'howto.statusF4': '<kbd>F4</kbd> — Speak lives remaining',
       'howto.scoringHeader': 'Scoring & progression',
       'howto.score1': 'Aerial enemies: more points the further away you kill them.',
       'howto.score2': 'Combo: chain kills within 1.5 seconds for bonus points and credits.',
@@ -127,6 +131,10 @@ app.i18n = (() => {
       'ann.enteringStore': 'Entering store',
       'ann.motherDetected': 'Mothership detected',
       'ann.towerDestroyed': 'Tower destroyed - checkpoint set',
+      'ann.hud.score': 'Score {n}',
+      'ann.hud.lives': 'Lives {n}',
+      'ann.hud.levelProgress': 'Level {lvl}, {pct} percent',
+      'ann.hud.inventory': 'Bursts {bursts}, shields {shields}, credits {credits}',
     },
 
     es: {
@@ -167,6 +175,10 @@ app.i18n = (() => {
       'howto.statusD': '<kbd>D</kbd> — Lee los escudos restantes',
       'howto.statusM': '<kbd>M</kbd> — Lee los créditos',
       'howto.statusV': '<kbd>V</kbd> — Lee el progreso del nivel (porcentaje recorrido)',
+      'howto.statusF1': '<kbd>F1</kbd> — Lee la puntuación',
+      'howto.statusF2': '<kbd>F2</kbd> — Lee el nivel y el porcentaje restante',
+      'howto.statusF3': '<kbd>F3</kbd> — Lee el inventario (ráfagas, escudos, créditos)',
+      'howto.statusF4': '<kbd>F4</kbd> — Lee las vidas restantes',
       'howto.scoringHeader': 'Puntuación y progresión',
       'howto.score1': 'Enemigos aéreos: más puntos cuanto más lejos los derribes.',
       'howto.score2': 'Combo: encadena bajas en 1,5 segundos para puntos y créditos extra.',
@@ -236,6 +248,10 @@ app.i18n = (() => {
       'ann.enteringStore': 'Entrando en la tienda',
       'ann.motherDetected': 'Nave nodriza detectada',
       'ann.towerDestroyed': 'Torre destruida - punto de control fijado',
+      'ann.hud.score': 'Puntos {n}',
+      'ann.hud.lives': 'Vidas {n}',
+      'ann.hud.levelProgress': 'Nivel {lvl}, {pct} por ciento',
+      'ann.hud.inventory': 'Ráfagas {bursts}, escudos {shields}, créditos {credits}',
     },
   }
 

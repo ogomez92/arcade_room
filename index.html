@@ -45,13 +45,38 @@
     outline: none;
   }
   .empty { opacity: .6; font-style: italic; }
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0);
+    white-space: nowrap; border: 0;
+  }
+  #wipSection { margin-top: 2.5rem; }
+  #wipSection h2 { font-size: 1.25rem; margin: 0 0 .25rem; }
+  .wip-warning {
+    color: var(--fg);
+    opacity: .75;
+    margin: 0 0 1rem;
+    font-size: .95rem;
+  }
 </style>
 </head>
 <body>
 <main>
   <h1>Choose a game to play</h1>
   <p class="lead">A small collection of audio and arcade games by Oriol Gómez.</p>
-  <ul class="games" id="gameList" aria-busy="true"></ul>
+
+  <section aria-labelledby="games-heading">
+    <h2 id="games-heading" class="sr-only">Games</h2>
+    <ul class="games" id="gameList" aria-busy="true"></ul>
+  </section>
+
+  <section aria-labelledby="wip-heading" id="wipSection" hidden>
+    <h2 id="wip-heading">Active development &amp; incomplete</h2>
+    <p class="wip-warning">Heads up: these are works in progress. Expect bugs, missing features, and entries that may be unplayable in their current state.</p>
+    <ul class="games" id="wipList"></ul>
+  </section>
 </main>
 
 <script type="application/json" id="games-data">
@@ -68,17 +93,30 @@
 <script>
   const games = JSON.parse(document.getElementById('games-data').textContent);
   const list = document.getElementById('gameList');
+  const wipList = document.getElementById('wipList');
+  const wipSection = document.getElementById('wipSection');
   list.removeAttribute('aria-busy');
-  if (games.length === 0) {
+
+  const ready = games.filter(n => !n.startsWith('_')).sort();
+  const wip = games.filter(n => n.startsWith('_')).sort();
+
+  function appendItem(target, name) {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = '/' + encodeURIComponent(name) + '/';
+    const display = name.replace(/^_+/, '');
+    a.textContent = display.charAt(0).toUpperCase() + display.slice(1);
+    li.appendChild(a);
+    target.appendChild(li);
+  }
+
+  if (ready.length === 0 && wip.length === 0) {
     list.innerHTML = '<li class="empty">No games found.</li>';
   } else {
-    for (const name of games.sort()) {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = '/' + encodeURIComponent(name) + '/';
-      a.textContent = name.charAt(0).toUpperCase() + name.slice(1);
-      li.appendChild(a);
-      list.appendChild(li);
+    for (const name of ready) appendItem(list, name);
+    if (wip.length > 0) {
+      wipSection.hidden = false;
+      for (const name of wip) appendItem(wipList, name);
     }
   }
 </script>

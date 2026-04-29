@@ -60,7 +60,7 @@ app.screen.game = app.screenManager.invent({
         if (!isBench && localTeam === 1) {
           content.game.playerAction(dir)
         } else if (!isBench && localTeam === 2) {
-          content.ai.triggerManualSwing(dir)
+          content.game.aiAction(dir)
         }
       }
     }
@@ -99,11 +99,15 @@ app.screen.game = app.screenManager.invent({
 
       if (this.state.isHost) {
         network.onMessage((peerId, msg) => this._onHostMessage(peerId, msg))
-        // Host taps the audio module so spatial sound calls get queued
-        // for the next state broadcast. Clients replay them with their
-        // own listener perspective (team-aware pan/depth).
+        // Host taps the audio + announcer modules so spatial sound calls
+        // and verbal announcements get queued for the next state
+        // broadcast. Clients replay them with their own listener
+        // perspective (team-aware pan/depth) and locale.
         content.audio.setRelay((name, args) => {
-          this.state.pendingAudioEvents.push({ n: name, a: args })
+          this.state.pendingAudioEvents.push({ m: 'audio', n: name, a: args })
+        })
+        content.announcer.setRelay((name, args) => {
+          this.state.pendingAudioEvents.push({ m: 'announcer', n: name, a: args })
         })
         this._startGame(7)
       } else {
@@ -138,6 +142,7 @@ app.screen.game = app.screenManager.invent({
       content.player.setManualMode(false)
       content.ai.setManualMode(false)
       content.audio.setRelay(null)
+      content.announcer.setRelay(null)
       this.state.pendingAudioEvents = []
       network.disconnect()
     }
@@ -251,7 +256,7 @@ app.screen.game = app.screenManager.invent({
       }
     } else if (msg.type === 'swing') {
       if (content.teamManager.getTeam2ActiveId() === peerId) {
-        content.ai.triggerManualSwing(msg.dir)
+        content.game.aiAction(msg.dir)
       } else if (content.teamManager.getTeam1ActiveId() === peerId) {
         content.game.playerAction(msg.dir)
       }
@@ -265,15 +270,16 @@ app.screen.game = app.screenManager.invent({
       // uses the current listener position, not the reset default.
       content.player.setStep(msg.t1x - 0.5)
       content.ai.setStep(msg.t2x - 0.5)
-      // Replay any host-emitted audio events through the local audio
-      // module. Each call routes through calcPan/calcDepthT here, so
-      // sounds land in the listener's own team perspective.
+      // Replay any host-emitted events through the local audio /
+      // announcer modules. Each call routes through the listener's
+      // own team perspective (audio) and locale (announcer).
       if (Array.isArray(msg.events)) {
         for (const ev of msg.events) {
           if (!ev || !ev.n) continue
-          const fn = content.audio[ev.n]
+          const target = ev.m === 'announcer' ? content.announcer : content.audio
+          const fn = target[ev.n]
           if (typeof fn !== 'function') continue
-          try { fn.apply(content.audio, ev.a || []) } catch (err) {}
+          try { fn.apply(target, ev.a || []) } catch (err) {}
         }
       }
     }

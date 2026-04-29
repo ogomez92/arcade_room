@@ -5,8 +5,8 @@ content.game = (() => {
   let prevUpdateState = null
   let rallyTime = 0
 
-  function doAiServe() {
-    const dir = Math.random() < 0.5 ? 's' : Math.random() < 0.5 ? 'a' : 'd'
+  function doAiServe(dir) {
+    if (!dir) dir = Math.random() < 0.5 ? 's' : Math.random() < 0.5 ? 'a' : 'd'
     const aiX = content.ai.getX()
     content.ball.setPosition(aiX, content.table.LENGTH - 0.15)
     let vx = 0
@@ -34,6 +34,16 @@ content.game = (() => {
       content.audio.stopBall()
       content.audio.stopPowerupRoll()
       content.scoring.stop()
+    },
+
+    aiAction: (dir) => {
+      const state = content.scoring.getState()
+      if (state === 'serving' && content.scoring.getServingPlayer() === 'ai') {
+        doAiServe(dir)
+        return
+      }
+      if (state !== 'playing') return
+      content.ai.triggerManualSwing(dir)
     },
 
     playerAction: (dir) => {
@@ -107,7 +117,9 @@ content.game = (() => {
 
       if (state === 'serving') {
         content.player.update(dt)
-        if (content.scoring.getServingPlayer() === 'ai') {
+        // In multiplayer the AI side is human-controlled; wait for their
+        // swing input instead of auto-serving.
+        if (content.scoring.getServingPlayer() === 'ai' && !content.teamManager.isMultiplayer()) {
           aiServeTimer -= dt
           if (aiServeTimer <= 0) doAiServe()
         }
@@ -133,18 +145,17 @@ content.game = (() => {
           if (content.teamManager.isMultiplayer()) {
             const scorer = content.scoring.getLastScorer()
             const rotatedTeam = scorer === 'player' ? 2 : 1
-            const { outPlayer, inPlayer } = content.teamManager.rotateTeam(rotatedTeam)
-            if (rotatedTeam === 2) {
-              content.ai.setManualMode(true)
-            }
-            content.audio.playTagOut()
-            setTimeout(() => content.audio.playTagIn(), 400)
-            const el = document.querySelector('.js-announcer')
-            if (el) {
-              el.textContent = ''
-              setTimeout(() => {
-                el.textContent = `${outPlayer.name} tags out. ${inPlayer.name} tags in for Team ${rotatedTeam}.`
-              }, 50)
+            // Only rotate when the team actually has bench players;
+            // otherwise the "tag" is a no-op and the announcement is
+            // nonsense ("X tags out, X tags in").
+            if (content.teamManager.getTeam(rotatedTeam).length > 1) {
+              const { outPlayer, inPlayer } = content.teamManager.rotateTeam(rotatedTeam)
+              if (rotatedTeam === 2) {
+                content.ai.setManualMode(true)
+              }
+              content.audio.playTagOut()
+              setTimeout(() => content.audio.playTagIn(), 400)
+              content.announcer.tag(rotatedTeam, outPlayer.name, inPlayer.name)
             }
           }
           rallyTime = 0

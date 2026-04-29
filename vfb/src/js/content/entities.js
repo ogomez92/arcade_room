@@ -33,10 +33,12 @@ content.entities = (() => {
       this.shootElapsed = 0
       this.prepareshot = false
       this.moveElapsed = 0
-      // Spawn an audible loop on the entity's grid position.
+      // Spawn a spaceship-textured loop on the entity's grid position. Each
+      // loopName maps to a distinct *kind* of machine (turbine, generator,
+      // tank tread, plasma drone) so the player IDs enemies by what they
+      // sound like, not by what pitch is playing.
       this.loopRef = audio().loop({
-        freq: this._loopFreq(),
-        type: this._loopType(),
+        kind: this._loopKind(),
         peak: 0.35,
         ex: this.ex,
         ey: this.ey,
@@ -44,39 +46,21 @@ content.entities = (() => {
       })
     }
 
-    _loopFreq() {
-      // Different timbres per loop name so the player can identify enemies.
+    _loopKind() {
       const map = {
-        enemy_1_lp: 440,
-        enemy_2_lp: 330,
-        enemy_3_lp: 220,
-        enemy_4_lp: 165,
-        enemy_5_lp: 360,
-        enemy_6_lp: 280,
-        enemy_7_lp: 200,
-        enemy_8_lp: 150,
-        towerlp: 110,
-        itemlp: 600,
-        genesis_lp: 60,
+        enemy_1_lp: 'flier-light',     // small aerial scout — high turbine whine
+        enemy_2_lp: 'ground-base',     // ground emplacement — industrial grind
+        enemy_3_lp: 'sphere',          // sphere shooter — slow ominous pulse
+        enemy_4_lp: 'flier-heavy',     // armored airship — chunky low-mid roar
+        enemy_5_lp: 'porter',          // teleporter — unstable wobble
+        enemy_6_lp: 'slider-air',      // aerial slider — pulsing whoosh
+        enemy_7_lp: 'bouncer',         // bouncer — chittery agitated high
+        enemy_8_lp: 'slider-ground',   // ground turret — tank tread
+        towerlp:    'tower',           // checkpoint tower — generator hum
+        itemlp:     'item-static',     // scorpion — alien-creature rasp
+        genesis_lp: 'genesis',         // boss — sub-bass dread
       }
-      return map[this.loopName] || 300
-    }
-
-    _loopType() {
-      const map = {
-        enemy_1_lp: 'square',
-        enemy_2_lp: 'sawtooth',
-        enemy_3_lp: 'triangle',
-        enemy_4_lp: 'sawtooth',
-        enemy_5_lp: 'square',
-        enemy_6_lp: 'square',
-        enemy_7_lp: 'sawtooth',
-        enemy_8_lp: 'sawtooth',
-        towerlp: 'sawtooth',
-        itemlp: 'triangle',
-        genesis_lp: 'sawtooth',
-      }
-      return map[this.loopName] || 'square'
+      return map[this.loopName] || 'flier-light'
     }
 
     updateLoop() {
@@ -131,6 +115,9 @@ content.entities = (() => {
 
     deathAct() {
       content.world.combo()
+      // Per-kind explosion. Tower and Genesis don't reach this (they
+      // override didWeaponCollide / deathAct entirely with their own cues).
+      audio().explode(this._loopKind(), this.ex, this.ey, S().y)
     }
 
     hitAct() {}
@@ -193,9 +180,12 @@ content.entities = (() => {
       this.boom = false
       this.item = true
       this.guided = false
-      // Distinct pitch per item type so each is recognizable.
+      // Distinct pitch per item type so each is recognizable. Items are the
+      // one place we *want* a clean tone — gameplay needs the player to ID
+      // a falling powerup by ear before it drops past them.
       const baseFreq = [0, 660, 880, 990, 740, 550][this.type] || 600
       this.loopRef = audio().loop({
+        kind: 'item',
         freq: baseFreq,
         type: 'triangle',
         peak: 0.4,
@@ -347,6 +337,14 @@ content.entities = (() => {
         }
       }
     }
+    updateLoop() {
+      super.updateLoop()
+      // Keep the danger drone re-panning around the player as the player
+      // strafes — otherwise it freezes wherever Genesis was last hit.
+      if (S().dangerLoopRef && !this.dead) {
+        S().dangerLoopRef.setPos(this.ex, this.ey, S().y)
+      }
+    }
     loopAct(dt) {
       if (S().y >= this.ey && !this.dead) {
         // Player passed: forcefield kills you and clears shieldbits.
@@ -379,8 +377,13 @@ content.entities = (() => {
       this.moves = 30
       this.insta = !!opts.insta
       this.elapsed = 0
+      this.voice = audio().beamVoice(this.ex, this.ey, S().y)
+    }
+    onDestroy() {
+      if (this.voice) { this.voice.stop(); this.voice = null }
     }
     move(dt) {
+      if (this.voice) this.voice.setPos(this.ex, this.ey, S().y)
       this.elapsed += dt
       while (this.elapsed >= this.movetime) {
         this.elapsed -= this.movetime
@@ -476,9 +479,11 @@ content.entities = (() => {
       this.avoided = false
       this.boom = sphere
       this.item = false
-      const freq = sphere ? 130 : 500
-      const type = sphere ? 'sawtooth' : 'square'
-      this.loopRef = audio().loop({freq, type, peak: 0.25, ex: this.ex, ey: this.ey, py: S().y})
+      this.loopRef = audio().loop({
+        kind: sphere ? 'shot-sphere' : 'shot',
+        peak: 0.25,
+        ex: this.ex, ey: this.ey, py: S().y,
+      })
     }
     cycle(dt) {
       this.elapsed += dt

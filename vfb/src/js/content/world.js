@@ -44,37 +44,37 @@ content.world = (() => {
       const ey = E().rand(s.y + 20, s.y + 30)
       if (choose == 1 || choose == 3) {
         // Airship (basic aerial)
-        const e = new E().Enemy(ex, ey, false, true, 0, 'enemy_1_lp', '', 'enemy_1_die')
+        const e = new (E().Enemy)(ex, ey, false, true, 0, 'enemy_1_lp', '', 'enemy_1_die')
         enemies.push(e); spawned = true
       } else if (choose == 2) {
         // Ground base
-        const e = new E().Enemy(ex, ey, true, true, 0, 'enemy_2_lp', '', 'enemy_2_die')
+        const e = new (E().Enemy)(ex, ey, true, true, 0, 'enemy_2_lp', '', 'enemy_2_die')
         e.scoreMult = 150
         enemies.push(e); spawned = true
       } else if (choose == 4) {
         if (s.level < 7) continue
-        enemies.push(new E().SphereShooter(ex, ey)); spawned = true
+        enemies.push(new (E().SphereShooter)(ex, ey)); spawned = true
       } else if (choose == 5) {
         if (s.level < 2) continue
         // Armored airship
-        const e = new E().Enemy(ex, ey, false, true, 0, 'enemy_4_lp', 'enemy_4_hit', 'enemy_4_die')
+        const e = new (E().Enemy)(ex, ey, false, true, 0, 'enemy_4_lp', 'enemy_4_hit', 'enemy_4_die')
         e.hp = 4
         e.scoreMult = 20
         enemies.push(e); spawned = true
       } else if (choose == 6) {
         if (s.level < 3) continue
-        enemies.push(new E().Porter(ex, ey)); spawned = true
+        enemies.push(new (E().Porter)(ex, ey)); spawned = true
       } else if (choose == 7) {
         if (s.level < 5) continue
         // Slider (aerial mvt)
-        enemies.push(new E().Mvt(ex, ey, false)); spawned = true
+        enemies.push(new (E().Mvt)(ex, ey, false)); spawned = true
       } else if (choose == 8) {
         if (s.level < 6) continue
-        enemies.push(new E().Bouncer(ex, ey)); spawned = true
+        enemies.push(new (E().Bouncer)(ex, ey)); spawned = true
       } else if (choose == 9) {
         if (s.level < 4) continue
         // Turret (ground mvt)
-        enemies.push(new E().Mvt(ex, ey, true)); spawned = true
+        enemies.push(new (E().Mvt)(ex, ey, true)); spawned = true
       }
     }
   }
@@ -85,7 +85,7 @@ content.world = (() => {
     if (s.itemtime > 0) return
     s.itemtime = E().rand(20, 50) * 1000
     if (s.y < s.level * 100 - 20) {
-      enemies.push(new E().Scorpion(E().rand(0, 10), E().rand(s.y + 15, s.y + 30)))
+      enemies.push(new (E().Scorpion)(E().rand(0, 10), E().rand(s.y + 15, s.y + 30)))
     }
   }
 
@@ -234,6 +234,7 @@ content.world = (() => {
     enemies.length = 0
     for (const sh of eshots) if (sh && sh.onDestroy) sh.onDestroy()
     eshots.length = 0
+    for (const b of beams) if (b && b.onDestroy) b.onDestroy()
     beams.length = 0
     bombs.length = 0
 
@@ -280,7 +281,11 @@ content.world = (() => {
       }
     }
     for (let i = beams.length - 1; i >= 0; i--) {
-      if (!beams[i] || beams[i].dead) beams.splice(i, 1)
+      const b = beams[i]
+      if (!b || b.dead) {
+        if (b && b.onDestroy) b.onDestroy()
+        beams.splice(i, 1)
+      }
     }
     for (let i = bombs.length - 1; i >= 0; i--) {
       if (!bombs[i] || bombs[i].dead) bombs.splice(i, 1)
@@ -355,6 +360,7 @@ content.world = (() => {
     enemies.length = 0
     for (const sh of eshots) if (sh && sh.onDestroy) sh.onDestroy()
     eshots.length = 0
+    for (const b of beams) if (b && b.onDestroy) b.onDestroy()
     beams.length = 0
     bombs.length = 0
     if (S().dangerLoopRef) { S().dangerLoopRef.stop(); S().dangerLoopRef = null }
