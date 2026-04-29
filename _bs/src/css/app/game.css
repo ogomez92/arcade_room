@@ -1,0 +1,53 @@
+.a-game {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  justify-content: center;
+  text-align: center;
+}
+
+.a-game--hud {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-family: monospace;
+  font-size: 1.4em;
+  gap: 1.5em;
+  justify-content: center;
+  letter-spacing: 0.05em;
+  opacity: 0.95;
+}
+  .a-game--phase {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 0.3em;
+    padding: 0.1em 0.6em;
+  }
+
+.a-game--help {
+  font-size: 0.95em;
+  max-width: 36em;
+  opacity: 0.65;
+}
+
+/* Visually-hidden ARIA live regions — present in the accessibility
+ * tree but never on screen. Avoid display:none / visibility:hidden,
+ * which would also hide them from screen readers. */
+.a-app--announce-polite,
+.a-app--announce-assertive {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.a-gameover--subtitle {
+  font-size: 1.2em;
+  opacity: 0.9;
+}
