@@ -1,0 +1,48 @@
+.a-lobby {
+  align-items: center;
+  text-align: center;
+}
+  .a-lobby--note {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.95em;
+    margin-top: 0.5rem;
+    min-height: 1.4em;
+  }
+  .a-lobby--field {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4em;
+    margin-top: 1.2rem;
+    width: min(28em, 90vw);
+  }
+    .a-lobby--field span {
+      opacity: 0.85;
+    }
+    .a-lobby--field input {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-radius: 0.4rem;
+      color: #FFFFFF;
+      font-size: 1.1em;
+      padding: 0.5em 0.75em;
+      text-align: center;
+      width: 100%;
+    }
+    .a-lobby--field input:focus {
+      border-color: #FFFFFF;
+      outline: none;
+    }
+  .a-lobby--code {
+    font-family: monospace;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+  }
+  .a-lobby--roomCode {
+    font-family: monospace;
+    font-size: 1.4em;
+    letter-spacing: 0.4em;
+  }
+  .a-lobby--players {
+    text-align: left;
+  }

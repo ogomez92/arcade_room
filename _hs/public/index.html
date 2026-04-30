@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title data-i18n="doc.title">Horses — Audio Race</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <!-- Persistent aria-live regions. Polite for filler/threshold lines,
+           assertive for state flips and status hotkeys. -->
+      <div class="a-live a-live--polite" aria-live="polite" aria-atomic="true"></div>
+      <div class="a-live a-live--assertive" aria-live="assertive" aria-atomic="true"></div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <h1 class="c-menu--title" data-i18n="game.aria">Race in progress</h1>
+          <p class="c-menu--subtitle" data-i18n="game.help">Press space or J to throw. Time it so the cursor sits on the lane you want — narrower lanes score more. Press F1 through F7 for status. Press Escape to pause.</p>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--raceResult">
+        <section class="c-screen c-menu a-raceResult" tabindex="-1" data-i18n-attr="aria-label:result.aria">
+          <h1 class="c-menu--title a-raceResult--title" data-i18n="result.title">Result</h1>
+          <p class="c-menu--subtitle a-raceResult--summary"></p>
+          <ul class="c-menu--list a-raceResult--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="next" data-i18n="result.next">Next race</button></li>
+            <li><button class="c-menu--button" data-action="quick" data-i18n="result.continue">Continue</button></li>
+            <li><button class="c-menu--button" data-action="championshipMenu" data-i18n="championship.title">Championship</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="highscores.title">High scores</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="result.toMenu">Main menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--championshipMenu">
+        <section class="c-screen c-menu a-championshipMenu" tabindex="-1" data-i18n-attr="aria-label:championship.aria">
+          <h1 class="c-menu--title" data-i18n="championship.title">Championship</h1>
+          <p class="c-menu--subtitle" data-i18n="championship.subtitle">Five races. Best total wins.</p>
+          <p class="a-championshipMenu--status"></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="continue">Continue</button></li>
+            <li><button class="c-menu--button" data-action="new" data-i18n="championship.new">New championship</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="championship.highscores">High scores</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="championship.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen c-menu a-highscores" tabindex="-1" data-i18n-attr="aria-label:highscores.aria">
+          <h1 class="c-menu--title" data-i18n="highscores.title">High scores</h1>
+          <p class="c-menu--subtitle" data-i18n="highscores.subtitle">Best championship totals.</p>
+          <ul class="c-menu--list a-highscores--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="highscores.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen c-menu a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 class="c-menu--title" data-i18n="learn.title">Learn the sounds</h1>
+          <p class="c-menu--subtitle" data-i18n="learn.subtitle">Play each sound in isolation.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="cursorTick" data-lane="0">Cursor — lane 1</button></li>
+            <li><button class="c-menu--button" data-action="cursorTick" data-lane="1">Cursor — lane 2</button></li>
+            <li><button class="c-menu--button" data-action="cursorTick" data-lane="2">Cursor — lane 3</button></li>
+            <li><button class="c-menu--button" data-action="cursorTick" data-lane="3">Cursor — lane 4</button></li>
+            <li><button class="c-menu--button" data-action="cursorTick" data-lane="4">Cursor — lane 5</button></li>
+            <li><button class="c-menu--button" data-action="thunk" data-lane="2" data-i18n="learn.thunk">Throw</button></li>
+            <li><button class="c-menu--button" data-action="hitChime" data-lane="0">Hit — lane 1</button></li>
+            <li><button class="c-menu--button" data-action="hitChime" data-lane="4">Hit — lane 5</button></li>
+            <li><button class="c-menu--button" data-action="miss" data-i18n="learn.miss">Miss</button></li>
+            <li><button class="c-menu--button" data-action="whinny" data-i18n="learn.whinny">Whinny</button></li>
+            <li><button class="c-menu--button" data-action="gallop" data-i18n="learn.gallop">Gallop</button></li>
+            <li><button class="c-menu--button" data-action="crowd" data-i18n="learn.crowd">Crowd</button></li>
+            <li><button class="c-menu--button" data-action="organ" data-i18n="learn.organ">Fairground organ</button></li>
+            <li><button class="c-menu--button" data-action="photoFinish" data-i18n="learn.photoFinish">Photo finish chime</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="learn.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--test">
+        <section class="c-screen c-menu a-test" tabindex="-1" data-i18n-attr="aria-label:test.aria">
+          <h1 class="c-menu--title" data-i18n="test.title">Audio test</h1>
+          <p class="c-menu--subtitle" data-i18n="test.subtitle">Ticks at front, right, behind, and left around a static listener.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="front" data-i18n="test.front">Front tick</button></li>
+            <li><button class="c-menu--button" data-action="right" data-i18n="test.right">Right tick</button></li>
+            <li><button class="c-menu--button" data-action="behind" data-i18n="test.behind">Behind tick</button></li>
+            <li><button class="c-menu--button" data-action="left" data-i18n="test.left">Left tick</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="test.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--mode">
+        <section class="c-screen c-menu a-mode" tabindex="-1" data-i18n-attr="aria-label:mode.aria">
+          <h1 class="c-menu--title" data-i18n="mode.title">Horses</h1>
+          <p class="c-menu--subtitle" data-i18n="mode.subtitle">Throw, hit, race.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="championship" data-i18n="mode.championship">Championship</button></li>
+            <li><button class="c-menu--button" data-action="quick" data-i18n="mode.singleRace">Quick race</button></li>
+            <li><button class="c-menu--button" data-action="multiplayer" data-i18n="mode.multiplayer">Multiplayer</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="mode.learn">Learn the sounds</button></li>
+            <li><button class="c-menu--button" data-action="audioTest" data-i18n="mode.audioTest">Audio test</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="mode.language">Language</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--lobby">
+        <section class="c-screen c-menu a-lobby" tabindex="-1" data-i18n-attr="aria-label:lobby.aria">
+          <h1 class="c-menu--title" data-i18n="lobby.title">Multiplayer</h1>
+          <p class="c-menu--subtitle" data-i18n="lobby.subtitle">Host a room or join one with a code.</p>
+          <p class="a-lobby--note" aria-live="polite"></p>
+
+          <div class="a-lobby--setup">
+            <label class="a-lobby--field">
+              <span data-i18n="lobby.nameLabel">Your name</span>
+              <input class="a-lobby--name" type="text" maxlength="24" autocomplete="off" />
+            </label>
+            <ul class="c-menu--list">
+              <li><button class="c-menu--button" data-action="host" data-i18n="lobby.host">Host a room</button></li>
+            </ul>
+            <label class="a-lobby--field">
+              <span data-i18n="lobby.codeLabel">Or enter a code</span>
+              <input class="a-lobby--code" type="text" maxlength="6" autocomplete="off" inputmode="latin" />
+            </label>
+            <ul class="c-menu--list">
+              <li><button class="c-menu--button" data-action="join" data-i18n="lobby.join">Join</button></li>
+              <li><button class="c-menu--button" data-action="back" data-i18n="lobby.back">Back</button></li>
+            </ul>
+          </div>
+
+          <div class="a-lobby--inLobby" hidden>
+            <p class="c-menu--subtitle"><span data-i18n="lobby.codeIs">Room code</span>: <span class="a-lobby--roomCode"></span></p>
+            <ul class="c-menu--list a-lobby--players"></ul>
+            <ul class="c-menu--list">
+              <li><button class="c-menu--button" data-action="start" data-i18n="lobby.start" hidden>Start</button></li>
+              <li><button class="c-menu--button" data-action="back" data-i18n="lobby.leave">Leave</button></li>
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--splash">
+        <section class="c-screen a-splash" tabindex="-1">
+          <h1 class="a-splash--logo" data-i18n="mode.title">Horses</h1>
+          <div class="a-splash--details">
+            <div class="a-splash--version"></div>
+            <div class="a-splash--author" data-i18n="splash.author">an audio-fair horse race</div>
+          </div>
+          <div class="a-splash--instruction" data-i18n="splash.instruction">Press any key to begin</div>
+          <div class="a-splash--actions">
+            <button class="c-menu--button a-splash--language" data-action="language" data-i18n="language.button">Language</button>
+          </div>
+        </section>
+      </div>
+
+    </main>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+/* Persistent aria-live regions. Visually small but readable; screen readers
+ * pick them up regardless of position. */
+.a-live {
+  bottom: 0.6rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95em;
+  left: 0;
+  letter-spacing: normal;
+  line-height: 1.4;
+  min-height: 1.4em;
+  padding: 0.4em 1em;
+  position: fixed;
+  pointer-events: none;
+  text-align: center;
+  width: 100%;
+  z-index: 50;
+}
+.a-live--polite {
+  bottom: 2.4rem;
+  color: rgba(255, 255, 255, 0.78);
+}
+.a-live--assertive {
+  bottom: 0.4rem;
+  color: #FFFFFF;
+  font-weight: bold;
+  text-shadow: 0 0 0.4em rgba(255, 255, 255, 0.4);
+}
