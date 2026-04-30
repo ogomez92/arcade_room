@@ -39,7 +39,7 @@ Defined in `content/game.js` and `content/styles.js`:
 
 ```
 bpm           = clamp(72 + 8 * (level - 1), ≤ 168)  // cap at level-13 tempo
-measures      = 1 + floor((level - 1) / 4)          // 1×4, 2×4, 3×4, …
+measures      = 1 + floor((level - 1) / 6)          // 1×6, 2×6, 3×6, …
 meter         = pickMeter(style, level)             // 3, 4, 5, or 7 — palette per style
 subdivision   = subdivisionProbs(level)             // q/e/s shares per beat (caps at L10)
 patternsPerLv = max(3, level * 2)                   // clean rounds to advance

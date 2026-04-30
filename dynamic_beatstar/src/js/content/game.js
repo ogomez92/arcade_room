@@ -27,7 +27,7 @@
 // Difficulty:
 //   bpm         = clamp(72 + 6 * (level - 1), ≤ 138), then nudged into
 //                 the chosen style's bpmRange
-//   measures    = 1 + floor((level - 1) / 3)         // 1, 1, 1, 2, …
+//   measures    = 1 + floor((level - 1) / 6)         // 1×6, 2×6, 3×6, …
 //   meter       = pickMeter(style, level)            // 3/4/5/7
 //   subdivision = subdivisionProbs(level)            // q/e/s
 //
@@ -231,7 +231,7 @@ content.game = (() => {
     return targetBpm(level)
   }
 
-  function measuresFor(level) { return 1 + Math.floor((level - 1) / 4) }
+  function measuresFor(level) { return 1 + Math.floor((level - 1) / 6) }
 
   // Clean-round count required to advance from this level. Curve:
   // L1=3, L2=4, L3=6, L4=8, L5=10, L6=12, ...
@@ -264,6 +264,15 @@ content.game = (() => {
     const out = []
     let prev = null, prevPrev = null
 
+    // Forbid notes in the ~3/4 beat window before transitionEnd: the "go"
+    // cue plays at transitionEnd - 0.5*beatDur and rings for ~0.5s, which
+    // would mask any hint note placed there. For 1-measure patterns this
+    // trims the late subdivisions of the last beat; for multi-measure
+    // patterns the cue sits inside the empty transition measure so the
+    // cutoff lands past totalBeats and excludes nothing.
+    const transitionBeats = measures >= 2 ? meter : 0
+    const cutoffBeat = totalBeats + transitionBeats - 0.75
+
     for (let b = 0; b < totalBeats; b++) {
       const r = Math.random()
       let div
@@ -273,8 +282,10 @@ content.game = (() => {
 
       const slot = 1 / div
       for (let k = 0; k < div; k++) {
+        const beat = b + k * slot
+        if (beat >= cutoffBeat) continue
         const dir = pickArrow(prev, prevPrev)
-        out.push({dir, beat: b + k * slot, slot})
+        out.push({dir, beat, slot})
         prevPrev = prev
         prev = dir
       }
