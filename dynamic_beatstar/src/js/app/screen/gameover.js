@@ -42,7 +42,7 @@ app.screen.gameover = app.screenManager.invent({
       return
     }
     const ui = app.controls.ui()
+    app.utility.menuNav.handle(ui, this.rootElement)
     if (ui.back) app.screenManager.dispatch('menu')
-    if (ui.confirm || ui.enter || ui.start) app.screenManager.dispatch('retry')
   },
 })

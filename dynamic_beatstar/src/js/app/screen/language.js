@@ -59,6 +59,7 @@ app.screen.language = app.screenManager.invent({
       return
     }
     const ui = app.controls.ui()
+    app.utility.menuNav.handle(ui, this.rootElement)
     if (ui.back) {
       app.screenManager.dispatch('back')
     }

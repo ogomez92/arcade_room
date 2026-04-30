@@ -137,26 +137,6 @@ content.styles = (() => {
       leadVoice: 'pluck',
       pad: 0.5,
     },
-    bossa: {
-      id: 'bossa',
-      bpmRange: [80, 110],
-      meterPalette: [4],
-      progressions: [
-        // Imaj7 - ii7 - V7 - Imaj7
-        [{r:0,t:'maj7'}, {r:2,t:'min7'}, {r:7,t:'dom7'}, {r:0,t:'maj7'}],
-        // Imaj7 - VI7 - ii7 - V7  (secondary dominant pulls to ii)
-        [{r:0,t:'maj7'}, {r:9,t:'dom7'}, {r:2,t:'min7'}, {r:7,t:'dom7'}],
-      ],
-      minorProgressions: [
-        // i7 - iv7 - V7 - i7
-        [{r:0,t:'min7'}, {r:5,t:'min7'}, {r:7,t:'dom7'}, {r:0,t:'min7'}],
-      ],
-      drumKit: 'bossa',
-      bassVoice: 'upright',
-      padVoice: 'rhodes',
-      leadVoice: 'mellow',
-      pad: 0.55,
-    },
     waltz: {
       id: 'waltz',
       bpmRange: [70, 110],
@@ -176,6 +156,116 @@ content.styles = (() => {
       padVoice: 'soft',
       leadVoice: 'bell',
       pad: 0.6,
+    },
+    funk: {
+      id: 'funk',
+      bpmRange: [95, 120],
+      meterPalette: [4],
+      progressions: [
+        // I7 - IV7 - I7 - V7  (one-chord vamp with dominant pull)
+        [{r:0,t:'dom7'}, {r:5,t:'dom7'}, {r:0,t:'dom7'}, {r:7,t:'dom7'}],
+        // ii7 - V7 - I7 - I7
+        [{r:2,t:'min7'}, {r:7,t:'dom7'}, {r:0,t:'dom7'}, {r:0,t:'dom7'}],
+      ],
+      minorProgressions: [
+        // i7 - iv7 - i7 - V7
+        [{r:0,t:'min7'}, {r:5,t:'min7'}, {r:0,t:'min7'}, {r:7,t:'dom7'}],
+        // i7 - ♭VII7 - ♭VI7 - V7
+        [{r:0,t:'min7'}, {r:10,t:'dom7'}, {r:8,t:'dom7'}, {r:7,t:'dom7'}],
+      ],
+      drumKit: 'funk',
+      bassVoice: 'slap',
+      padVoice: 'organ',
+      leadVoice: 'pluck',
+      pad: 0.45,
+    },
+    jazz: {
+      id: 'jazz',
+      bpmRange: [85, 130],
+      meterPalette: [4, 3],
+      progressions: [
+        // ii7 - V7 - Imaj7 - VI7  (turnaround with secondary dominant)
+        [{r:2,t:'min7'}, {r:7,t:'dom7'}, {r:0,t:'maj7'}, {r:9,t:'dom7'}],
+        // Imaj7 - VI7 - ii7 - V7
+        [{r:0,t:'maj7'}, {r:9,t:'dom7'}, {r:2,t:'min7'}, {r:7,t:'dom7'}],
+        // iii7 - VI7 - ii7 - V7
+        [{r:4,t:'min7'}, {r:9,t:'dom7'}, {r:2,t:'min7'}, {r:7,t:'dom7'}],
+      ],
+      minorProgressions: [
+        // ii halfdim - V7 - i7 - i7  (minor ii-V-i)
+        [{r:2,t:'halfdim'}, {r:7,t:'dom7'}, {r:0,t:'min7'}, {r:0,t:'min7'}],
+        // i7 - iv7 - V7 - i7
+        [{r:0,t:'min7'}, {r:5,t:'min7'}, {r:7,t:'dom7'}, {r:0,t:'min7'}],
+      ],
+      drumKit: 'jazz',
+      bassVoice: 'upright',
+      padVoice: 'rhodes',
+      leadVoice: 'mellow',
+      pad: 0.5,
+    },
+    ambient: {
+      id: 'ambient',
+      bpmRange: [62, 88],
+      meterPalette: [4],
+      progressions: [
+        // I - iii - vi - IV  (gentle, plagal-flavoured)
+        [{r:0,t:'maj7'}, {r:4,t:'min7'}, {r:9,t:'min7'}, {r:5,t:'maj7'}],
+        // I - V - vi - IV  (held)
+        [{r:0,t:'maj7'}, {r:7,t:'maj'},  {r:9,t:'min7'}, {r:5,t:'maj7'}],
+      ],
+      minorProgressions: [
+        // i - ♭VI - ♭III - ♭VII  (epic-minor)
+        [{r:0,t:'min7'}, {r:8,t:'maj7'}, {r:3,t:'maj7'}, {r:10,t:'maj7'}],
+      ],
+      drumKit: 'ambient',
+      bassVoice: 'sub',
+      padVoice: 'strings',
+      leadVoice: 'bell',
+      pad: 0.85,
+    },
+    latin: {
+      id: 'latin',
+      bpmRange: [95, 130],
+      meterPalette: [4],
+      progressions: [
+        // I - V - I - V  (montuno)
+        [{r:0,t:'maj'}, {r:7,t:'dom7'}, {r:0,t:'maj'}, {r:7,t:'dom7'}],
+        // IV - V - I - I
+        [{r:5,t:'maj'}, {r:7,t:'dom7'}, {r:0,t:'maj'}, {r:0,t:'maj'}],
+      ],
+      minorProgressions: [
+        // i - V7 - i - V7  (gypsy-flavour)
+        [{r:0,t:'min'}, {r:7,t:'dom7'}, {r:0,t:'min'}, {r:7,t:'dom7'}],
+        // i - iv - V7 - i
+        [{r:0,t:'min'}, {r:5,t:'min'}, {r:7,t:'dom7'}, {r:0,t:'min'}],
+      ],
+      drumKit: 'latin',
+      bassVoice: 'rounded',
+      padVoice: 'rhodes',
+      leadVoice: 'pluck',
+      pad: 0.45,
+    },
+    disco: {
+      id: 'disco',
+      bpmRange: [110, 128],
+      meterPalette: [4],
+      progressions: [
+        // I - vi - IV - V
+        [{r:0,t:'maj7'}, {r:9,t:'min7'}, {r:5,t:'maj7'}, {r:7,t:'dom7'}],
+        // ii7 - V7 - I - I
+        [{r:2,t:'min7'}, {r:7,t:'dom7'}, {r:0,t:'maj7'}, {r:0,t:'maj7'}],
+      ],
+      minorProgressions: [
+        // i - ♭VII - ♭VI - V7
+        [{r:0,t:'min'}, {r:10,t:'maj'}, {r:8,t:'maj'}, {r:7,t:'dom7'}],
+        // i - iv - ♭VI - ♭VII
+        [{r:0,t:'min'}, {r:5,t:'min'}, {r:8,t:'maj'}, {r:10,t:'maj'}],
+      ],
+      drumKit: 'disco',
+      bassVoice: 'pluck',
+      padVoice: 'saw',
+      leadVoice: 'square',
+      pad: 0.55,
     },
   }
 

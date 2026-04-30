@@ -42,11 +42,37 @@ content.game = (() => {
   const ST = () => content.styles
   const ARROWS = ['up', 'down', 'left', 'right']
   const BPM_BASE = 72
-  const BPM_STEP = 6
-  const BPM_CAP  = 138
+  const BPM_STEP = 8
+  // Cap at the level-13 tempo (72 + 8*12 = 168 BPM); past that, the
+  // backing track stays at 168 even though level/difficulty keep rising.
+  const BPM_CAP_LEVEL = 13
+  const BPM_CAP = BPM_BASE + BPM_STEP * (BPM_CAP_LEVEL - 1)
   const VERDICT_HOLD_S = 1.4
   const STARTING_LIVES = 3
   const MAX_LIVES = 5
+  const HIGHEST_UNLOCKED_KEY = 'beatstar.highestLevel'
+
+  // Persist highest level the player has reached so the level-select
+  // menu can offer it. localStorage (not app.storage) so it survives
+  // engine.state resets and is readable before app.storage.ready().
+  function readHighestUnlocked() {
+    try {
+      const raw = localStorage.getItem(HIGHEST_UNLOCKED_KEY)
+      const n = parseInt(raw, 10)
+      return Number.isFinite(n) && n >= 1 ? n : 1
+    } catch (_) { return 1 }
+  }
+  function bumpHighestUnlocked(level) {
+    if (!Number.isFinite(level) || level < 1) return
+    const cur = readHighestUnlocked()
+    if (level <= cur) return
+    try { localStorage.setItem(HIGHEST_UNLOCKED_KEY, String(level)) } catch (_) {}
+  }
+
+  // Where the next start() call begins. Set by setStartLevel() from the
+  // level-select screen, or defaults to 1. Survives across rounds so the
+  // gameover "Play Again" button replays at the chosen difficulty.
+  let pendingStartLevel = 1
 
   const state = {
     phase: 'idle',
@@ -127,7 +153,7 @@ content.game = (() => {
     return targetBpm(level)
   }
 
-  function measuresFor(level) { return 1 + Math.floor((level - 1) / 3) }
+  function measuresFor(level) { return 1 + Math.floor((level - 1) / 4) }
 
   // Clean-round count required to advance from this level. Curve:
   // L1=3, L2=4, L3=6, L4=8, L5=10, L6=12, ...
@@ -182,7 +208,7 @@ content.game = (() => {
   // Lifecycle
   // ----------------------------------------------------------------
   function start() {
-    state.level = 1
+    state.level = Math.max(1, pendingStartLevel | 0)
     state.lives = STARTING_LIVES
     state.score = 0
     state.lastReason = ''
@@ -230,18 +256,18 @@ content.game = (() => {
     {by: -2, key: 'mod.down2'},
   ]
 
-  // Pick the next tonality. Below level 4 always stay in C major so the
-  // player learns the four arrow tones before they start moving. From
-  // level 4+ allow modulation; from level 5+ allow mode flips.
+  // Pick the next tonality. Levels 1-2 stay in C major so the player
+  // learns the four arrow tones before they start moving. From level 3+
+  // allow root shifts; from level 4+ allow mode flips too.
   function pickTonality(level, prev) {
-    if (level < 4) {
+    if (level < 3) {
       return {tonality: {rootSemitone: 0, mode: 'major'}, modKey: 'mod.start'}
     }
     const baseRoot = prev ? prev.rootSemitone : 0
     const baseMode = prev ? prev.mode : 'major'
 
-    // Mode flip ~25% of the time (level 5+).
-    const flipMode = level >= 5 && Math.random() < 0.25
+    // Mode flip ~25% of the time (level 4+).
+    const flipMode = level >= 4 && Math.random() < 0.25
     const newMode = flipMode ? (baseMode === 'major' ? 'minor' : 'major') : baseMode
 
     // Pick a modulation step. Bias toward "stay in same key" so changes
@@ -284,6 +310,8 @@ content.game = (() => {
 
     A().setLeadVoice(style.leadVoice)
     A().setTonality(tonality.rootSemitone, tonality.mode)
+
+    bumpHighestUnlocked(level)
   }
 
   // Build the per-beat bridge chord schedule for the intro measure:
@@ -723,9 +751,17 @@ content.game = (() => {
     }
   }
 
+  function setStartLevel(n) {
+    pendingStartLevel = Math.max(1, Math.min(readHighestUnlocked(), n | 0))
+  }
+  function getStartLevel() { return pendingStartLevel }
+  function getHighestUnlocked() { return readHighestUnlocked() }
+  function bpmForLevel(level) { return bpmFor(Math.max(1, level | 0)) }
+
   return {
     state,
     start, stop, isActive, frame, handleArrow,
+    setStartLevel, getStartLevel, getHighestUnlocked, bpmForLevel,
     onAnnounce:    (fn) => { onAnnounce.push(fn);    return () => onAnnounce.splice(onAnnounce.indexOf(fn), 1) },
     onPhaseChange: (fn) => { onPhaseChange.push(fn); return () => onPhaseChange.splice(onPhaseChange.indexOf(fn), 1) },
     onJudgement:   (fn) => { onJudgement.push(fn);   return () => onJudgement.splice(onJudgement.indexOf(fn), 1) },

@@ -93,6 +93,11 @@ content.music = (() => {
     else if (kit === 'chip')      { f0 = 70;  f1 = 70; dur = 0.04; peak = 0.55; click = false }
     else if (kit === 'bossa')     { f0 = 100; f1 = 60; dur = 0.10; peak = 0.55; click = false }
     else if (kit === 'brush')     { f0 = 95;  f1 = 50; dur = 0.10; peak = 0.55; click = false }
+    else if (kit === 'funk')      { f0 = 125; f1 = 42; dur = 0.13; peak = 0.95 }
+    else if (kit === 'jazz')      { f0 = 110; f1 = 55; dur = 0.10; peak = 0.55; click = false }
+    else if (kit === 'latin')     { f0 = 110; f1 = 55; dur = 0.09; peak = 0.60; click = false }
+    else if (kit === 'disco')     { f0 = 122; f1 = 36; dur = 0.18; peak = 1.00 }
+    else if (kit === 'ambient')   { f0 = 90;  f1 = 45; dur = 0.18; peak = 0.42; click = false }
     const o = c.createOscillator(); o.type = 'sine'
     o.frequency.setValueAtTime(f0, when)
     if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, when + dur * 0.6)
@@ -119,6 +124,11 @@ content.music = (() => {
     else if (kit === 'brush') { hasBody = false; noiseF = 1200; noiseDur = 0.18 }  // soft brush
     else if (kit === 'fourFloor') { bodyF = 200; bodyF1 = 160; noiseF = 2000 }
     else if (kit === 'chip') { hasBody = false; noiseF = 3000; noiseDur = 0.04 }   // chip noise
+    else if (kit === 'funk') { bodyF = 210; bodyF1 = 170; noiseF = 2400; noiseDur = 0.10 }  // tight pop
+    else if (kit === 'jazz') { hasBody = false; noiseF = 1500; noiseDur = 0.14 }   // brush-style
+    else if (kit === 'latin') { hasBody = false; noiseF = 2800; noiseDur = 0.04 }  // crisp rim/clave
+    else if (kit === 'disco') { bodyF = 200; bodyF1 = 160; noiseF = 2200; noiseDur = 0.14 }
+    else if (kit === 'ambient') { hasBody = false; noiseF = 900; noiseDur = 0.22 } // soft wash
     if (hasBody) {
       const o = c.createOscillator(); o.type = 'triangle'
       o.frequency.setValueAtTime(bodyF, when)
@@ -144,6 +154,11 @@ content.music = (() => {
     else if (kit === 'chip') { hpF = 6000; peak = accent ? 0.22 : 0.14 }
     else if (kit === 'brush') { hpF = 5500; peak = accent ? 0.18 : 0.12; release = 0.05 }
     else if (kit === 'bossa') { hpF = 6500; peak = accent ? 0.22 : 0.14 }
+    else if (kit === 'funk')  { hpF = 8200; peak = accent ? 0.28 : 0.20 }
+    else if (kit === 'jazz')  { hpF = 5800; peak = accent ? 0.20 : 0.14; release = 0.06 }
+    else if (kit === 'latin') { hpF = 7500; peak = accent ? 0.22 : 0.16 }
+    else if (kit === 'disco') { hpF = 7800; peak = accent ? 0.34 : 0.22; release = 0.06 } // open-hat shimmer
+    else if (kit === 'ambient') { hpF = 5000; peak = accent ? 0.10 : 0.07; release = 0.08 }
     const src = c.createBufferSource(); src.buffer = noiseBuffer(dur + 0.01)
     const hp = c.createBiquadFilter(); hp.type = 'highpass'
     hp.frequency.setValueAtTime(hpF, when)
@@ -193,6 +208,21 @@ content.music = (() => {
       const e = envGain(state.bus, when, 0.003, 0.02, 0.18, 0.42)
       o.connect(lp).connect(e)
       o.start(when); o.stop(when + 0.25)
+      return
+    }
+    if (voice === 'slap') {
+      // Funk slap: square + sub sine, sharp transient with brief filter
+      // sweep so each note "pops" before settling.
+      const o1 = c.createOscillator(); o1.type = 'square'
+      o1.frequency.setValueAtTime(freq, when)
+      const o2 = c.createOscillator(); o2.type = 'sine'
+      o2.frequency.setValueAtTime(freq / 2, when)
+      lp.frequency.setValueAtTime(2200, when)
+      lp.frequency.exponentialRampToValueAtTime(420, when + 0.08)
+      const e = envGain(state.bus, when, 0.001, 0.04, 0.16, 0.42)
+      o1.connect(lp); o2.connect(lp); lp.connect(e)
+      o1.start(when); o1.stop(when + 0.25)
+      o2.start(when); o2.stop(when + 0.25)
       return
     }
     if (voice === 'driving') {
@@ -266,18 +296,27 @@ content.music = (() => {
     const voices = [chord.root * 2, chord.third * 2, chord.fifth * 2]
     if (chord.seventh) voices.push(chord.seventh * 2)
 
+    // Per-voice timbre + envelope. Attack/hold/release are fractions of
+    // the measure: bright pads (saw, organ) need a snappy attack so the
+    // chord change is heard ON the downbeat; soft/strings can swell.
+    // The previous one-size-fits-all `0.15 * dur` attack made the
+    // synthwave saw pad sound a half-beat late on every chord change.
     let lpStart = 900, lpMid = 1400, oscType = 'sine', second = 'triangle'
-    if (voice === 'saw') { lpStart = 1100; lpMid = 2200; oscType = 'sawtooth'; second = 'sawtooth' }
-    else if (voice === 'organ') { lpStart = 1400; lpMid = 2200; oscType = 'square'; second = 'square' }
-    else if (voice === 'rhodes') { lpStart = 800; lpMid = 1500; oscType = 'sine'; second = 'triangle' }
-    else if (voice === 'soft') { lpStart = 700; lpMid = 1100; oscType = 'sine'; second = 'sine' }
+    let aFrac = 0.10, hFrac = 0.50, rFrac = 0.40
+    if (voice === 'saw')        { lpStart = 1100; lpMid = 2200; oscType = 'sawtooth'; second = 'sawtooth'; aFrac = 0.04; hFrac = 0.65; rFrac = 0.30 }
+    else if (voice === 'organ') { lpStart = 1400; lpMid = 2200; oscType = 'square';   second = 'square';   aFrac = 0.03; hFrac = 0.70; rFrac = 0.25 }
+    else if (voice === 'rhodes'){ lpStart = 800;  lpMid = 1500; oscType = 'sine';     second = 'triangle'; aFrac = 0.06; hFrac = 0.55; rFrac = 0.38 }
+    else if (voice === 'soft')  { lpStart = 700;  lpMid = 1100; oscType = 'sine';     second = 'sine';     aFrac = 0.18; hFrac = 0.40; rFrac = 0.42 }
+    else if (voice === 'strings'){lpStart = 600;  lpMid = 1800; oscType = 'sawtooth'; second = 'triangle'; aFrac = 0.20; hFrac = 0.35; rFrac = 0.43 }
 
     const lp = c.createBiquadFilter(); lp.type = 'lowpass'
     lp.frequency.setValueAtTime(lpStart, when)
     lp.frequency.linearRampToValueAtTime(lpMid, when + dur * 0.5)
     lp.frequency.linearRampToValueAtTime(lpStart, when + dur)
 
-    const e = envGain(state.bus, when, dur * 0.15, dur * 0.4, dur * 0.45, peak)
+    // Cap attack at 80 ms so even very long measures still land on the beat.
+    const attack = Math.min(dur * aFrac, 0.08)
+    const e = envGain(state.bus, when, attack, dur * hFrac, dur * rFrac, peak)
     lp.connect(e)
     voices.forEach((f, i) => {
       const o = c.createOscillator(); o.type = i === 0 ? oscType : second
@@ -331,6 +370,54 @@ content.music = (() => {
       if (meter >= 4) k[6] = 1            // and-of-2
       s[(meter - 1) * 4] = 0.5            // rim on the last beat
       for (let i = 0; i < N; i += 2) h[i] = 1
+    } else if (kit === 'funk') {
+      // Kick on 1 and the and-of-2; backbeat snare; ghost snares between
+      k[0] = 1
+      if (meter >= 3) k[6] = 1
+      if (meter >= 4) k[10] = 1
+      s[backbeat * 4] = 1
+      // Ghost snares on the and-of-1 and the and-of-3 (light)
+      s[2] = 0.5
+      if (meter >= 4) s[(backbeat + 1) * 4 + 2] = 0.5
+      // 16th-hat shimmer with a slight accent on the beat
+      for (let i = 0; i < N; i++) h[i] = (i % 4 === 0) ? 1 : 0.6
+    } else if (kit === 'jazz') {
+      // Spang-spang-a-lang: every beat on the ride (hat in our voice
+      // table), with the and-of-2 and and-of-4 also marked. Light snare
+      // on 2 and 4, kick "feathered" on every beat at low volume.
+      for (let b = 0; b < meter; b++) k[b * 4] = (b === 0) ? 1 : 0.5
+      for (let b = 0; b < meter; b += 2) {
+        if (b > 0) s[b * 4] = 0.5
+      }
+      for (let b = 0; b < meter; b++) {
+        h[b * 4] = 1
+        if (b === backbeat || b === meter - 1) h[b * 4 + 2] = 1
+      }
+    } else if (kit === 'latin') {
+      // 3-2 son clave on snare (rim), syncopated kick, constant 8th hat.
+      // 3-side: 1, and-of-2, 4   |  2-side: 2, 3 (both on the beat)
+      k[0] = 1
+      if (meter >= 4) k[6] = 1
+      // Clave hits — using rim/clave timbre via snare voice
+      s[0] = 0.5
+      if (meter >= 4) s[6] = 0.5
+      if (meter >= 4) s[12] = 0.5
+      if (meter >= 2) s[16 % N] = 0.5
+      if (meter >= 3) s[24 % N] = 0.5
+      for (let i = 0; i < N; i += 2) h[i] = (i % 4 === 0) ? 1 : 0.6
+    } else if (kit === 'disco') {
+      // Four-on-the-floor with an open-hat shimmer on the and-of-each-beat
+      for (let b = 0; b < meter; b++) k[b * 4] = 1
+      s[backbeat * 4] = 1
+      if (meter >= 4) s[(meter - 1) * 4] = 1
+      for (let b = 0; b < meter; b++) h[b * 4 + 2] = 1   // open-hat on the off-eighth
+    } else if (kit === 'ambient') {
+      // Almost no drums — kick on the downbeat of every other measure
+      // pattern (we only see one measure here, so just beat 1, soft) and
+      // an extremely soft brushy hat.
+      k[0] = 0.6
+      h[0] = 0.4
+      if (meter >= 4) h[(meter - 1) * 4 + 2] = 0.3
     }
     return {k, s, h}
   }

@@ -31,8 +31,43 @@
           <p class="c-menu--subtitle" data-i18n="menu.subtitle">Listen, remember, repeat.</p>
           <ul class="c-menu--list">
             <li><button class="c-menu--button" data-action="start" data-i18n="menu.start">Start Game</button></li>
+            <li><button class="c-menu--button" data-action="levelSelect" data-i18n="menu.levelSelect">Start at Level…</button></li>
             <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn the Sounds</button></li>
             <li><button class="c-menu--button" data-action="language" data-i18n="menu.language">Language</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--levelSelect">
+        <section class="c-screen c-menu a-levelSelect" tabindex="-1" data-i18n-attr="aria-label:levelSelect.aria">
+          <h1 class="c-menu--title" data-i18n="levelSelect.title">Start at Level</h1>
+          <p class="c-menu--subtitle" data-i18n="levelSelect.subtitle">Up/Down arrows to choose. Enter to start.</p>
+          <div class="a-levelSelect--display" aria-live="polite">
+            <span class="a-levelSelect--label" data-i18n="levelSelect.levelLabel">Level</span>
+            <span class="a-levelSelect--selected">1</span>
+            <span class="a-levelSelect--maxNote">
+              <span data-i18n="levelSelect.maxLabel">highest unlocked</span>
+              <span class="a-levelSelect--max">1</span>
+            </span>
+          </div>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-adjust="-1" data-i18n="levelSelect.decrease">Lower (Down)</button></li>
+            <li><button class="c-menu--button" data-adjust="1" data-i18n="levelSelect.increase">Higher (Up)</button></li>
+            <li><button class="c-menu--button" data-action="start">Start at Level 1</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="levelSelect.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--stylePreview" hidden>
+        <section class="c-screen c-menu a-stylePreview" tabindex="-1" data-i18n-attr="aria-label:stylePreview.aria">
+          <h1 class="c-menu--title" data-i18n="stylePreview.title">Style Previews</h1>
+          <p class="c-menu--subtitle" data-i18n="stylePreview.subtitle">Up/Down to choose a style. Left/Right to set level. Enter to audition. Escape to return.</p>
+          <p class="a-stylePreview--level" aria-live="polite"></p>
+          <ul class="c-menu--list a-stylePreview--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="stop" data-i18n="stylePreview.stop">Stop</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="stylePreview.back">Back</button></li>
           </ul>
         </section>
       </div>

@@ -38,12 +38,13 @@ In any key they form a 1-3-5-8 arpeggio, which is what `audio.tonalArpeggio()` (
 Defined in `content/game.js` and `content/styles.js`:
 
 ```
-bpm           = clamp(72 + 6 * (level - 1), ≤ 138)
-measures      = 1 + floor((level - 1) / 3)        // 1, 1, 1, 2, 2, 2, …
-meter         = pickMeter(style, level)           // 3, 4, 5, or 7 — palette per style
-subdivision   = subdivisionProbs(level)           // q/e/s shares per beat
-patternsPerLv = max(3, level * 2)                 // clean rounds to advance
+bpm           = clamp(72 + 8 * (level - 1), ≤ 168)  // cap at level-13 tempo
+measures      = 1 + floor((level - 1) / 4)          // 1×4, 2×4, 3×4, …
+meter         = pickMeter(style, level)             // 3, 4, 5, or 7 — palette per style
+subdivision   = subdivisionProbs(level)             // q/e/s shares per beat (caps at L10)
+patternsPerLv = max(3, level * 2)                   // clean rounds to advance
 lives         = 3 (max 5; bonus life on clean level w/ avg accuracy ≥ 0.75)
+tonality      = locked C major for L1-2; root shifts L3+; mode flips L4+
 ```
 
 Hit window per note is the note's **slot duration** in beats — a quarter has a beat-wide window, an eighth a half-beat, a sixteenth a quarter-beat. Tighter slot → more points (100 / 150 / 250). Clean-level bonus is `500 * level`.
@@ -74,7 +75,7 @@ All audio events for a level (count-in, hint notes, go cue, bridge chords) are p
 
 The pattern generator avoids three of the same arrow in a row — easy patterns get tedious, hard ones stop being audibly distinguishable. Each clean round generates a fresh random pattern; misses retry with a fresh pattern too (the same level is the contract, not the same notes).
 
-Between levels the game can **modulate**: stay, up/down a 4th or 5th, up/down a whole step, and from level 5+ flip mode (major↔minor). Below level 4 the game stays in C major so the player can learn the four arrow tones first. The modulation key is selected in `pickTonality()` and is announced to the player by ear — by the bridge measure that resolves into the new tonic.
+Between levels the game can **modulate**: stay, up/down a 4th or 5th, up/down a whole step, and from level 4+ flip mode (major↔minor). Levels 1-2 stay in C major so the player can learn the four arrow tones first; root shifts begin at level 3. The modulation key is selected in `pickTonality()` and is announced to the player by ear — by the bridge measure that resolves into the new tonic.
 
 ### Audio architecture
 
@@ -86,7 +87,7 @@ Four content modules:
 - `expand(descriptor, tonality)` → `{root, third, fifth, seventh, minor}` Hz — turns a `{r, t}` chord descriptor (relative to the active key) into concrete frequencies. `r` is semitones from the tonality root; `t` is one of the keys in `CHORD_TYPES` (`maj`, `min`, `maj7`, `min7`, `dom7`, `dim`, `halfdim`).
 - `keyName(rootSemitone, mode)` — for accessibility announcements.
 
-**`content.styles`** — registry of musical styles. Each style is a bag of knobs (`bpmRange`, `meterPalette`, `progressions`, `minorProgressions`, `drumKit`, `bassVoice`, `padVoice`, `leadVoice`, `pad` volume). Currently shipped: `lounge`, `synthwave`, `house`, `chiptune`, `rock`, `bossa`, `waltz`. Picker functions: `pickFor(prevId)` (avoids repeating the previous level's style), `pickMeter(style, level)` (canonical meter under level 3, palette mix above), `pickProgression(style, mode)`, `subdivisionProbs(level)`.
+**`content.styles`** — registry of musical styles. Each style is a bag of knobs (`bpmRange`, `meterPalette`, `progressions`, `minorProgressions`, `drumKit`, `bassVoice`, `padVoice`, `leadVoice`, `pad` volume). Currently shipped: `lounge`, `synthwave`, `house`, `chiptune`, `rock`, `waltz`, `funk`, `jazz`, `ambient`, `latin`, `disco`. Picker functions: `pickFor(prevId)` (avoids repeating the previous level's style), `pickMeter(style, level)` (canonical meter under level 3, palette mix above), `pickProgression(style, mode)`, `subdivisionProbs(level)`. The `bpmRange` knob is currently descriptive only — every style plays at the level's BPM so the difficulty curve stays consistent.
 
 **`content.audio`** — short one-shot cues. All voices route through `engine.mixer.input()` and use `StereoPannerNode`s; no binaural ear, no `engine.position`.
 - `hint(direction, when?)` / `echo(direction, when?)` — arrow timbres. Both adapt to the current `leadVoice` set by `setLeadVoice(name)` (`bell` / `square` / `pluck` / `mellow`). Same frequency + pan; hint is brighter (e.g. for `bell`, sine + 5th harmonic shimmer), echo is warmer (sub-octave / triangle), so the player tells own-playing from cue.
@@ -100,6 +101,8 @@ Four content modules:
 **`content.music`** — continuous procedural backing track. Audio-clock lookahead scheduler on `engine.loop.on('frame', tick)`; refills a 150 ms queue of upcoming 16th-step events. Voice families branch by the active style's `drumKit` / `bassVoice` / `padVoice`. Master bus at 0.32 with a fade-in/fade-out so transitions don't pop.
 
 Voicing keeps the bed out of the C4–C5 arrow band: bass starts at C2 (`content.theory.BASS_C`), pad sits an octave above, drums are broadband transients. Hints and echoes own the C4–C5 register (`content.theory.LEAD_C`).
+
+**Pad envelope is per-voice, not per-style.** `padChord()` reads the voice name (`saw`, `organ`, `rhodes`, `soft`, `strings`, `arp`) and picks both the timbre AND an attack/hold/release fraction. Bright pads (saw, organ) get a fast attack capped at 80 ms so the chord change lands ON the downbeat — a single shared `dur * 0.15` attack used to make the synthwave saw pad sound a half-beat late on every chord change. If you add a new pad voice, set its envelope explicitly; don't fall back to the default sine/triangle path expecting it to feel right.
 
 `content.music` exposes `start(opts)`, `stop()`, `configure(opts)` (called per level — switches style/meter/progression/tonality and optionally schedules a one-measure bridge in the OLD style starting at `alignAt`), `nextDownbeat()`, `bpm()` / `level()` getters. The bridge is scheduled by `content.game.enterIntro()` so the intro measure plays in the OLD style with old-tonic→new-V7 chord assignments per beat, and from measure 2 onward the lookahead automatically picks up the NEW style + progression.
 
@@ -124,11 +127,25 @@ The game screen binds raw `window.keydown` and dispatches to `content.game.handl
 
 A `learn` screen (`src/js/app/screen/learn.js`, reached from the main menu) auditions each of the four arrow voices in isolation — `hint` first, then `echo` ~600 ms later — so players can map timbre/pan/pitch to direction before committing to a real round. Buttons trigger via click; arrow keys also trigger via `app.controls.ui()`. The screen does NOT call `setLeadVoice` or `setTonality`, so it auditions whatever the last level left configured (defaults to `bell` in C major before any game has been played).
 
+### Level-select and persistence
+
+There's a player-visible `levelSelect` screen (`src/js/app/screen/levelSelect.js`, reached from the main menu) that lets players start at any previously-reached level. The "highest unlocked" level is bumped every time `pickLevelParams()` runs and persisted directly to `localStorage["beatstar.highestLevel"]` — NOT through `app.storage`, because the value should survive `engine.state` resets and there's no other persistent state in this game. `content.game` exposes `setStartLevel(n)` / `getStartLevel()` / `getHighestUnlocked()` / `bpmForLevel(level)` for the UI.
+
+The Main Menu's plain "Start Game" button always resets to level 1; "Start at Level…" goes through the picker. The gameover screen's "Play Again" honours whatever start level was last set, so a player practising level 10 doesn't get bumped to level 1 on death.
+
+### Hidden style-preview screen
+
+`Ctrl+Shift+P` from the main menu opens `src/js/app/screen/stylePreview.js` — a hidden audition screen that lists every style and plays a few measures (in C major) plus a short hint-note pass through the four arrows when Enter is pressed. Left/Right adjust a "preview level" that drives the BPM via `content.game.bpmForLevel`, and changing level mid-preview restarts the audition at the new tempo so timbre and tempo can be evaluated together. Useful for quickly catching when a style sounds out-of-sync or muddy at high BPM. There's no menu button — the hotkey is the only entry.
+
+### Menu nav utility
+
+`app.utility.menuNav.handle(ui, root)` translates an `app.controls.ui()` delta into focus moves through the focusable buttons inside `root` — Up = previous, Down = next. Wired into every menu-style screen (menu, language, gameover, levelSelect, stylePreview) so arrow keys navigate menus the way most players expect; Tab still works (focus-trap is untouched). Enter/Space activate the focused button via browser default — never wire an unconditional `if (ui.enter) dispatch('foo')` in a menu screen, that bypasses the focused selection.
+
 ### Possible extensions
 
-- **High scores** — drop in `app.highscores` (Pac-Man's `src/js/app/highscores.js` is the reference) with a `beatstar-highscores-v1` localStorage key. Wire the gameover screen to write the score and a `Top Scores` menu button to read it.
+- **High scores** — drop in `app.highscores` (Pac-Man's `src/js/app/highscores.js` is the reference) with a `beatstar-highscores-v1` localStorage key. Wire the gameover screen to write the score and a `Top Scores` menu button to read it. The `beatstar.highestLevel` localStorage key already demonstrates this pattern (small, persistent-across-resets values go to localStorage; richer state would still go through `app.storage`).
 - **Game-feel polish** — small haptic pulse on each hit/miss via `app.haptics.enqueue`. Per-beat visual flash in the HUD by subscribing to `onJudgement`.
-- **Style variant preview** — extend the Learn screen with a style picker so players can audition `lounge`/`synthwave`/`house`/`chiptune`/`rock`/`bossa`/`waltz` lead voices, then store a forced-style preference in `app.settings` (override `content.styles.pickFor` when set).
+- **Style variant preview** — already implemented as a hidden screen (see "Hidden screens" below). For a player-facing version, surface the same screen via a menu button and add an "audition both major and minor" toggle, then store a forced-style preference in `app.settings` (override `content.styles.pickFor` when set).
 - **Note density** — add a difficulty floor knob: at low levels only beats 1 and 3 carry notes (call beats 2 and 4 "rests" and skip the hint scheduler for them). Raises the floor and stretches the curve.
 - **Two-player** — the multiplayer pattern in the template's CLAUDE.md fits well: host generates the pattern, both peers race to echo it. Star topology, score-per-beat broadcast in the snapshot.
 

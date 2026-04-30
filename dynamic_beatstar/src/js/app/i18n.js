@@ -34,8 +34,30 @@ app.i18n = (() => {
       'menu.title': 'beatstar',
       'menu.subtitle': 'Listen, remember, repeat.',
       'menu.start': 'Start Game',
+      'menu.levelSelect': 'Start at Level…',
       'menu.learn': 'Learn the Sounds',
       'menu.language': 'Language',
+
+      // Style preview (hidden screen, Ctrl+Shift+P from main menu)
+      'stylePreview.aria': 'Style previews',
+      'stylePreview.title': 'Style Previews',
+      'stylePreview.subtitle': 'Up and Down to choose a style. Left and Right to set the level. Enter to audition. Escape to return.',
+      'stylePreview.stop': 'Stop',
+      'stylePreview.back': 'Back',
+      'stylePreview.level': 'Level {level} — {bpm} BPM',
+      'stylePreview.now': 'Now playing {style} at level {level}, {bpm} BPM.',
+
+      // Level-select
+      'levelSelect.aria': 'Pick a starting level',
+      'levelSelect.title': 'Start at Level',
+      'levelSelect.subtitle': 'Use Up and Down arrows to choose a level. Press Enter to start. The highest unlocked level grows as you play.',
+      'levelSelect.levelLabel': 'Level',
+      'levelSelect.maxLabel': 'Highest unlocked:',
+      'levelSelect.decrease': 'Lower (Down arrow)',
+      'levelSelect.increase': 'Higher (Up arrow)',
+      'levelSelect.start': 'Start at level {level}',
+      'levelSelect.back': 'Back',
+      'levelSelect.announceLevel': 'Level {level}.',
 
       // Learn
       'learn.aria': 'Learn the four arrow sounds',
@@ -127,8 +149,12 @@ app.i18n = (() => {
       'style.house':     'House',
       'style.chiptune':  'Chiptune',
       'style.rock':      'Rock',
-      'style.bossa':     'Bossa nova',
       'style.waltz':     'Waltz',
+      'style.funk':      'Funk',
+      'style.jazz':      'Jazz',
+      'style.ambient':   'Ambient',
+      'style.latin':     'Latin',
+      'style.disco':     'Disco',
 
       // Time signatures (announced and shown in HUD)
       'meter.3': 'three four time',
@@ -157,8 +183,30 @@ app.i18n = (() => {
       'menu.title': 'beatstar',
       'menu.subtitle': 'Escucha, recuerda, repite.',
       'menu.start': 'Empezar partida',
+      'menu.levelSelect': 'Empezar en nivel…',
       'menu.learn': 'Aprender los sonidos',
       'menu.language': 'Idioma',
+
+      // Vista previa de estilos (pantalla oculta, Ctrl+Shift+P)
+      'stylePreview.aria': 'Vista previa de estilos',
+      'stylePreview.title': 'Vista previa de estilos',
+      'stylePreview.subtitle': 'Arriba y Abajo para elegir un estilo. Izquierda y Derecha para fijar el nivel. Intro para escucharlo. Escape para volver.',
+      'stylePreview.stop': 'Parar',
+      'stylePreview.back': 'Atrás',
+      'stylePreview.level': 'Nivel {level} — {bpm} BPM',
+      'stylePreview.now': 'Sonando {style} en nivel {level}, {bpm} BPM.',
+
+      // Level-select
+      'levelSelect.aria': 'Elige un nivel de inicio',
+      'levelSelect.title': 'Empezar en nivel',
+      'levelSelect.subtitle': 'Usa las flechas Arriba y Abajo para elegir el nivel. Pulsa Intro para empezar. El nivel máximo desbloqueado crece según vas jugando.',
+      'levelSelect.levelLabel': 'Nivel',
+      'levelSelect.maxLabel': 'Máximo desbloqueado:',
+      'levelSelect.decrease': 'Bajar (flecha abajo)',
+      'levelSelect.increase': 'Subir (flecha arriba)',
+      'levelSelect.start': 'Empezar en nivel {level}',
+      'levelSelect.back': 'Atrás',
+      'levelSelect.announceLevel': 'Nivel {level}.',
 
       // Learn
       'learn.aria': 'Aprende los cuatro sonidos de las flechas',
@@ -249,8 +297,12 @@ app.i18n = (() => {
       'style.house':     'House',
       'style.chiptune':  'Chiptune',
       'style.rock':      'Rock',
-      'style.bossa':     'Bossa nova',
       'style.waltz':     'Vals',
+      'style.funk':      'Funk',
+      'style.jazz':      'Jazz',
+      'style.ambient':   'Ambient',
+      'style.latin':     'Latino',
+      'style.disco':     'Disco',
 
       // Time signatures (announced and shown in HUD)
       'meter.3': 'tres por cuatro',
