@@ -74,3 +74,61 @@
     text-align: center;
     width: 100%;
   }
+  .c-menu--peer {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 0.3rem;
+    padding: 0.5em 0.75em;
+    text-align: left;
+  }
+
+.a-multiplayer--name,
+.a-multiplayer--code {
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0.3rem;
+  color: #FFFFFF;
+  font-size: 1.05em;
+  margin-left: 0.5em;
+  padding: 0.4em 0.6em;
+  width: 12em;
+}
+
+.a-multiplayer--lobbyCode {
+  font-family: monospace;
+  font-size: 1.4em;
+  letter-spacing: 0.2em;
+}
+
+.a-multiplayer--peers {
+  list-style: none;
+  margin: 1em 0;
+  padding: 0;
+  width: min(28em, 90vw);
+}
+  .a-multiplayer--peers li {
+    margin-bottom: 0.3em;
+  }
+
+.a-game--mpRoster {
+  font-family: monospace;
+  font-size: 0.85em;
+  margin-top: 0.5rem;
+  opacity: 0.75;
+  text-align: center;
+}
+  .a-game--mpRoster:empty { display: none; }
+
+.a-gameover--mpRoster {
+  list-style: none;
+  margin: 1em 0;
+  padding: 0;
+  text-align: center;
+  width: min(28em, 90vw);
+}
+  .a-gameover--mpRoster li {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.3rem;
+    margin-bottom: 0.3em;
+    padding: 0.5em 0.75em;
+  }

@@ -147,9 +147,78 @@ The Main Menu's plain "Start Game" button always resets to level 1; "Start at Le
 - **Game-feel polish** — small haptic pulse on each hit/miss via `app.haptics.enqueue`. Per-beat visual flash in the HUD by subscribing to `onJudgement`.
 - **Style variant preview** — already implemented as a hidden screen (see "Hidden screens" below). For a player-facing version, surface the same screen via a menu button and add an "audition both major and minor" toggle, then store a forced-style preference in `app.settings` (override `content.styles.pickFor` when set).
 - **Note density** — add a difficulty floor knob: at low levels only beats 1 and 3 carry notes (call beats 2 and 4 "rests" and skip the hint scheduler for them). Raises the floor and stretches the curve.
-- **Two-player** — the multiplayer pattern in the template's CLAUDE.md fits well: host generates the pattern, both peers race to echo it. Star topology, score-per-beat broadcast in the snapshot.
 
-When in doubt about wiring screens, audio scheduling, or timing-window semantics, the implementation is small — `content/{audio,music,theory,styles,game}.js` and `app/screen/game.js` — just read it.
+## Multiplayer
+
+beatstar ships an online turn-rotation party mode (2–6 players). Documented separately because it touches network, state model, and audio scheduling. Lives in three files:
+
+- **`src/js/app/net.js`** — PeerJS wrapper. Same shape as the rest of the games (bumper / racing / tennis); see the Multiplayer section in the template's CLAUDE.md (parent dir's syngen template) for the canonical TURN config + gotchas. PEER_ID_PREFIX is `'beatstar-'` so room codes don't collide with other games on the public broker. Capacity is 1 host + 5 clients = 6 max.
+- **`src/js/app/screen/multiplayer.js`** — lobby (name + host/join + peer list + Start). Stripped of bumper's mode/duration radios since beatstar has only one mode.
+- **`src/js/content/mp.js`** — wire-protocol bridge between `content.game` and `app.net`. The only place that knows both sides exist. Loaded under `content/`, so app.net references must be lazy (`const NET = () => app.net`) — the alphabetical concat order means content modules load before app modules.
+
+### Game rules (player-facing)
+
+- Always starts at level 1 for everyone, regardless of any saved single-player progress. MP is a fresh communal climb each session.
+- Each player begins with **4 lives** (vs. 3 in single-player) and rotates turn-by-turn.
+- **Clean clear of a level** → shared global level advances + turn passes to next non-eliminated player.
+- **Any miss** → active player loses one life + turn passes (level stays).
+- **Lives drop to 0** → player eliminated. They keep watching (audio + HUD) but their keys do nothing.
+- **All players eliminated** → game over with leaderboard sorted by score.
+- Each peer that takes a turn at level N persists `localStorage["beatstar.highestLevel"] = max(current, N)` — so MP play unlocks single-player practice levels for that device's player. Eliminated players also bump on the level they died at. The check is per-peer: only the active player's peer ever bumps its own storage; spectators never accumulate levels for free.
+
+### Architecture (host-authoritative)
+
+Topology is the same star pattern as bumper/racing — host owns the simulation, clients mirror.
+
+- **Pattern generation** is host-only. On every new round (`enterIntro` or `enterRoundContinuation`), the host's `content.game` emits `onMpPatternStart` and `mp.js` broadcasts the full payload (style id, meter, tonality, progression, bridge chords, BPM, the pattern itself).
+- **Audio scheduling is independent per peer.** Each peer (host + clients) schedules its own count-in / hint cues / go cue / music against its own `audioContext.currentTime`. PeerJS messages are reliable + ordered, so cross-peer drift is bounded by ~50–200 ms of network latency at round start; within a single peer, audio is rock-solid because all timing derives from one local `T0`.
+- **Clients DO NOT run `content.game.frame()`** — the simulation only ticks on the host. `frame()` returns early on non-host peers in MP mode. This is critical: if clients ran their own miss-detection it would auto-fail the active player on every round.
+- **Active client input** plays an echo locally for zero-latency feel, then sends `mpInput {dir, offset}` to host where `offset = clientNow - clientT0`. Host applies via `handleArrow(dir, hostT0 + offset, originPeerId)` — translating client clock to host clock via the per-round T0 anchor. The input window judges against the offset, not the network arrival time, so a press that was on-time on the client's clock counts as on-time on the host's.
+- **Remote input grace.** When the active player is remote, host's `frame()` adds `MP_REMOTE_INPUT_GRACE_S = 0.35` to both the per-frame miss cutoff AND the echo→verdict transition. Without it, network RTT would auto-miss legitimate presses that arrived a tick after the local miss-detection ran.
+
+### Wire protocol
+
+Layered on top of `app.net`'s generic envelope. See `src/js/content/mp.js`'s top-of-file comment for the full schema; the message types are:
+
+- **h→c:** `mpInit`, `mpPatternStart`, `mpEcho`, `mpJudgement`, `mpRoster`, `mpAnnounce`, `mpGameOver`
+- **c→h:** `mpInput`
+
+`mpAnnounce` is host-broadcast for every `announce()` event from the host's `content.game`, so screen-reader users on every peer hear the same line. The client funnels it through `content.game.mpAnnounce(key, params, level)` which fires the local `onAnnounce` subscribers — same pipeline as a host-side announcement, so the game screen handler runs uniformly.
+
+### Race condition fix
+
+When the host transitions to the game screen and `content.mp.start({role:'host'})` runs, the obvious order would be: attach subscribers → `G().startMulti()` → which immediately calls `enterIntro()` → emits `mpPatternStart` → broadcasts. But clients haven't transitioned yet (they receive `mpInit` first, then async-FSM-transition to the game screen, then attach `content.mp`'s listener). The first `mpPatternStart` would hit clients before their listener exists.
+
+Fix: `mp.js`'s host path sends `mpInit` first, then defers `G().startMulti()` by 300 ms via `setTimeout`. That window covers the screen swap + listener attach on each client. PeerJS message ordering does the rest.
+
+### State model (`content.game.state.mp`)
+
+```
+mp: {
+  isHost,              // this peer is the room host
+  selfPeerId,          // this peer's PeerJS id
+  selfIndex,           // index of this peer in players[]
+  activeIndex,         // whose turn it is right now
+  players: [{          // shared roster; same order on every peer
+    peerId, name,
+    lives,             // starts at 4, decrements per miss, 0 = eliminated
+    score,             // per-player session score
+    eliminated,        // true once lives hit 0
+    highestLevel,      // max state.level this player was active for (gameover leaderboard)
+  }],
+  mpT0,                // local audio anchor for the current round; used to map active client's offsetFromT0 → host clock
+  lastTurnStats,       // {name, level, percent} from outgoing player; threaded into next intro's "Bob reached 87%" announce
+  finalRoster,         // snapshot frozen at game-over for the leaderboard render
+}
+```
+
+Note: there's no per-player `level` field — level is shared global state (`state.level`). `highestLevel` tracks the max level each player was active for, used only for the gameover leaderboard. Level itself advances on clean-clear and stays put on miss.
+
+### Persistence
+
+Each peer independently calls `bumpHighestUnlocked(state.level)` when it becomes the active player (host: in `passMpTurn` / `startMulti` / `enterMpVerdict` clean-clear / elimination paths; client: in `clientApplyPatternStart`). The check `activePlayer.peerId === state.mp.selfPeerId` ensures only the device whose player is actually playing bumps its own storage. The same `beatstar.highestLevel` key is shared with single-player level-clears, so MP and single-player progress are unified per device.
+
+When in doubt about wiring screens, audio scheduling, or timing-window semantics, the implementation is small — `content/{audio,music,theory,styles,game,mp}.js`, `app/net.js`, and `app/screen/{game,multiplayer,gameover}.js` — just read it.
 
 ## Starting a new game from this template
 

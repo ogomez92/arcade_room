@@ -50,11 +50,19 @@ content.game = (() => {
   const VERDICT_HOLD_S = 1.4
   const STARTING_LIVES = 3
   const MAX_LIVES = 5
+  const MP_STARTING_LIVES = 4
   const HIGHEST_UNLOCKED_KEY = 'beatstar.highestLevel'
+  // Extra grace at the end of an echo phase before declaring outstanding
+  // notes missed when the active player is on a remote peer. Absorbs
+  // network round-trip latency on the input → judgement path.
+  const MP_REMOTE_INPUT_GRACE_S = 0.35
 
   // Persist highest level the player has reached so the level-select
   // menu can offer it. localStorage (not app.storage) so it survives
   // engine.state resets and is readable before app.storage.ready().
+  // The same key is bumped from both single-player level-clears AND
+  // multiplayer turns the local peer played (see bumpLocalHighestIfMine
+  // below) so MP progress unlocks single-player practice levels.
   function readHighestUnlocked() {
     try {
       const raw = localStorage.getItem(HIGHEST_UNLOCKED_KEY)
@@ -75,6 +83,12 @@ content.game = (() => {
   let pendingStartLevel = 1
 
   const state = {
+    // 'single' = local solo play (existing behaviour)
+    // 'multi'  = host-authoritative party mode driven from content/mp.js.
+    //            In multi the simulation only runs on the host; clients
+    //            mirror via mp.js. content.game.frame() is a no-op on
+    //            non-host peers.
+    mode: 'single',
     phase: 'idle',
     level: 1,
     lives: STARTING_LIVES,
@@ -116,11 +130,39 @@ content.game = (() => {
     levelAccuracy: 0,
     levelPerfects: 0,
     lastLevelStats: null,        // {level, percent} — read by the next intro
+    // Multiplayer state (only populated when mode === 'multi'). Owned by
+    // the host; clients reflect a parallel copy via content/mp.js.
+    mp: {
+      isHost: false,
+      selfPeerId: null,
+      selfIndex: -1,
+      activeIndex: 0,
+      // [{peerId, name, lives, score, eliminated, level, highestLevel, patternsCleared}]
+      players: [],
+      // Local audio-clock anchor for the current round. Used to map an
+      // active client's keypress (clientPress - clientT0) back to host
+      // time (hostT0 + offset) when handleArrow is invoked remotely.
+      mpT0: 0,
+      // {level, percent, name} from the previous turn — read by the next
+      // turn's intro to read out "{prev.name} reached {percent} percent".
+      lastTurnStats: null,
+      // Final roster snapshot at game-over time; read by the gameover
+      // screen to render the leaderboard.
+      finalRoster: null,
+    },
   }
 
   const onAnnounce = []
   const onPhaseChange = []
   const onJudgement = []
+  // MP-only hooks. content/mp.js subscribes on the host to broadcast
+  // each event to clients (pattern data, judgements, turn handovers,
+  // roster state, game-over). Single-player play never fires them.
+  const onMpPatternStart = []
+  const onMpPlayerSwap = []
+  const onMpRoster = []
+  const onMpGameOver = []
+  const onMpEcho = []
 
   function announce(key, params, level) {
     for (const fn of onAnnounce.slice()) {
@@ -137,6 +179,42 @@ content.game = (() => {
   function emitJudgement(i, j) {
     for (const fn of onJudgement.slice()) {
       try { fn(i, j) } catch (e) { console.error(e) }
+    }
+  }
+  function emitMpPatternStart(payload) {
+    for (const fn of onMpPatternStart.slice()) {
+      try { fn(payload) } catch (e) { console.error(e) }
+    }
+  }
+  function emitMpPlayerSwap(payload) {
+    for (const fn of onMpPlayerSwap.slice()) {
+      try { fn(payload) } catch (e) { console.error(e) }
+    }
+  }
+  function emitMpRoster() {
+    if (state.mode !== 'multi') return
+    const snapshot = state.mp.players.map((p) => ({
+      peerId:        p.peerId,
+      name:          p.name,
+      lives:         p.lives,
+      score:         p.score,
+      eliminated:    p.eliminated,
+      level:         p.level,
+      highestLevel:  p.highestLevel,
+    }))
+    const payload = {activeIndex: state.mp.activeIndex, players: snapshot}
+    for (const fn of onMpRoster.slice()) {
+      try { fn(payload) } catch (e) { console.error(e) }
+    }
+  }
+  function emitMpGameOver(payload) {
+    for (const fn of onMpGameOver.slice()) {
+      try { fn(payload) } catch (e) { console.error(e) }
+    }
+  }
+  function emitMpEcho(dir) {
+    for (const fn of onMpEcho.slice()) {
+      try { fn(dir) } catch (e) { console.error(e) }
     }
   }
 
@@ -418,6 +496,47 @@ content.game = (() => {
 
     setPhase('intro')
 
+    if (state.mode === 'multi') {
+      // Capture local audio anchor for input timing translation. The
+      // active client sends arrow presses with offsetFromT0 = clientNow -
+      // clientT0; the host applies handleArrow at hostT0 + offsetFromT0
+      // so latency doesn't drag presses into the next beat's window.
+      state.mp.mpT0 = T0
+      // Broadcast the round to clients so they schedule the same audio
+      // locally on their own clocks.
+      emitMpPatternStart({
+        kind:         'level',
+        freshLevel:   true,
+        isFirstRound: !!isFirstRound,
+        activeIndex:  state.mp.activeIndex,
+        level:        state.level,
+        styleId:      state.style ? state.style.id : null,
+        prevStyleId:  state.prevStyle ? state.prevStyle.id : null,
+        meter:        meter,
+        measures:     measures,
+        bpm:          state.bpm,
+        tonality:     state.tonality,
+        prevTonality: state.prevTonality,
+        progression:  state.progression,
+        bridgeChords: bridgeChords,
+        pattern:      state.pattern,
+        modulationKey: state.modulationKey,
+      })
+      // The MP turn announcement (who's playing + their level) is owned
+      // by the player-swap broadcast so it can include the previous
+      // turn's stats. Suppress the single-player level announcement and
+      // emit the MP variant instead.
+      if (isFirstRound) {
+        announce('ann.mpTurn', {
+          name:      state.mp.players[state.mp.activeIndex].name,
+          level:     state.level,
+          prevStats: state.mp.lastTurnStats,
+        }, 'assertive')
+        state.mp.lastTurnStats = null
+      }
+      return
+    }
+
     // Only announce the level info on the FIRST round of a level.
     // Round 2+ just plays the count-in and gets straight back to it.
     if (!isFirstRound) return
@@ -488,6 +607,11 @@ content.game = (() => {
 
     const clean = state.levelMisses === 0
     const t0 = A().now() + 0.05
+
+    if (state.mode === 'multi') {
+      enterMpVerdict(clean, t0)
+      return
+    }
 
     if (clean) {
       state.patternsCleared++
@@ -596,11 +720,332 @@ content.game = (() => {
     A().go(transitionEnd - 0.5 * beatDur)
 
     setPhase('hint')
+
+    if (state.mode === 'multi') {
+      // For round-continuation, mpT0 anchors at hintT0 (no intro
+      // measure). Clients align by their own M().nextDownbeat() rather
+      // than re-running the bridge.
+      state.mp.mpT0 = hintT0
+      emitMpPatternStart({
+        kind:         'round',
+        freshLevel:   false,
+        samePattern:  !!samePattern,
+        activeIndex:  state.mp.activeIndex,
+        level:        state.level,
+        styleId:      state.style ? state.style.id : null,
+        meter:        meter,
+        measures:     measures,
+        bpm:          state.bpm,
+        tonality:     state.tonality,
+        progression:  state.progression,
+        pattern:      state.pattern,
+      })
+    }
   }
 
   function enterGameOver() {
     M().stop()
     setPhase('gameover')
+  }
+
+  // ----------------------------------------------------------------
+  // Multiplayer: turn rotation, elimination, end-of-round outcomes.
+  // Only the host runs this logic; clients mirror via content/mp.js.
+  // ----------------------------------------------------------------
+
+  function activeMpPlayer() {
+    return state.mp.players[state.mp.activeIndex] || null
+  }
+
+  // Snapshot the active player's per-turn counters (lives + score) back
+  // into their record. Level is shared across all players in MP — only
+  // the per-player record's `highestLevel` is updated to remember the
+  // top level they personally played.
+  function syncToActiveMpPlayer() {
+    const p = activeMpPlayer()
+    if (!p) return
+    p.lives = state.lives
+    p.score = state.score
+    if (state.level > p.highestLevel) p.highestLevel = state.level
+  }
+
+  // Hydrate state.lives / state.score from the active player's record
+  // so the existing single-player paths render the right counters.
+  // Level is shared and is NOT taken from the per-player record.
+  function syncFromActiveMpPlayer() {
+    const p = activeMpPlayer()
+    if (!p) return
+    state.lives = p.lives
+    state.score = p.score
+  }
+
+  // If this peer's player is the one playing right now, persist the
+  // current level to localStorage so the single-player level-select
+  // menu unlocks it. Each peer only ever bumps its own highest — a
+  // watching client never accumulates levels for free.
+  function bumpLocalHighestIfMine() {
+    const p = activeMpPlayer()
+    if (!p) return
+    if (p.peerId !== state.mp.selfPeerId) return
+    bumpHighestUnlocked(state.level)
+  }
+
+  function nextActiveMpIndex() {
+    const players = state.mp.players
+    const N = players.length
+    for (let step = 1; step <= N; step++) {
+      const idx = (state.mp.activeIndex + step) % N
+      if (!players[idx].eliminated) return idx
+    }
+    return -1
+  }
+
+  // Called when the active player either misses or clears a level. Swaps
+  // to the next non-eliminated player and starts a fresh intro at THEIR
+  // current level (different style/meter/key likely → bridge handles
+  // the modulation transition naturally). lastTurnStats threads the
+  // outgoing player's accuracy snapshot through to the next player's
+  // intro announcement so the room hears "Bob reached 87 percent".
+  function passMpTurn(reasonStats) {
+    syncToActiveMpPlayer()
+    const next = nextActiveMpIndex()
+    if (next < 0) {
+      // No surviving players — game over.
+      enterMpGameOver()
+      return
+    }
+    state.mp.activeIndex = next
+    state.mp.lastTurnStats = reasonStats || null
+
+    const prevStyle    = state.style
+    const prevTonality = state.tonality
+    // Reset per-level (per-turn) stat counters so the new player starts
+    // with a clean accuracy slate. patternsCleared also resets because
+    // each turn is a fresh attempt at the current global level. (Level
+    // itself is shared and only advances on a clean clear.)
+    state.levelHits        = 0
+    state.levelMissesTotal = 0
+    state.levelAccuracy    = 0
+    state.levelPerfects    = 0
+    state.patternsCleared  = 0
+
+    syncFromActiveMpPlayer()
+    pickLevelParams(state.level, prevStyle, prevTonality)
+    // Bump the new active player's record to mark they reached this
+    // level, then bump local single-player unlock if it's this peer.
+    const newActive = activeMpPlayer()
+    if (newActive && state.level > newActive.highestLevel) {
+      newActive.highestLevel = state.level
+    }
+    bumpLocalHighestIfMine()
+    emitMpRoster()
+
+    enterIntro(true, true)
+  }
+
+  function enterMpGameOver() {
+    // Make sure local single-player unlock reflects this peer's final
+    // reached level (covers the case where the local player IS the
+    // current active one when the round ends).
+    bumpLocalHighestIfMine()
+    state.mp.finalRoster = state.mp.players.map((p) => ({
+      peerId:       p.peerId,
+      name:         p.name,
+      score:        p.score,
+      highestLevel: p.highestLevel,
+      eliminated:   p.eliminated,
+    }))
+
+    state.lastReason = 'verdict.gameOver'
+    const t0 = A().now() + 0.05
+    state.phaseStart = t0
+    state.phaseEnd   = t0 + VERDICT_HOLD_S
+    setPhase('verdict')
+    A().gameOver(t0)
+    announce('ann.mpGameover', {}, 'assertive')
+    emitMpRoster()
+    emitMpGameOver({roster: state.mp.finalRoster})
+  }
+
+  // Multi-player verdict: clean = round done, miss = lose a life and
+  // pass turn (also pass if the level is fully cleared). Mirrors
+  // single-player enterVerdict but routes outcomes through passMpTurn.
+  function enterMpVerdict(clean, t0) {
+    const player = activeMpPlayer()
+    if (!player) { enterMpGameOver(); return }
+
+    if (clean) {
+      state.patternsCleared++
+      state.totalPatternsCleared++
+      if (state.patternsCleared >= state.patternsRequired) {
+        // LEVEL CLEAR — bonus, level up, pass turn.
+        const bonus = 500 * state.level
+        state.score += bonus
+        const total = state.levelHits + state.levelMissesTotal
+        const percent = total > 0 ? Math.round(state.levelHits / total * 100) : 0
+        const clearedLevel = state.level
+
+        // Reset per-level stats and advance the shared level.
+        state.levelHits = 0; state.levelMissesTotal = 0
+        state.levelAccuracy = 0; state.levelPerfects = 0
+        state.level++
+        state.patternsCleared = 0
+
+        // Mark the new (just-unlocked) level on the player's record
+        // and persist locally if it's this peer.
+        if (state.level > player.highestLevel) player.highestLevel = state.level
+        bumpLocalHighestIfMine()
+
+        state.lastReason = 'verdict.levelClear'
+        state.phaseStart = t0
+        state.phaseEnd   = t0 + VERDICT_HOLD_S
+        setPhase('verdict')
+        A().levelUp(t0)
+        announce('ann.mpClear', {
+          name:    player.name,
+          level:   clearedLevel,
+          bonus:   bonus,
+          percent: percent,
+        }, 'assertive')
+        emitMpRoster()
+        // The verdict pump (frame() switch) will call passMpTurn() once
+        // the verdict pause ends.
+      } else {
+        // ROUND CLEAR — same player, next pattern, no pause.
+        announce('ann.roundClear', {
+          cleared: state.patternsCleared,
+          total:   state.patternsRequired,
+        }, 'polite')
+        enterRoundContinuation(false)
+      }
+    } else {
+      // MISS — lose a life and pass turn (or eliminate).
+      state.lives = Math.max(0, state.lives - 1)
+      const total = state.levelHits + state.levelMissesTotal
+      const percent = total > 0 ? Math.round(state.levelHits / total * 100) : 0
+      const turnStats = {name: player.name, level: state.level, percent}
+
+      if (state.lives <= 0) {
+        // Player eliminated. Sync into the player's record then mark
+        // eliminated. If the room is empty, game over; otherwise pass.
+        player.lives = 0
+        player.score = state.score
+        if (state.level > player.highestLevel) player.highestLevel = state.level
+        // Local single-player unlock: if this peer just got eliminated,
+        // record the level they died on so they can practice it solo.
+        bumpLocalHighestIfMine()
+        player.eliminated = true
+
+        A().fail(t0)
+        announce('ann.mpEliminated', {
+          name:  player.name,
+          level: state.level,
+        }, 'assertive')
+
+        const next = nextActiveMpIndex()
+        if (next < 0) {
+          enterMpGameOver()
+          return
+        }
+        emitMpRoster()
+        // Pass to next non-eliminated player. No verdict pause; the fail
+        // cue overlaps the new turn announce, which is fine because the
+        // next intro plays a count-in measure of music underneath.
+        passMpTurn(turnStats)
+      } else {
+        A().fail(t0)
+        announce('ann.mpMissTurn', {
+          name:   player.name,
+          lives:  state.lives,
+        }, 'assertive')
+        passMpTurn(turnStats)
+      }
+    }
+  }
+
+  // Enter MP from the lobby. `players` = [{peerId, name}], in the order
+  // the host sends; turn rotation walks that order. Per the design,
+  // multiplayer always starts at level 1 for everyone — the per-peer
+  // saved highest only feeds the single-player level-select.
+  function startMulti({players, selfPeerId, isHost}) {
+    state.mode = 'multi'
+    state.mp.isHost      = !!isHost
+    state.mp.selfPeerId  = selfPeerId || null
+    state.mp.players     = (players || []).map((p) => ({
+      peerId:       p.peerId,
+      name:         p.name,
+      lives:        MP_STARTING_LIVES,
+      score:        0,
+      eliminated:   false,
+      highestLevel: 1,
+    }))
+    state.mp.selfIndex   = state.mp.players.findIndex((p) => p.peerId === selfPeerId)
+    state.mp.activeIndex = 0
+    state.mp.lastTurnStats = null
+    state.mp.finalRoster = null
+
+    // Reset shared session state. Level always begins at 1 in MP; it
+    // advances on clean clears regardless of which player is active.
+    state.level = 1
+    state.patternsCleared = 0
+    state.lives = MP_STARTING_LIVES
+    state.score = 0
+
+    state.lastReason = ''
+    state.totalHits = 0; state.totalMisses = 0
+    state.totalAccuracy = 0; state.perfectHits = 0
+    state.totalPatternsCleared = 0
+    state.levelHits = 0; state.levelMissesTotal = 0
+    state.levelAccuracy = 0; state.levelPerfects = 0
+    state.lastLevelStats = null
+
+    if (!state.mp.isHost) {
+      // Clients don't run the simulation. content/mp.js drives audio
+      // and HUD updates from broadcast events. Push initial roster to
+      // listeners so the screen can render before the first round.
+      emitMpRoster()
+      return
+    }
+
+    // Mark first active player as having reached level 1.
+    const firstActive = activeMpPlayer()
+    if (firstActive) firstActive.highestLevel = 1
+    bumpLocalHighestIfMine()
+
+    syncFromActiveMpPlayer()
+    pickLevelParams(state.level, null, null)
+    M().start({
+      bpm:         state.bpm,
+      style:       state.style,
+      meter:       state.meter,
+      tonality:    state.tonality,
+      progression: state.progression,
+    })
+    emitMpRoster()
+    enterIntro(true, true)
+  }
+
+  function endMulti() {
+    state.mode = 'single'
+    state.mp.players = []
+    state.mp.activeIndex = 0
+    state.mp.selfIndex = -1
+    state.mp.selfPeerId = null
+    state.mp.isHost = false
+    state.mp.lastTurnStats = null
+    state.mp.finalRoster = null
+  }
+
+  // Called by content/mp.js on the host when an active client sends an
+  // input. offsetFromT0 is (clientPressTime - clientT0) — adding it to
+  // hostT0 (mp.mpT0) gives the equivalent host-clock judging time. If
+  // the network round-trip dropped the press past the echo window,
+  // handleArrow falls into the "no live slot" path and consumes the
+  // miss, same as a local late press.
+  function handleRemoteArrow(direction, offsetFromT0, originPeerId) {
+    if (state.mode !== 'multi' || !state.mp.isHost) return
+    const t = state.mp.mpT0 + Math.max(0, offsetFromT0 || 0)
+    handleArrow(direction, t, originPeerId || null)
   }
 
   // ----------------------------------------------------------------
@@ -615,14 +1060,30 @@ content.game = (() => {
 
   function frame() {
     if (state.phase === 'idle' || state.phase === 'gameover') return
+    // In multi mode, only the host advances the simulation. Clients run
+    // their own audio scheduling from broadcast events via content/mp.js
+    // but never tick the state machine themselves — otherwise their
+    // local miss-detection would auto-fail the active remote player.
+    if (state.mode === 'multi' && !state.mp.isHost) return
+
     const t = A().now()
 
+    // When the active player is remote, network round-trip can delay
+    // their inputs by ~50–200ms past the local audio clock. Extend both
+    // the miss-detection cutoff and the echo→verdict transition by
+    // MP_REMOTE_INPUT_GRACE_S so a press-on-time arriving slightly late
+    // still gets credited rather than firing a phantom miss.
+    const activeIsRemote = state.mode === 'multi'
+      && state.mp.players[state.mp.activeIndex]
+      && state.mp.players[state.mp.activeIndex].peerId !== state.mp.selfPeerId
+    const grace = activeIsRemote ? MP_REMOTE_INPUT_GRACE_S : 0
+
     // Audio-time-gate the miss check (same reasoning as handleArrow).
-    if (t >= state.echoStartTime && t < state.echoEndTime + state.beatDur) {
+    if (t >= state.echoStartTime && t < state.echoEndTime + state.beatDur + grace) {
       for (let i = 0; i < state.pattern.length; i++) {
         if (state.judged[i]) continue
         const closeAt = noteTime(i) + noteWindow(i)
-        if (t > closeAt) {
+        if (t > closeAt + grace) {
           state.judged[i] = 'miss'
           state.levelMisses++
           state.totalMisses++
@@ -632,7 +1093,8 @@ content.game = (() => {
       }
     }
 
-    if (t < state.phaseEnd) return
+    const phaseEndAdj = state.phase === 'echo' ? state.phaseEnd + grace : state.phaseEnd
+    if (t < phaseEndAdj) return
 
     switch (state.phase) {
       case 'intro':       enterHint(); break
@@ -640,19 +1102,36 @@ content.game = (() => {
       case 'transition':  enterEcho(); break
       case 'echo':        enterVerdict(); break
       case 'verdict':
-        // The verdict phase is now ONLY entered for level clear (with
-        // bridge to next level) or game over. Round clear and miss
-        // both call enterRoundContinuation() directly from
-        // enterVerdict(), bypassing the pause.
+        // In single mode the verdict phase is only entered for level
+        // clear or game over. In multi the verdict phase is entered for
+        // both, and additionally for any miss / level-clear that needs
+        // to pause for fail / levelUp audio before passing turn.
         if (state.lastReason === 'verdict.gameOver') {
           enterGameOver()
         } else if (state.lastReason === 'verdict.levelClear') {
-          const prevStyle    = state.style
-          const prevTonality = state.tonality
-          state.level++
-          state.patternsCleared = 0
-          pickLevelParams(state.level, prevStyle, prevTonality)
-          enterIntro(true, true)
+          if (state.mode === 'multi') {
+            // After the levelUp fanfare finishes, swap to next player.
+            const total = state.levelHits + state.levelMissesTotal
+            const player = activeMpPlayer()
+            const stats = player ? {
+              name:    player.name,
+              level:   state.level - 1,
+              percent: total > 0 ? Math.round(state.levelHits / total * 100) : 0,
+            } : null
+            // levelHits/levelMissesTotal will be reset by passMpTurn's
+            // syncTo + syncFrom cycle. Manually reset them now so the
+            // next active player starts with clean per-level stats.
+            state.levelHits = 0; state.levelMissesTotal = 0
+            state.levelAccuracy = 0; state.levelPerfects = 0
+            passMpTurn(stats)
+          } else {
+            const prevStyle    = state.style
+            const prevTonality = state.tonality
+            state.level++
+            state.patternsCleared = 0
+            pickLevelParams(state.level, prevStyle, prevTonality)
+            enterIntro(true, true)
+          }
         }
         break
     }
@@ -667,8 +1146,18 @@ content.game = (() => {
     return 250
   }
 
-  function handleArrow(direction) {
-    const t = A().now()
+  function handleArrow(direction, atTime, originPeerId) {
+    // atTime override is used by handleRemoteArrow on the host so a
+    // client's keypress is judged against the timestamp the client
+    // reported (clientNow at press) rather than against the host's
+    // post-network-roundtrip wallclock.
+    const t = atTime != null ? atTime : A().now()
+    // emitMpEcho is wired up by content/mp.js on the host to broadcast
+    // {type:'mpEcho', dir, origin} to clients; clients echo unless they
+    // were the originator (they already played the echo locally for
+    // zero-latency feedback). Single-player play has no listener so the
+    // emit is a no-op.
+    emitMpEcho({dir: direction, origin: originPeerId || null})
     // Gate judging on AUDIO TIME, not state.phase. The frame pump may
     // be a tick or two behind audio (especially when transition has
     // zero duration — hint→transition→echo cross on adjacent samples
@@ -751,6 +1240,160 @@ content.game = (() => {
     }
   }
 
+  // ----------------------------------------------------------------
+  // Client-side passive audio scheduling. Non-host peers don't run the
+  // game state machine; they receive mpPatternStart broadcasts and
+  // schedule the same music + count-in + hint cues + go cue locally so
+  // the round sounds the same on every peer's speakers. Each peer's
+  // audio plays on its own audioContext clock — within a peer it's
+  // internally consistent; across peers there's a small (~50–200 ms)
+  // network-induced offset, but no drift mid-round because all timing
+  // derives from the same local T0.
+  // ----------------------------------------------------------------
+  function clientResolveStyle(styleId) {
+    if (styleId && ST().get) return ST().get(styleId)
+    return state.style || (ST().get && ST().get('lounge'))
+  }
+
+  function clientApplyPatternStart(payload) {
+    if (!payload) return
+    const meter      = payload.meter
+    const measures   = payload.measures
+    const bpm        = payload.bpm
+    const beatDur    = 60 / bpm
+    const tonality   = payload.tonality
+    const style      = clientResolveStyle(payload.styleId)
+    const prevStyle  = clientResolveStyle(payload.prevStyleId) || state.style || style
+
+    state.bpm       = bpm
+    state.beatDur   = beatDur
+    state.meter     = meter
+    state.measures  = measures
+    state.style     = style
+    state.tonality  = tonality
+    state.progression = payload.progression
+    state.pattern   = payload.pattern || []
+    state.judged    = new Array(state.pattern.length)
+
+    A().setLeadVoice(style.leadVoice)
+    A().setTonality(tonality.rootSemitone, tonality.mode)
+
+    const isFresh = !!payload.freshLevel
+    const hasIntro = isFresh
+    const introMeasures = hasIntro ? 1 : 0
+    // Anchor the round's audio to the next bar boundary the local music
+    // has lined up — so hint cues land on the local kick. For fresh
+    // levels we always run the bridge / count-in measure, so we have
+    // T0 = now + 0.12 (matching enterIntro). For round continuation,
+    // align to nextDownbeat so hint cues land on the next local bar.
+    let T0
+    if (isFresh) {
+      T0 = A().now() + 0.12
+    } else {
+      const nd = (M().nextDownbeat && M().nextDownbeat()) || (A().now() + 0.12)
+      T0 = nd > A().now() + 0.05 ? nd : nd + meter * beatDur
+    }
+
+    const introEnd      = T0 + introMeasures * meter * beatDur
+    const hintEnd       = introEnd + measures * meter * beatDur
+    const transMeasures = measures >= 2 ? 1 : 0
+    const transitionEnd = hintEnd + transMeasures * meter * beatDur
+    const echoEnd       = transitionEnd + measures * meter * beatDur
+
+    state.phaseStart    = T0
+    state.phaseEnd      = introEnd
+    state.echoStartTime = transitionEnd
+    state.echoEndTime   = echoEnd
+    state.mp.activeIndex = payload.activeIndex
+    state.mp.mpT0       = T0
+
+    if (isFresh) {
+      const bridgeChords = payload.bridgeChords
+        || buildBridgeChords(meter, payload.prevTonality || null, tonality)
+      // Start music if it's not already running — first round of game.
+      // M().start() is a no-op if music is already running, so always
+      // calling it here is safe and avoids needing an isRunning probe.
+      M().start({bpm, style, meter, tonality, progression: payload.progression})
+      M().configure({
+        bpm, style,
+        bridgeStyle: prevStyle || style,
+        meter, tonality,
+        progression: payload.progression,
+        bridgeChords,
+        alignAt: T0,
+      })
+      A().countIn(T0, beatDur, meter)
+    }
+
+    for (const n of state.pattern) {
+      A().hint(n.dir, introEnd + n.beat * beatDur + 0.002)
+    }
+    A().go(transitionEnd - 0.5 * beatDur)
+
+    setPhase(isFresh ? 'intro' : 'hint')
+
+    // Sync the active player's mirrored stats so the HUD reflects them.
+    // Level is shared and comes from the broadcast directly.
+    state.level = payload.level
+    const p = state.mp.players[state.mp.activeIndex]
+    if (p) {
+      state.lives = p.lives
+      state.score = p.score
+      if (state.level > p.highestLevel) p.highestLevel = state.level
+    }
+    // If this peer is the active player, persist the new level to
+    // localStorage so the single-player level-select reflects it.
+    if (p && p.peerId === state.mp.selfPeerId) {
+      bumpHighestUnlocked(state.level)
+    }
+  }
+
+  // Apply a roster snapshot from the host. activeIndex + per-player
+  // {lives, score, eliminated, highestLevel} overwrites local mirrored
+  // state. Level is shared and arrives via mpPatternStart, not here.
+  function clientApplyRoster(payload) {
+    if (!payload) return
+    state.mp.activeIndex = payload.activeIndex | 0
+    for (const ps of (payload.players || [])) {
+      const p = state.mp.players.find((q) => q.peerId === ps.peerId)
+      if (!p) continue
+      p.lives        = ps.lives
+      p.score        = ps.score
+      p.eliminated   = !!ps.eliminated
+      p.highestLevel = ps.highestLevel
+    }
+    const ap = state.mp.players[state.mp.activeIndex]
+    if (ap) {
+      state.lives = ap.lives
+      state.score = ap.score
+    }
+  }
+
+  function clientApplyJudgement(beatIndex, kind) {
+    if (beatIndex < 0 || beatIndex >= state.pattern.length) return
+    state.judged[beatIndex] = kind
+    if (kind === 'miss') state.levelMissesTotal++
+    else state.levelHits++
+    emitJudgement(beatIndex, kind)
+  }
+
+  function clientApplyEcho(payload) {
+    if (!payload) return
+    if (payload.origin && payload.origin === state.mp.selfPeerId) return
+    A().echo(payload.dir)
+  }
+
+  function clientApplyGameOver(payload) {
+    state.mp.finalRoster = (payload && payload.roster) || state.mp.players.slice()
+    M().stop()
+    setPhase('gameover')
+  }
+
+  function clientStop() {
+    M().stop()
+    setPhase('idle')
+  }
+
   function setStartLevel(n) {
     pendingStartLevel = Math.max(1, Math.min(readHighestUnlocked(), n | 0))
   }
@@ -758,12 +1401,32 @@ content.game = (() => {
   function getHighestUnlocked() { return readHighestUnlocked() }
   function bpmForLevel(level) { return bpmFor(Math.max(1, level | 0)) }
 
+  // Suppress the unused-emitter warning — emitMpPlayerSwap is reserved
+  // for future use (e.g. broadcasting an explicit "turn-only" event so
+  // clients can play a UI cue distinct from a mid-round roster update).
+  void emitMpPlayerSwap
+
+  // Re-emit a host-broadcast announce on the client so the game
+  // screen's existing onAnnounce subscriber renders it identically.
+  function mpAnnounce(key, params, level) {
+    announce(key, params || {}, level || 'polite')
+  }
+
   return {
     state,
     start, stop, isActive, frame, handleArrow,
     setStartLevel, getStartLevel, getHighestUnlocked, bpmForLevel,
+    // Multiplayer
+    startMulti, endMulti, handleRemoteArrow, mpAnnounce,
+    clientApplyPatternStart, clientApplyRoster, clientApplyJudgement,
+    clientApplyEcho, clientApplyGameOver, clientStop,
     onAnnounce:    (fn) => { onAnnounce.push(fn);    return () => onAnnounce.splice(onAnnounce.indexOf(fn), 1) },
     onPhaseChange: (fn) => { onPhaseChange.push(fn); return () => onPhaseChange.splice(onPhaseChange.indexOf(fn), 1) },
     onJudgement:   (fn) => { onJudgement.push(fn);   return () => onJudgement.splice(onJudgement.indexOf(fn), 1) },
+    onMpPatternStart: (fn) => { onMpPatternStart.push(fn); return () => onMpPatternStart.splice(onMpPatternStart.indexOf(fn), 1) },
+    onMpPlayerSwap:   (fn) => { onMpPlayerSwap.push(fn);   return () => onMpPlayerSwap.splice(onMpPlayerSwap.indexOf(fn), 1) },
+    onMpRoster:       (fn) => { onMpRoster.push(fn);       return () => onMpRoster.splice(onMpRoster.indexOf(fn), 1) },
+    onMpGameOver:     (fn) => { onMpGameOver.push(fn);     return () => onMpGameOver.splice(onMpGameOver.indexOf(fn), 1) },
+    onMpEcho:         (fn) => { onMpEcho.push(fn);         return () => onMpEcho.splice(onMpEcho.indexOf(fn), 1) },
   }
 })()

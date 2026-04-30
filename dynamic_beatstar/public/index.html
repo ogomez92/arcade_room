@@ -21,6 +21,7 @@
             <span class="a-game--lives"></span>
             <span class="a-game--phase"></span>
           </div>
+          <p class="a-game--mpRoster" aria-live="polite"></p>
           <p class="a-game--help" data-i18n="game.help"></p>
         </section>
       </div>
@@ -32,6 +33,7 @@
           <ul class="c-menu--list">
             <li><button class="c-menu--button" data-action="start" data-i18n="menu.start">Start Game</button></li>
             <li><button class="c-menu--button" data-action="levelSelect" data-i18n="menu.levelSelect">Start at Level…</button></li>
+            <li><button class="c-menu--button" data-action="multiplayer" data-i18n="menu.multiplayer">Multiplayer</button></li>
             <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn the Sounds</button></li>
             <li><button class="c-menu--button" data-action="language" data-i18n="menu.language">Language</button></li>
           </ul>
@@ -99,10 +101,56 @@
             <dt data-i18n="gameover.statAccuracy">Accuracy</dt> <dd class="a-gameover--statAccuracy"></dd>
             <dt data-i18n="gameover.statPerfect">Perfect hits</dt> <dd class="a-gameover--statPerfect"></dd>
           </dl>
+          <ol class="a-gameover--mpRoster" hidden></ol>
           <ul class="c-menu--list">
             <li><button class="c-menu--button" data-action="retry" data-i18n="gameover.retry">Play Again</button></li>
             <li><button class="c-menu--button" data-action="menu"  data-i18n="gameover.menu">Main Menu</button></li>
           </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--multiplayer">
+        <section class="c-screen c-menu a-multiplayer" tabindex="-1" data-i18n-attr="aria-label:mp.aria">
+          <h1 class="c-menu--title" data-i18n="mp.title">Multiplayer</h1>
+          <p class="c-menu--subtitle" data-i18n="mp.subtitle">Take turns: each miss passes to the next player. Lose 4 lives and you're out. Last player standing wins.</p>
+
+          <div class="a-multiplayer--home">
+            <p class="c-menu--prose">
+              <label><span data-i18n="mp.nameLabel">Your name:</span>
+                <input class="a-multiplayer--name" type="text" maxlength="16" autocomplete="off" />
+              </label>
+            </p>
+            <ul class="c-menu--list">
+              <li><button class="c-menu--button" data-action="host" data-i18n="mp.host">Host a game</button></li>
+              <li><button class="c-menu--button" data-action="joinForm" data-i18n="mp.joinForm">Join with room code</button></li>
+              <li><button class="c-menu--button" data-action="back" data-i18n="mp.backMenu">Back to main menu</button></li>
+            </ul>
+          </div>
+
+          <div class="a-multiplayer--joinForm" hidden>
+            <p class="c-menu--prose">
+              <label><span data-i18n="mp.codeLabel">Room code:</span>
+                <input class="a-multiplayer--code" type="text" maxlength="8" autocomplete="off" autocapitalize="characters" />
+              </label>
+            </p>
+            <ul class="c-menu--list">
+              <li><button class="c-menu--button" data-action="join" data-i18n="mp.connect">Connect</button></li>
+              <li><button class="c-menu--button" data-action="cancel" data-i18n="mp.cancel">Back</button></li>
+            </ul>
+          </div>
+
+          <div class="a-multiplayer--lobby" hidden>
+            <p class="c-menu--prose">
+              <span data-i18n="mp.lobbyRoomPrefix">Room code: </span><strong class="a-multiplayer--lobbyCode"></strong>.
+              <span data-i18n="mp.lobbyShare">Share this with friends so they can join.</span>
+            </p>
+            <p class="c-menu--prose a-multiplayer--lobbyStatus" role="status" aria-live="polite"></p>
+            <ul class="c-menu--list a-multiplayer--peers"></ul>
+            <ul class="c-menu--list">
+              <li><button class="c-menu--button a-multiplayer--start" data-action="start" hidden data-i18n="mp.start">Start round</button></li>
+              <li><button class="c-menu--button" data-action="leave" data-i18n="mp.leave">Leave room</button></li>
+            </ul>
+          </div>
         </section>
       </div>
 
@@ -132,6 +180,7 @@
       </div>
 
     </main>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="./scripts.min.js"></script>
   </body>
 </html>

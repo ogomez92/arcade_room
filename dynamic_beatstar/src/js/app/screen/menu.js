@@ -8,6 +8,7 @@ app.screen.menu = app.screenManager.invent({
       this.change('game')
     },
     levelSelect: function () { this.change('levelSelect') },
+    multiplayer: function () { this.change('multiplayer') },
     learn: function () { this.change('learn') },
     language: function () { this.change('language') },
     stylePreview: function () { this.change('stylePreview') },
