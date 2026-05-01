@@ -1,0 +1,46 @@
+.a-gameover {
+  align-items: center;
+  text-align: center;
+}
+  .a-gameover--reason {
+    font-size: 1.1em;
+    opacity: 0.85;
+  }
+  .a-gameover--score {
+    font-size: 2.4em;
+    font-weight: bold;
+    margin: 0.5rem 0;
+  }
+  .a-gameover--best {
+    opacity: 0.8;
+  }
+  .a-gameover--rank-msg {
+    color: #FFD37A;
+    font-weight: bold;
+  }
+  .a-gameover--form {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 1rem;
+  }
+    .a-gameover--label {
+      font-size: 1em;
+    }
+    .a-gameover--name {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-radius: 0.4rem;
+      color: #FFFFFF;
+      font-size: 1.05em;
+      padding: 0.5em 0.7em;
+      width: min(20em, 80vw);
+    }
+    .a-gameover--name:focus {
+      border-color: #FFFFFF;
+      outline: none;
+    }
+    .a-gameover--submit {
+      width: min(14em, 60vw);
+    }

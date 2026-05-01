@@ -1,0 +1,27 @@
+.a-game {
+  align-items: center;
+  text-align: center;
+}
+  .a-game--hud {
+    display: grid;
+    gap: 0.4rem 1rem;
+    grid-template-columns: auto auto;
+    font-family: monospace;
+    font-size: 1.6em;
+    margin-top: 1rem;
+  }
+    .a-game--hud-row {
+      display: contents;
+    }
+    .a-game--hud-label {
+      opacity: 0.7;
+      text-align: right;
+    }
+    .a-game--hud-row > span:last-child {
+      text-align: left;
+    }
+  .a-game--hint {
+    margin-top: 1.5rem;
+    max-width: 30em;
+    opacity: 0.75;
+  }

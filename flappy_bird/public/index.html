@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title data-i18n="doc.title">Audio Flappy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <!-- Screen reader announcer regions, always live -->
+      <div class="a-app--announce u-sr-only" aria-live="polite" aria-atomic="true"></div>
+      <div class="a-app--announce-assertive u-sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+      <!-- Game screen -->
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <div class="a-game--hud">
+            <div class="a-game--hud-row">
+              <span class="a-game--hud-label" data-i18n="game.scoreLabel">Score</span>
+              <span class="a-game--score-value">0</span>
+            </div>
+            <div class="a-game--hud-row">
+              <span class="a-game--hud-label" data-i18n="game.bestLabel">Best</span>
+              <span class="a-game--best-value">0</span>
+            </div>
+            <div class="a-game--hud-row">
+              <span class="a-game--hud-label" data-i18n="game.altitudeLabel">Altitude</span>
+              <span class="a-game--altitude-value">mid</span>
+            </div>
+          </div>
+          <p class="a-game--hint" data-i18n="splash.subtitle">Listen, flap, survive.</p>
+        </section>
+      </div>
+
+      <!-- Game over screen -->
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Game over</h1>
+          <p class="a-gameover--reason"></p>
+          <p class="a-gameover--score"></p>
+          <p class="a-gameover--best"></p>
+          <p class="a-gameover--rank-msg" hidden data-i18n="gameover.newRecord">New high score!</p>
+          <form class="a-gameover--form" hidden>
+            <label class="a-gameover--label" data-i18n="gameover.namePrompt" for="a-gameover--name-input">Enter your name to record this run:</label>
+            <input id="a-gameover--name-input" class="a-gameover--name" type="text" maxlength="16" data-i18n-attr="placeholder:gameover.namePlaceholder" />
+            <button type="submit" class="c-menu--button a-gameover--submit" data-i18n="gameover.save">Save</button>
+          </form>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="continue" data-i18n="gameover.continue">Continue</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Main menu -->
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Audio Flappy</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">Choose an option below.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="play" data-i18n="menu.play">Play</button></li>
+            <li><button class="c-menu--button" data-action="tutorial" data-i18n="menu.tutorial">Tutorial</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to play</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn the sounds</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="menu.highscores">High scores</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="menu.language">Language</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Tutorial -->
+      <div class="a-app--screen a-app--tutorial">
+        <section class="c-screen c-menu a-tutorial" tabindex="-1" data-i18n-attr="aria-label:tutorial.aria">
+          <h1 class="c-menu--title" data-i18n="tutorial.title">Tutorial</h1>
+          <p class="a-tutorial--progress" aria-live="off"></p>
+          <h2 class="a-tutorial--heading"></h2>
+          <p class="a-tutorial--body"></p>
+          <p class="c-menu--subtitle" data-i18n="tutorial.hint">Press Enter to continue, Space to replay the sound, Esc to skip.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="replay" data-i18n="tutorial.replay">Replay sound</button></li>
+            <li><button class="c-menu--button" data-action="next" data-i18n="tutorial.next">Next</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="tutorial.skip">Skip to menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Help / how to play -->
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to play</h1>
+          <div class="c-menu--prose">
+            <p data-i18n="help.intro">Flap to keep the bird airborne and pass through the gaps in incoming pipes.</p>
+            <h2 data-i18n="help.controlsTitle">Controls</h2>
+            <ul>
+              <li data-i18n-html="help.flap"></li>
+              <li data-i18n-html="help.menuNav"></li>
+            </ul>
+            <h2 data-i18n="help.statusTitle">Status hotkeys</h2>
+            <ul>
+              <li data-i18n-html="help.f1"></li>
+              <li data-i18n-html="help.f2"></li>
+              <li data-i18n-html="help.f3"></li>
+              <li data-i18n-html="help.f4"></li>
+            </ul>
+            <h2 data-i18n="help.audioTitle">Listening guide</h2>
+            <ul>
+              <li data-i18n="help.audio1"></li>
+              <li data-i18n="help.audio2"></li>
+              <li data-i18n="help.audio3"></li>
+              <li data-i18n="help.audio4"></li>
+              <li data-i18n="help.audio5"></li>
+            </ul>
+          </div>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Learn the sounds -->
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen c-menu a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 class="c-menu--title" data-i18n="learn.title">Learn the sounds</h1>
+          <p class="c-menu--subtitle" data-i18n="learn.subtitle">Audition each cue individually.</p>
+          <ul class="c-menu--list a-learn--nav"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="learn.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- High scores -->
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen c-menu a-highscores" tabindex="-1" data-i18n-attr="aria-label:highscores.aria">
+          <h1 class="c-menu--title" data-i18n="highscores.title">High scores</h1>
+          <p class="c-menu--subtitle" data-i18n="highscores.subtitle">Top 10 scores on this device.</p>
+          <ol class="c-menu--list a-highscores--list"></ol>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="highscores.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Language picker -->
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Splash -->
+      <div class="a-app--screen a-app--splash">
+        <section class="c-screen a-splash" tabindex="-1">
+          <h1 class="a-splash--logo" data-i18n="menu.title">Audio Flappy</h1>
+          <p class="a-splash--tagline" data-i18n="splash.subtitle">A pure-audio Flappy Bird. Listen, flap, survive.</p>
+          <div class="a-splash--details">
+            <div class="a-splash--version"></div>
+            <div class="a-splash--author" data-i18n="splash.author">an audio-first arcade</div>
+          </div>
+          <div class="a-splash--instruction" data-i18n="splash.instruction">Press any key to begin</div>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

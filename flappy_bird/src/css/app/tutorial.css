@@ -1,0 +1,19 @@
+.a-tutorial {
+  align-items: center;
+  text-align: center;
+}
+  .a-tutorial--progress {
+    font-family: monospace;
+    font-size: 0.9em;
+    margin-bottom: 0.4rem;
+    opacity: 0.65;
+  }
+  .a-tutorial--heading {
+    font-size: 1.6em;
+    margin: 0.2rem 0 0.6rem 0;
+  }
+  .a-tutorial--body {
+    line-height: 1.5;
+    margin: 0 auto;
+    max-width: 36em;
+  }
