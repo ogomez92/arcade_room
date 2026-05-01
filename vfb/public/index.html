@@ -28,6 +28,7 @@
           <ul class="a-menu--list" role="menu">
             <li role="none"><button role="menuitem" data-action="start" tabindex="0" data-i18n="menu.start">Start Game</button></li>
             <li role="none"><button role="menuitem" data-action="howto" tabindex="0" data-i18n="menu.howto">How to Play</button></li>
+            <li role="none"><button role="menuitem" data-action="sounds" tabindex="0" data-i18n="menu.sounds">Learn Sounds</button></li>
             <li role="none"><button role="menuitem" data-action="language" tabindex="0" data-i18n="menu.language">Language</button></li>
             <li role="none"><button role="menuitem" data-action="quit" tabindex="0" data-i18n="menu.quit">Quit</button></li>
           </ul>
@@ -92,6 +93,18 @@
 
             <p class="a-menu--howto-tip" data-i18n="howto.tip"></p>
           </div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--sounds">
+        <section class="c-screen c-menu a-sounds" tabindex="-1" data-i18n-attr="aria-label:sounds.aria">
+          <h1 class="c-menu--title" data-i18n="sounds.title">Learn Sounds</h1>
+          <p class="c-menu--subtitle" data-i18n="sounds.subtitle">Browse the sounds the game uses. Press Enter or click an item to hear it.</p>
+          <div class="a-sounds--current" aria-live="polite" data-sounds="now"></div>
+          <ul class="c-menu--list a-sounds--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="sounds.back">Back</button></li>
+          </ul>
         </section>
       </div>
 

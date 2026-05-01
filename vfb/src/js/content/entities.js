@@ -97,12 +97,18 @@ content.entities = (() => {
         content.world.clearScreenNoisily()
       }
       this.hp -= 1
+      const kind = this._loopKind()
       if (this.hp >= 1) {
-        if (this.hitName) audio().beamHit(this.ex, this.ey, S().y)
+        // Non-killing hit — per-kind cue so multi-HP enemies like Bouncer
+        // sound distinct from a kill, and the listener gets a class-specific
+        // confirmation that the shot connected.
+        audio().enemyHit(kind, this.ex, this.ey, S().y, false)
         this.hitAct()
       }
       if (this.hp <= 0 || (insta && !this.noburst)) {
-        audio().beamHit(this.ex, this.ey, S().y)
+        // Killing hit — per-kind impact layered on top of the explode that
+        // follows in deathAct(), so the kill reads as "impact + boom".
+        audio().enemyHit(kind, this.ex, this.ey, S().y, true)
         if (this.ground) {
           content.state.addScore(this.scoreMult * lvl())
         } else {

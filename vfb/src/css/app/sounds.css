@@ -1,0 +1,23 @@
+.a-sounds {
+  align-items: center;
+  text-align: center;
+}
+  .a-sounds--list {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 0.5em;
+  }
+  .a-sounds--header {
+    color: #ffce00;
+    font-size: 1.05em;
+    letter-spacing: 0.05em;
+    margin: 1em 0 0.25em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+  .a-sounds--current {
+    color: #aaa;
+    font-style: italic;
+    min-height: 1.5em;
+    opacity: 0.85;
+  }

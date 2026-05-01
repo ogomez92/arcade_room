@@ -51,7 +51,7 @@ content.audio = (() => {
     gainParam.exponentialRampToValueAtTime(0.0001, t0 + attack + sustain + release)
   }
 
-  function tone({freq, type = 'sine', duration = 0.2, peak = 0.4, ex = 5, ey = 0, py = 0, sweep = 0, attack = 0.01, release = 0.05}) {
+  function tone({freq, type = 'sine', duration = 0.2, peak = 0.4, ex = 5, ey = 0, py = 0, sweep = 0, attack = 0.01, release = 0.05, refY = 30}) {
     init()
     const when = ctx.currentTime
     const osc = ctx.createOscillator()
@@ -64,7 +64,7 @@ content.audio = (() => {
     const gain = ctx.createGain()
     osc.connect(gain)
 
-    const panner = makePanner(ex, ey, py)
+    const panner = makePanner(ex, ey, py, refY)
     gain.connect(panner.input)
     panner.output.connect(out)
 
@@ -75,7 +75,7 @@ content.audio = (() => {
     return {stop: (t) => { try { osc.stop(t || ctx.currentTime) } catch (_) {} }}
   }
 
-  function noise({duration = 0.2, peak = 0.3, ex = 5, ey = 0, py = 0, color = 'white', filter}) {
+  function noise({duration = 0.2, peak = 0.3, ex = 5, ey = 0, py = 0, color = 'white', filter, refY = 30}) {
     init()
     const when = ctx.currentTime
     const buffer = color == 'pink'
@@ -101,7 +101,7 @@ content.audio = (() => {
     const gain = ctx.createGain()
     last.connect(gain)
 
-    const panner = makePanner(ex, ey, py)
+    const panner = makePanner(ex, ey, py, refY)
     gain.connect(panner.input)
     panner.output.connect(out)
 
@@ -229,75 +229,106 @@ content.audio = (() => {
     let masterPeak = peak * 0.30   // tuned per-kind below
 
     switch (kind) {
+      // Ground enemies: steady, tremolo-free drones. Air enemies (below)
+      // keep their tremolos/breathing filters so the listener can tell at
+      // a glance "this thing is on the ground" vs "this thing is flying".
       case 'tower': {
-        // Heavy stationary ground generator: mains hum + rumble, slow load.
-        const hum = o('square', 55, cents)
-        const humLp = f('lowpass', 180, 0.5)
-        const humG = g(0.32)
+        // Heavy stationary generator — mains-style hum + brown rumble +
+        // mid grind. All layers steady; no LFO modulation anywhere.
+        const hum = o('square', 50, cents)
+        const humLp = f('lowpass', 170, 0.5)
+        const humG = g(0.34)
         hum.connect(humLp); humLp.connect(humG); humG.connect(master)
 
+        const grind = n('pink')
+        const grindBp = f('bandpass', 320, 1.6)
+        const grindG = g(0.28)
+        grind.connect(grindBp); grindBp.connect(grindG); grindG.connect(master)
+
         const rum = n('brown')
-        const rumLp = f('lowpass', 320, 0.7)
+        const rumLp = f('lowpass', 280, 0.7)
         const rumG = g(0.55)
-        const trem = tremolo(1.5 * rate)
-        rum.connect(rumLp); rumLp.connect(rumG); rumG.connect(trem); trem.connect(master)
-        masterPeak = peak * 0.42
+        rum.connect(rumLp); rumLp.connect(rumG); rumG.connect(master)
+        masterPeak = peak * 0.5
         break
       }
 
       case 'ground-base': {
-        // enemy_2: industrial emplacement. Constant grind, no pulses — sits
-        // *under* tower's tremolo so the two read as different ground objects.
+        // Industrial emplacement — three steady layers (deep grind,
+        // resonant mid hum, sub body). No tremolo: ground enemy.
         const grind = n('brown')
-        const grindLp = f('lowpass', 280, 0.8)
-        const grindG = g(0.5)
+        const grindLp = f('lowpass', 320, 0.7)
+        const grindG = g(0.7)
         grind.connect(grindLp); grindLp.connect(grindG); grindG.connect(master)
 
-        const body = o('sawtooth', 80 * (1 + (jit - 0.5) * 0.04))
-        const bodyLp = f('lowpass', 240, 0.6)
-        const bodyG = g(0.22)
+        const hum = n('pink')
+        const humBp = f('bandpass', 240, 1.4)
+        const humG = g(0.42)
+        hum.connect(humBp); humBp.connect(humG); humG.connect(master)
+
+        const body = o('sawtooth', 70 * (1 + (jit - 0.5) * 0.04))
+        const bodyLp = f('lowpass', 200, 0.6)
+        const bodyG = g(0.34)
         body.connect(bodyLp); bodyLp.connect(bodyG); bodyG.connect(master)
-        masterPeak = peak * 0.36
+        masterPeak = peak * 0.58
         break
       }
 
       case 'flier-light': {
-        // Level-1 small ship: high turbine whine. Almost all air, no body
-        // weight — instantly distinguishable from any ground enemy.
-        const air = n('pink')
-        const airHp = f('highpass', 2400)
-        const airBp = f('bandpass', 3200, 3.5)
-        const airG = g(0.45)
-        air.connect(airHp); airHp.connect(airBp); airBp.connect(airG); airG.connect(master)
+        // Small fighter craft. The old "high turbine whine" was thin and
+        // whistly; this version layers a mid prop wash, a quiet body band,
+        // and a sub-perceptual saw so it reads as a small *vehicle* — still
+        // bright and distinguishable from heavy fliers, just less whistle.
+        const wash = n('pink')
+        const washBp = f('bandpass', 1500, 1.3)
+        const washG = g(0.45)
+        const trem = tremolo(7 * rate)
+        wash.connect(washBp); washBp.connect(washG); washG.connect(trem); trem.connect(master)
 
-        // Thin jet whine, fast pitch warble so it's never read as a note.
-        const whine = o('triangle', 1100 * (1 + (jit - 0.5) * 0.06))
-        const wLfo = o('sine', 7.5 * rate)
-        const wDepth = g(45)
-        wLfo.connect(wDepth); wDepth.connect(whine.detune)
-        const wLp = f('lowpass', 1800, 0.5)
-        const wG = g(0.10)
-        whine.connect(wLp); wLp.connect(wG); wG.connect(master)
-        masterPeak = peak * 0.32
+        const body = n('pink')
+        const bodyBp = f('bandpass', 420, 1.0)
+        const bodyG = g(0.32)
+        body.connect(bodyBp); bodyBp.connect(bodyG); bodyG.connect(master)
+
+        const sub = o('sawtooth', 115 * (1 + (jit - 0.5) * 0.05))
+        const subLp = f('lowpass', 260, 0.5)
+        const subG = g(0.18)
+        sub.connect(subLp); subLp.connect(subG); subG.connect(master)
+
+        const wlfo = o('sine', 5.5 * rate)
+        const wDepth = g(22)
+        wlfo.connect(wDepth); wDepth.connect(sub.detune)
+        masterPeak = peak * 0.42
         break
       }
 
       case 'flier-heavy': {
-        // enemy_4 armored: chunky low-mid roar with breathing filter.
+        // Heavy armored airship: chunky low-mid roar, mid metallic
+        // resonance for the hull, sub thump, breathing filter on the roar.
         const roar = n('pink')
-        const roarBp = f('bandpass', 700, 1.0)
-        const roarG = g(0.4)
+        const roarBp = f('bandpass', 480, 1.1)
+        const roarG = g(0.5)
         roar.connect(roarBp); roarBp.connect(roarG); roarG.connect(master)
 
-        const sub = o('sawtooth', 75 * (1 + (jit - 0.5) * 0.04))
-        const subLp = f('lowpass', 280, 0.6)
+        const rumble = n('brown')
+        const rumLp = f('lowpass', 220, 0.5)
+        const rumG = g(0.42)
+        rumble.connect(rumLp); rumLp.connect(rumG); rumG.connect(master)
+
+        const plate = n('pink')
+        const plateBp = f('bandpass', 850, 2.0)
+        const plateG = g(0.20)
+        plate.connect(plateBp); plateBp.connect(plateG); plateG.connect(master)
+
+        const sub = o('sawtooth', 65 * (1 + (jit - 0.5) * 0.04))
+        const subLp = f('lowpass', 200, 0.6)
         const subG = g(0.32)
         sub.connect(subLp); subLp.connect(subG); subG.connect(master)
 
         const lfo = o('sine', 0.6 * rate)
         const lfoD = g(180)
         lfo.connect(lfoD); lfoD.connect(roarBp.frequency)
-        masterPeak = peak * 0.40
+        masterPeak = peak * 0.5
         break
       }
 
@@ -377,23 +408,25 @@ content.audio = (() => {
       }
 
       case 'slider-ground': {
-        // enemy_8 ground turret: tank-tread chunk-clack over a low grind.
+        // Ground turret — steady armoured drone (no tremolo: ground enemy).
+        // The old tank-tread tremolo clack is replaced with a continuous
+        // metallic mid-band so it still reads as armour, but rhythmically
+        // flat like the other ground enemies.
         const grind = n('brown')
         const grindLp = f('lowpass', 360, 0.6)
-        const grindG = g(0.45)
+        const grindG = g(0.5)
         grind.connect(grindLp); grindLp.connect(grindG); grindG.connect(master)
 
         const chunk = o('sawtooth', 65, cents)
         const chunkLp = f('lowpass', 220, 0.5)
-        const chunkG = g(0.22)
+        const chunkG = g(0.25)
         chunk.connect(chunkLp); chunkLp.connect(chunkG); chunkG.connect(master)
 
-        const click = n('white')
-        const clickBp = f('bandpass', 1500, 2.5)
-        const clickG = g(0.22)
-        const trem = tremolo(2.5 * rate)
-        click.connect(clickBp); clickBp.connect(clickG); clickG.connect(trem); trem.connect(master)
-        masterPeak = peak * 0.40
+        const metal = n('pink')
+        const metalBp = f('bandpass', 900, 2.0)
+        const metalG = g(0.22)
+        metal.connect(metalBp); metalBp.connect(metalG); metalG.connect(master)
+        masterPeak = peak * 0.42
         break
       }
 
@@ -521,93 +554,52 @@ content.audio = (() => {
     return tone({freq, duration: dur, type, peak, ex: 5, ey: 0})
   }
 
-  // Music: simple looped pad layer
-  function startMusic(level = 1) {
-    init()
-    if (musicNodes) return
-    const root = 110 + (level - 1) * 5
-    const osc1 = ctx.createOscillator(); osc1.type = 'sawtooth'; osc1.frequency.value = root
-    const osc2 = ctx.createOscillator(); osc2.type = 'square';   osc2.frequency.value = root * 1.5
-    const osc3 = ctx.createOscillator(); osc3.type = 'triangle'; osc3.frequency.value = root * 0.5
-
-    const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.25
-    const lfoGain = ctx.createGain(); lfoGain.gain.value = 6
-    lfo.connect(lfoGain); lfoGain.connect(osc2.detune)
-
-    const flt = ctx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = 600; flt.Q.value = 2
-
-    const g = ctx.createGain(); g.gain.value = 0.025
-    osc1.connect(flt); osc2.connect(flt); osc3.connect(flt)
-    flt.connect(g); g.connect(out)
-    osc1.start(); osc2.start(); osc3.start(); lfo.start()
-    musicNodes = {oscs: [osc1, osc2, osc3, lfo], g}
-  }
-
-  function stopMusic() {
-    if (!musicNodes) return
-    const t = ctx.currentTime
-    const {oscs, g} = musicNodes
-    g.gain.cancelScheduledValues(t)
-    g.gain.setValueAtTime(g.gain.value, t)
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5)
-    oscs.forEach((o) => { try { o.stop(t + 0.55) } catch (_) {} })
-    musicNodes = null
-  }
-
-  let musicNodes = null
-
-  // Engine looped sound. Layered like a real turbine:
-  //   * Two detuned saws make the throaty body.
-  //   * A square one octave up adds blade harmonics.
-  //   * Pink noise through a bandpass gives air/whoosh that opens with speed.
-  //   * A subtle tremolo LFO makes it feel mechanical instead of static.
-  // The lowpass filter cutoff and the noise band both ride speed alongside
-  // pitch, so the listener gets multiple cues that the ship is accelerating.
+  // Engine — muffled airship drone. Two noise layers, both heavily
+  // lowpassed; nothing above ~600 Hz so the engine sounds like it's heard
+  // through the gondola wall. No oscillators (no notes), all filters
+  // low-Q (no resonance peak), slow irrational wobbles keep it alive.
+  //   * Hull rumble — brown noise, lowpass ~250 Hz. The dominant layer.
+  //   * Soft air — pink noise, narrow band 150–550 Hz. Quiet support so
+  //     the rumble has texture without any hiss.
+  // Speed cues are spectral: throttle modestly brightens both filters
+  // and lifts the air layer.
   function startEngine() {
     init()
     if (engineNodes) return
 
-    const oscA = ctx.createOscillator(); oscA.type = 'sawtooth'; oscA.frequency.value = 80; oscA.detune.value = -8
-    const oscB = ctx.createOscillator(); oscB.type = 'sawtooth'; oscB.frequency.value = 80; oscB.detune.value = +8
-    const oscC = ctx.createOscillator(); oscC.type = 'square';   oscC.frequency.value = 160
+    const rumbleBuf = engine.buffer.brownNoise({channels: 1, duration: 4})
+    const rumbleSrc = ctx.createBufferSource()
+    rumbleSrc.buffer = rumbleBuf; rumbleSrc.loop = true
+    const rumbleLp = ctx.createBiquadFilter()
+    rumbleLp.type = 'lowpass'; rumbleLp.frequency.value = 240; rumbleLp.Q.value = 0.4
+    const rumbleG = ctx.createGain(); rumbleG.gain.value = 0.5
+    rumbleSrc.connect(rumbleLp); rumbleLp.connect(rumbleG)
 
-    const tonalGain = ctx.createGain(); tonalGain.gain.value = 0.55
-    oscA.connect(tonalGain); oscB.connect(tonalGain); oscC.connect(tonalGain)
+    const airBuf = engine.buffer.pinkNoise({channels: 1, duration: 4})
+    const airSrc = ctx.createBufferSource()
+    airSrc.buffer = airBuf; airSrc.loop = true
+    const airHp = ctx.createBiquadFilter()
+    airHp.type = 'highpass'; airHp.frequency.value = 150; airHp.Q.value = 0.4
+    const airLp = ctx.createBiquadFilter()
+    airLp.type = 'lowpass'; airLp.frequency.value = 550; airLp.Q.value = 0.3
+    const airG = ctx.createGain(); airG.gain.value = 0.16
+    airSrc.connect(airHp); airHp.connect(airLp); airLp.connect(airG)
 
-    // Lowpass cap kept below the band where most enemy loops live (~700 Hz
-    // and up) so the engine sits *under* enemies instead of masking them.
-    const flt = ctx.createBiquadFilter()
-    flt.type = 'lowpass'
-    flt.frequency.value = 380
-    flt.Q.value = 0.7
-    tonalGain.connect(flt)
+    const wobbleA = ctx.createOscillator(); wobbleA.type = 'sine'; wobbleA.frequency.value = 0.27
+    const wobbleAD = ctx.createGain(); wobbleAD.gain.value = 50
+    wobbleA.connect(wobbleAD); wobbleAD.connect(rumbleLp.frequency)
 
-    // Air noise component — quieter than before so distant enemy hiss isn't
-    // drowned by the player's own air rush.
-    const noiseBuf = engine.buffer.pinkNoise({channels: 1, duration: 2})
-    const noiseSrc = ctx.createBufferSource()
-    noiseSrc.buffer = noiseBuf; noiseSrc.loop = true
-    const noiseFlt = ctx.createBiquadFilter()
-    noiseFlt.type = 'bandpass'
-    noiseFlt.frequency.value = 480
-    noiseFlt.Q.value = 0.8
-    const noiseGain = ctx.createGain(); noiseGain.gain.value = 0.10
-    noiseSrc.connect(noiseFlt); noiseFlt.connect(noiseGain)
+    const wobbleB = ctx.createOscillator(); wobbleB.type = 'sine'; wobbleB.frequency.value = 0.41
+    const wobbleBD = ctx.createGain(); wobbleBD.gain.value = 90
+    wobbleB.connect(wobbleBD); wobbleBD.connect(airLp.frequency)
 
-    // Tremolo: slow gain wobble so the engine breathes.
-    const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 6.5
-    const lfoDepth = ctx.createGain(); lfoDepth.gain.value = 0.035
-    lfo.connect(lfoDepth)
-
-    // Master nearly halved (was 0.08) so a single enemy loop is plainly
-    // audible over the engine even at full speed.
-    const master = ctx.createGain(); master.gain.value = 0.045
-    flt.connect(master); noiseGain.connect(master)
-    lfoDepth.connect(master.gain)
-
+    const master = ctx.createGain(); master.gain.value = 0.06
+    rumbleG.connect(master); airG.connect(master)
     master.connect(out)
-    oscA.start(); oscB.start(); oscC.start(); noiseSrc.start(); lfo.start()
-    engineNodes = {oscA, oscB, oscC, noiseSrc, noiseFlt, flt, lfo, master, lfoDepth}
+
+    rumbleSrc.start(); airSrc.start()
+    wobbleA.start(); wobbleB.start()
+    engineNodes = {rumbleSrc, airSrc, rumbleLp, airLp, airG, wobbleA, wobbleB, master}
   }
 
   function setEnginePitch(speed) {
@@ -615,18 +607,12 @@ content.audio = (() => {
     const t = ctx.currentTime
     // speed is ms per forward step: 300 fastest, 700 slowest.
     const ratio = engine.fn.clamp((700 - speed) / 400, 0, 1)
-    // Pitch sweeps a perceptually-meaningful range (~octave and a half).
-    const fundamental = 55 + ratio * 110            // 55..165 Hz
-    engineNodes.oscA.frequency.setTargetAtTime(fundamental, t, 0.08)
-    engineNodes.oscB.frequency.setTargetAtTime(fundamental, t, 0.08)
-    engineNodes.oscC.frequency.setTargetAtTime(fundamental * 2, t, 0.08)
-    // Open the filter and air-band as we accelerate, but cap well below the
-    // ≈700 Hz floor of the enemy turbine/whoosh band so the engine never
-    // climbs into the same spectral space as an enemy.
-    engineNodes.flt.frequency.setTargetAtTime(280 + ratio * 380, t, 0.1)
-    engineNodes.noiseFlt.frequency.setTargetAtTime(380 + ratio * 320, t, 0.1)
-    // Faster -> tremolo speeds up too (turbine spin).
-    engineNodes.lfo.frequency.setTargetAtTime(5 + ratio * 7, t, 0.15)
+    // Modest spectral movement — the engine works a little harder, the
+    // air band opens, but everything stays below ~700 Hz so the muffled
+    // character is preserved at any throttle.
+    engineNodes.airLp.frequency.setTargetAtTime(480 + ratio * 220, t, 0.3)
+    engineNodes.rumbleLp.frequency.setTargetAtTime(210 + ratio * 90, t, 0.3)
+    engineNodes.airG.gain.setTargetAtTime(0.13 + ratio * 0.08, t, 0.3)
   }
 
   function stopEngine() {
@@ -636,15 +622,15 @@ content.audio = (() => {
     n.master.gain.cancelScheduledValues(t)
     n.master.gain.setValueAtTime(n.master.gain.value, t)
     n.master.gain.exponentialRampToValueAtTime(0.0001, t + 0.25)
-    try { n.oscA.stop(t + 0.3) } catch (_) {}
-    try { n.oscB.stop(t + 0.3) } catch (_) {}
-    try { n.oscC.stop(t + 0.3) } catch (_) {}
-    try { n.noiseSrc.stop(t + 0.3) } catch (_) {}
-    try { n.lfo.stop(t + 0.3) } catch (_) {}
+    try { n.rumbleSrc.stop(t + 0.3) } catch (_) {}
+    try { n.airSrc.stop(t + 0.3) } catch (_) {}
+    try { n.wobbleA.stop(t + 0.3) } catch (_) {}
+    try { n.wobbleB.stop(t + 0.3) } catch (_) {}
     engineNodes = null
   }
 
   let engineNodes = null
+  let thrustNodes = null
 
   // Travelling player-projectile voice. Spawned by BeamShot at fire time and
   // moved each tick so the player can ear-track their bullet as it flies up
@@ -714,7 +700,6 @@ content.audio = (() => {
     noise,
     loop,
     ui,
-    startMusic, stopMusic,
     startEngine, stopEngine, setEnginePitch,
     // Player weapons
     // Beam: noise-led plasma zap with a quick mid-band tonal punch beneath.
@@ -797,62 +782,120 @@ content.audio = (() => {
     // Per-kind destruction sound. Tower and Genesis bypass this — they have
     // their own bespoke death cues (towerDestroy / genesisDie). Everything
     // else funnels through here so each enemy class is recognisable not just
-    // by its loop but by the way it goes down.
+    // by its loop but by the way it goes down. Peaks and `refY` are
+    // deliberately generous: explosions need to read clearly even when the
+    // enemy was killed at long range — the previous values were inaudible
+    // beyond ~10 forward units.
     explode: (kind, ex, ey, py) => {
+      const RY = 70                          // distance falloff reaches further
       switch (kind) {
         case 'flier-light':
-          // Small turbine shatter: thin metal crack + dying-whine sweep.
-          noise({duration: 0.18, peak: 0.40, color: 'white', ex, ey, py, filter: {type: 'highpass', freq: 1200}})
-          noise({duration: 0.06, peak: 0.45, color: 'white', ex, ey, py, filter: {type: 'bandpass', freq: 3500, q: 4}})
-          tone({freq: 900, type: 'triangle', duration: 0.20, peak: 0.30, sweep: -700, attack: 0.001, release: 0.1, ex, ey, py})
+          noise({duration: 0.18, peak: 0.55, color: 'white', ex, ey, py, refY: RY, filter: {type: 'highpass', freq: 1200}})
+          noise({duration: 0.06, peak: 0.60, color: 'white', ex, ey, py, refY: RY, filter: {type: 'bandpass', freq: 3500, q: 4}})
+          tone({freq: 900, type: 'triangle', duration: 0.20, peak: 0.42, sweep: -700, attack: 0.001, release: 0.1, ex, ey, py, refY: RY})
           break
         case 'flier-heavy':
-          // Big armored boom — sub thump + brown noise bed.
-          tone({freq: 90, type: 'sawtooth', duration: 0.55, peak: 0.50, sweep: -55, attack: 0.005, release: 0.30, ex, ey, py})
-          tone({freq: 50, type: 'sine',     duration: 0.70, peak: 0.45, sweep: -20, attack: 0.005, release: 0.40, ex, ey, py})
-          noise({duration: 0.45, peak: 0.45, color: 'brown', ex, ey, py, filter: {type: 'lowpass', freq: 900}})
+          tone({freq: 90, type: 'sawtooth', duration: 0.55, peak: 0.70, sweep: -55, attack: 0.005, release: 0.30, ex, ey, py, refY: RY})
+          tone({freq: 50, type: 'sine',     duration: 0.70, peak: 0.65, sweep: -20, attack: 0.005, release: 0.40, ex, ey, py, refY: RY})
+          noise({duration: 0.45, peak: 0.65, color: 'brown', ex, ey, py, refY: RY, filter: {type: 'lowpass', freq: 900}})
           break
         case 'ground-base':
-          // Heavy emplacement collapse — low rumble plus a debris crack.
-          tone({freq: 110, type: 'sawtooth', duration: 0.60, peak: 0.40, sweep: -75, attack: 0.005, release: 0.35, ex, ey, py})
-          noise({duration: 0.55, peak: 0.50, color: 'brown', ex, ey, py, filter: {type: 'lowpass', freq: 700}})
-          noise({duration: 0.18, peak: 0.30, color: 'white', ex, ey, py, filter: {type: 'bandpass', freq: 1800, q: 3}})
+          tone({freq: 110, type: 'sawtooth', duration: 0.60, peak: 0.58, sweep: -75, attack: 0.005, release: 0.35, ex, ey, py, refY: RY})
+          noise({duration: 0.55, peak: 0.70, color: 'brown', ex, ey, py, refY: RY, filter: {type: 'lowpass', freq: 700}})
+          noise({duration: 0.18, peak: 0.45, color: 'white', ex, ey, py, refY: RY, filter: {type: 'bandpass', freq: 1800, q: 3}})
           break
         case 'sphere':
-          // Implosion-then-boom: high-mid suck inward, then low boom.
-          tone({freq: 300, type: 'sine',     duration: 0.18, peak: 0.40, sweep: -260, attack: 0.005, release: 0.08, ex, ey, py})
-          tone({freq: 80,  type: 'sawtooth', duration: 0.55, peak: 0.45, sweep: -45,  attack: 0.005, release: 0.30, ex, ey, py})
-          noise({duration: 0.40, peak: 0.40, color: 'pink', ex, ey, py, filter: {type: 'lowpass', freq: 1200}})
+          tone({freq: 300, type: 'sine',     duration: 0.18, peak: 0.55, sweep: -260, attack: 0.005, release: 0.08, ex, ey, py, refY: RY})
+          tone({freq: 80,  type: 'sawtooth', duration: 0.55, peak: 0.60, sweep: -45,  attack: 0.005, release: 0.30, ex, ey, py, refY: RY})
+          noise({duration: 0.40, peak: 0.55, color: 'pink', ex, ey, py, refY: RY, filter: {type: 'lowpass', freq: 1200}})
           break
         case 'porter':
-          // Phasing fizzle — pitch warbles down through a resonant noise band.
-          tone({freq: 600, type: 'triangle', duration: 0.35, peak: 0.32, sweep: -480, attack: 0.005, release: 0.18, ex, ey, py})
-          tone({freq: 220, type: 'square',   duration: 0.30, peak: 0.18, sweep: -150, attack: 0.005, release: 0.12, ex, ey, py})
-          noise({duration: 0.40, peak: 0.32, color: 'pink', ex, ey, py, filter: {type: 'bandpass', freq: 1500, q: 6}})
+          tone({freq: 600, type: 'triangle', duration: 0.35, peak: 0.45, sweep: -480, attack: 0.005, release: 0.18, ex, ey, py, refY: RY})
+          tone({freq: 220, type: 'square',   duration: 0.30, peak: 0.28, sweep: -150, attack: 0.005, release: 0.12, ex, ey, py, refY: RY})
+          noise({duration: 0.40, peak: 0.45, color: 'pink', ex, ey, py, refY: RY, filter: {type: 'bandpass', freq: 1500, q: 6}})
           break
         case 'slider-air':
-          // Airy pop — broad mid burst, no sub.
-          noise({duration: 0.30, peak: 0.45, color: 'pink', ex, ey, py, filter: {type: 'bandpass', freq: 1400, q: 1.5}})
-          tone({freq: 320, type: 'triangle', duration: 0.25, peak: 0.30, sweep: -240, attack: 0.005, release: 0.12, ex, ey, py})
+          noise({duration: 0.30, peak: 0.62, color: 'pink', ex, ey, py, refY: RY, filter: {type: 'bandpass', freq: 1400, q: 1.5}})
+          tone({freq: 320, type: 'triangle', duration: 0.25, peak: 0.42, sweep: -240, attack: 0.005, release: 0.12, ex, ey, py, refY: RY})
           break
         case 'slider-ground':
-          // Ground tank crump — heavy and short.
-          tone({freq: 75, type: 'sawtooth', duration: 0.50, peak: 0.45, sweep: -35, attack: 0.005, release: 0.30, ex, ey, py})
-          noise({duration: 0.40, peak: 0.50, color: 'brown', ex, ey, py, filter: {type: 'lowpass', freq: 600}})
-          noise({duration: 0.05, peak: 0.35, color: 'white', ex, ey, py, filter: {type: 'bandpass', freq: 1800, q: 4}})
+          tone({freq: 75, type: 'sawtooth', duration: 0.50, peak: 0.62, sweep: -35, attack: 0.005, release: 0.30, ex, ey, py, refY: RY})
+          noise({duration: 0.40, peak: 0.70, color: 'brown', ex, ey, py, refY: RY, filter: {type: 'lowpass', freq: 600}})
+          noise({duration: 0.05, peak: 0.50, color: 'white', ex, ey, py, refY: RY, filter: {type: 'bandpass', freq: 1800, q: 4}})
           break
         case 'bouncer':
-          // Rapid clatter — staggered chittery breaks.
           for (let i = 0; i < 4; i++) {
             const fq = 2400 + i * 320
-            setTimeout(() => noise({duration: 0.06, peak: 0.32, color: 'white', ex, ey, py, filter: {type: 'bandpass', freq: fq, q: 5}}), i * 35)
+            setTimeout(() => noise({duration: 0.06, peak: 0.45, color: 'white', ex, ey, py, refY: RY, filter: {type: 'bandpass', freq: fq, q: 5}}), i * 35)
           }
-          tone({freq: 280, type: 'triangle', duration: 0.22, peak: 0.25, sweep: -180, attack: 0.003, release: 0.10, ex, ey, py})
+          tone({freq: 280, type: 'triangle', duration: 0.22, peak: 0.36, sweep: -180, attack: 0.003, release: 0.10, ex, ey, py, refY: RY})
           break
         default:
-          // Fallback: a generic mid-weight pop.
-          tone({freq: 180, type: 'sawtooth', duration: 0.35, peak: 0.4, sweep: -100, attack: 0.005, release: 0.2, ex, ey, py})
-          noise({duration: 0.3, peak: 0.35, color: 'pink', ex, ey, py, filter: {type: 'lowpass', freq: 1100}})
+          tone({freq: 180, type: 'sawtooth', duration: 0.35, peak: 0.55, sweep: -100, attack: 0.005, release: 0.2, ex, ey, py, refY: RY})
+          noise({duration: 0.3, peak: 0.50, color: 'pink', ex, ey, py, refY: RY, filter: {type: 'lowpass', freq: 1100}})
+      }
+    },
+    // Per-kind hit cue. Replaces the generic beamHit click on enemies so the
+    // listener can tell what they hit, and — for multi-HP enemies (Bouncer
+    // is hp=2) — distinguishes a non-killing hit from the killing one.
+    // `killing=true` is layered on top of the per-kind explode that follows;
+    // it's the *impact* before the explosion, weighted to the enemy class.
+    enemyHit: (kind, ex, ey, py, killing = false) => {
+      const RY = 60                          // matches explode's reach
+      const k = killing ? 1.25 : 0.9         // killing hit is a touch louder
+      switch (kind) {
+        case 'flier-light':
+          tone({freq: 1400, type: 'triangle', duration: 0.07, peak: 0.30 * k, sweep: -700, attack: 0.001, release: 0.05, ex, ey, py, refY: RY})
+          noise({duration: 0.05, peak: 0.28 * k, color: 'white', ex, ey, py, refY: RY, filter: {type: 'bandpass', freq: 2600, q: 4}})
+          break
+        case 'flier-heavy':
+          tone({freq: 220, type: 'sawtooth', duration: 0.10, peak: 0.32 * k, sweep: -120, attack: 0.001, release: 0.07, ex, ey, py, refY: RY})
+          noise({duration: 0.09, peak: 0.30 * k, color: 'pink', ex, ey, py, refY: RY, filter: {type: 'lowpass', freq: 700}})
+          break
+        case 'ground-base':
+          tone({freq: 180, type: 'triangle', duration: 0.12, peak: 0.32 * k, sweep: -120, attack: 0.001, release: 0.08, ex, ey, py, refY: RY})
+          noise({duration: 0.12, peak: 0.32 * k, color: 'brown', ex, ey, py, refY: RY, filter: {type: 'lowpass', freq: 800}})
+          break
+        case 'sphere':
+          tone({freq: 880, type: 'sine',     duration: 0.10, peak: 0.30 * k, attack: 0.001, release: 0.07, ex, ey, py, refY: RY})
+          tone({freq: 1320, type: 'triangle', duration: 0.07, peak: 0.18 * k, attack: 0.001, release: 0.05, ex, ey, py, refY: RY})
+          break
+        case 'porter':
+          tone({freq: 700, type: 'square', duration: 0.10, peak: 0.26 * k, sweep: 240, attack: 0.001, release: 0.06, ex, ey, py, refY: RY})
+          noise({duration: 0.07, peak: 0.20 * k, color: 'pink', ex, ey, py, refY: RY, filter: {type: 'bandpass', freq: 1400, q: 5}})
+          break
+        case 'slider-air':
+          tone({freq: 620, type: 'triangle', duration: 0.08, peak: 0.28 * k, sweep: -240, attack: 0.001, release: 0.05, ex, ey, py, refY: RY})
+          noise({duration: 0.06, peak: 0.26 * k, color: 'white', ex, ey, py, refY: RY, filter: {type: 'bandpass', freq: 1800, q: 3}})
+          break
+        case 'slider-ground':
+          tone({freq: 380, type: 'triangle', duration: 0.09, peak: 0.30 * k, sweep: -160, attack: 0.001, release: 0.06, ex, ey, py, refY: RY})
+          noise({duration: 0.08, peak: 0.30 * k, color: 'brown', ex, ey, py, refY: RY, filter: {type: 'bandpass', freq: 800, q: 2}})
+          break
+        case 'bouncer':
+          if (killing) {
+            // Killing hit on bouncer: deeper crack, signals "this one's done".
+            tone({freq: 800, type: 'triangle', duration: 0.10, peak: 0.34 * k, sweep: -500, attack: 0.001, release: 0.06, ex, ey, py, refY: RY})
+            noise({duration: 0.08, peak: 0.30 * k, color: 'brown', ex, ey, py, refY: RY, filter: {type: 'lowpass', freq: 700}})
+          } else {
+            // Non-killing hit on bouncer: nervous tink, no body — telegraphs
+            // "still alive, hit it again".
+            tone({freq: 1500, type: 'triangle', duration: 0.06, peak: 0.30, sweep: 200, attack: 0.001, release: 0.04, ex, ey, py, refY: RY})
+            noise({duration: 0.04, peak: 0.22, color: 'white', ex, ey, py, refY: RY, filter: {type: 'bandpass', freq: 3000, q: 5}})
+          }
+          break
+        case 'tower':
+          // Tower has its own death path so this only fires on non-killing
+          // hits in practice — but provided for completeness.
+          tone({freq: 90,  type: 'sine',     duration: 0.18, peak: 0.36 * k, attack: 0.005, release: 0.10, ex, ey, py, refY: RY})
+          tone({freq: 240, type: 'triangle', duration: 0.12, peak: 0.20 * k, sweep: -80, attack: 0.005, release: 0.08, ex, ey, py, refY: RY})
+          noise({duration: 0.10, peak: 0.24 * k, color: 'brown', ex, ey, py, refY: RY, filter: {type: 'lowpass', freq: 600}})
+          break
+        default:
+          // Fallback mirrors the old beamHit so any unmapped kind still
+          // gets a sane cue.
+          tone({freq: 720, type: 'triangle', duration: 0.07, peak: 0.28 * k, sweep: -480, attack: 0.001, release: 0.05, ex, ey, py, refY: RY})
+          noise({duration: 0.04, peak: 0.18 * k, color: 'white', ex, ey, py, refY: RY, filter: {type: 'bandpass', freq: 1200, q: 4}})
       }
     },
     itemAppear: (ex, ey, py) => tone({freq: 700, type: 'triangle', duration: 0.4, peak: 0.32, sweep: 500, attack: 0.005, release: 0.18, ex, ey, py}),
@@ -898,48 +941,60 @@ content.audio = (() => {
       noise({duration: 0.5, peak: 0.4, color: 'brown', ex, ey, py, filter: {type: 'lowpass', freq: 800}})
     },
     edgeWarn: () => tone({freq: 200, type: 'triangle', duration: 0.07, peak: 0.18}),
-    // Side thruster puff: short pneumatic gas burst. No oscillator — the old
-    // sub-down-sweep made it sound like a low buzzy note ("brr") instead of
-    // compressed gas escaping a nozzle. This is purely noise: a fast hi-band
-    // hiss attack with a soft pink-noise tail underneath.
-    turnSound: (left) => {
+    // Hydraulic thrust loop — held while the strafe key is down, released
+    // when the key comes up. Continuous filtered pink noise with a slow
+    // pump-cycle filter sweep so it reads as a working hydraulic system,
+    // not a one-shot whoosh. Calling startThrust again while running just
+    // re-pans (e.g. when the player switches direction without releasing).
+    startThrust: (left) => {
       init()
+      const newPan = left ? -0.6 : 0.6
+      if (thrustNodes) {
+        thrustNodes.panner.pan.setTargetAtTime(newPan, ctx.currentTime, 0.04)
+        return
+      }
       const t0 = ctx.currentTime
-      const dur = 0.13
-      const pan = left ? -0.45 : 0.45
 
-      // High-band hiss: the pop of the valve opening.
-      const hiss = ctx.createBufferSource()
-      hiss.buffer = engine.buffer.whiteNoise({channels: 1, duration: dur})
-      const hissBp = ctx.createBiquadFilter()
-      hissBp.type = 'bandpass'; hissBp.frequency.value = 2200; hissBp.Q.value = 1.4
-      const hissHp = ctx.createBiquadFilter()
-      hissHp.type = 'highpass'; hissHp.frequency.value = 900
-      const hissG = ctx.createGain()
-      hiss.connect(hissBp); hissBp.connect(hissHp); hissHp.connect(hissG)
-      hissG.gain.setValueAtTime(0, t0)
-      hissG.gain.linearRampToValueAtTime(0.34, t0 + 0.004)
-      hissG.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
+      const buf = engine.buffer.pinkNoise({channels: 1, duration: 3})
+      const src = ctx.createBufferSource()
+      src.buffer = buf; src.loop = true
 
-      // Soft body tail — pink noise in the breath range so the puff has body
-      // rather than ending in a click.
-      const body = ctx.createBufferSource()
-      body.buffer = engine.buffer.pinkNoise({channels: 1, duration: dur + 0.05})
-      const bodyBp = ctx.createBiquadFilter()
-      bodyBp.type = 'bandpass'; bodyBp.frequency.value = 600; bodyBp.Q.value = 0.9
-      const bodyG = ctx.createGain()
-      body.connect(bodyBp); bodyBp.connect(bodyG)
-      bodyG.gain.setValueAtTime(0, t0)
-      bodyG.gain.linearRampToValueAtTime(0.16, t0 + 0.006)
-      bodyG.gain.exponentialRampToValueAtTime(0.0001, t0 + dur + 0.03)
+      // Mid-band pressurized fluid. Q just over neutral so there's a gentle
+      // emphasis without a hangable pitch.
+      const bp = ctx.createBiquadFilter()
+      bp.type = 'bandpass'; bp.frequency.value = 480; bp.Q.value = 0.9
 
-      const sum = ctx.createGain(); sum.gain.value = 1
-      hissG.connect(sum); bodyG.connect(sum)
-      const p = ctx.createStereoPanner(); p.pan.value = pan
-      sum.connect(p); p.connect(out)
+      const g = ctx.createGain(); g.gain.value = 0
+      src.connect(bp); bp.connect(g)
 
-      hiss.start(t0); hiss.stop(t0 + dur + 0.05)
-      body.start(t0); body.stop(t0 + dur + 0.1)
+      // Pump cycle — slow filter sweep so the loop feels mechanical.
+      const sweep = ctx.createOscillator(); sweep.type = 'sine'
+      sweep.frequency.value = 5.5
+      const sweepD = ctx.createGain(); sweepD.gain.value = 110
+      sweep.connect(sweepD); sweepD.connect(bp.frequency)
+
+      const panner = ctx.createStereoPanner()
+      panner.pan.value = newPan
+      g.connect(panner); panner.connect(out)
+
+      // Quick attack — valve opens.
+      g.gain.setValueAtTime(0, t0)
+      g.gain.linearRampToValueAtTime(0.16, t0 + 0.04)
+
+      src.start(); sweep.start()
+      thrustNodes = {src, sweep, bp, g, panner}
+    },
+    stopThrust: () => {
+      if (!thrustNodes) return
+      const t = ctx.currentTime
+      const n = thrustNodes
+      n.g.gain.cancelScheduledValues(t)
+      n.g.gain.setValueAtTime(n.g.gain.value, t)
+      // Pressure release — fast but not abrupt.
+      n.g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07)
+      try { n.src.stop(t + 0.12) } catch (_) {}
+      try { n.sweep.stop(t + 0.12) } catch (_) {}
+      thrustNodes = null
     },
     speedShift: (up) => tone({freq: up ? 600 : 360, type: 'triangle', duration: 0.08, peak: 0.22, attack: 0.005, release: 0.05}),
     avoid: () => tone({freq: 1100, type: 'triangle', duration: 0.04, peak: 0.12, attack: 0.002, release: 0.03}),

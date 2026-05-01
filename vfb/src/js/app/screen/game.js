@@ -62,13 +62,11 @@ app.screen.game = app.screenManager.invent({
       this.state.resumingFromStore = false
       const s = content.state.session
       s.gotostore = false
-      content.audio.startMusic(s.level)
       content.audio.startEngine()
       content.audio.setEnginePitch(s.speed)
       content.world.startLevel()
     } else {
       content.state.resetSession()
-      content.audio.startMusic(1)
       content.audio.startEngine()
       content.audio.setEnginePitch(content.state.session.speed)
       content.audio.ready()
@@ -81,8 +79,13 @@ app.screen.game = app.screenManager.invent({
   },
 
   onExit: function () {
-    content.audio.stopMusic()
     content.audio.stopEngine()
+    content.audio.stopThrust()
+    // Tear down every active enemy/projectile loop. Without this, going to
+    // game-over / menu / store leaves their loop sources playing — onExit
+    // is the only place that catches every exit path (alive=false, Escape,
+    // KeyQ, gotostore).
+    content.world.reset()
     if (this.hud.paused) this.hud.paused.hidden = true
   },
 
@@ -140,15 +143,15 @@ app.screen.game = app.screenManager.invent({
 
     if (!content.state.session.alive) {
       content.audio.stopEngine()
-      content.audio.stopMusic()
+      content.audio.stopThrust()
       app.screenManager.dispatch('gameover')
       return
     }
 
     if (content.state.session.gotostore && !content.state.session.playing) {
       this.markResumingFromStore()
-      content.audio.stopMusic()
       content.audio.stopEngine()
+      content.audio.stopThrust()
       app.screenManager.dispatch('store')
       return
     }
@@ -163,6 +166,11 @@ app.screen.game = app.screenManager.invent({
       content.audio.pauseTone()
       content.audio.startEngine()
       content.audio.setEnginePitch(content.state.session.speed)
+      // Force re-detection of any held strafe key on the next tick — the
+      // thrust loop was stopped on pause, so if the player is still
+      // holding an arrow we need the press transition to re-trigger.
+      this.state.leftDown = false
+      this.state.rightDown = false
     }
     // Status checks should be available while paused too — the player may
     // pause specifically to check their inventory.
@@ -202,6 +210,7 @@ app.screen.game = app.screenManager.invent({
       this.hud.paused.hidden = false
       content.audio.pauseTone()
       content.audio.stopEngine()
+      content.audio.stopThrust()
       return
     }
 
@@ -209,7 +218,7 @@ app.screen.game = app.screenManager.invent({
       s.alive = false
       s.playing = false
       content.audio.stopEngine()
-      content.audio.stopMusic()
+      content.audio.stopThrust()
       app.screenManager.dispatch('menu')
       return
     }
@@ -218,7 +227,7 @@ app.screen.game = app.screenManager.invent({
       s.alive = false
       s.playing = false
       content.audio.stopEngine()
-      content.audio.stopMusic()
+      content.audio.stopThrust()
       content.world.announce('Rage quit!', true)
       app.screenManager.dispatch('gameover')
       return
@@ -247,15 +256,30 @@ app.screen.game = app.screenManager.invent({
       content.audio.speedShift(false)
     }
 
+    // Hydraulic thrust loop — runs while a strafe key is held, releases
+    // when both are up. Tracked separately from the position-step rate
+    // limiter so the sound is continuous even between discrete grid steps.
+    const leftDown = !!down.ArrowLeft
+    const rightDown = !!down.ArrowRight
+    if (leftDown !== !!this.state.leftDown || rightDown !== !!this.state.rightDown) {
+      if (leftDown || rightDown) {
+        content.audio.startThrust(leftDown && !rightDown)
+      } else {
+        content.audio.stopThrust()
+      }
+    }
+    this.state.leftDown = leftDown
+    this.state.rightDown = rightDown
+
     this.state.turnAccum += dt
-    if (down.ArrowRight && this.state.turnAccum >= 150) {
+    if (rightDown && this.state.turnAccum >= 150) {
       this.state.turnAccum = 0
-      if (s.x < 10) { s.x++; content.audio.turnSound(false) }
-      else { content.audio.edgeWarn() }
-    } else if (down.ArrowLeft && this.state.turnAccum >= 150) {
+      if (s.x < 10) s.x++
+      else content.audio.edgeWarn()
+    } else if (leftDown && this.state.turnAccum >= 150) {
       this.state.turnAccum = 0
-      if (s.x > 0) { s.x--; content.audio.turnSound(true) }
-      else { content.audio.edgeWarn() }
+      if (s.x > 0) s.x--
+      else content.audio.edgeWarn()
     }
 
     this.state.beamAccum += dt
