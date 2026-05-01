@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">FIRE!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div aria-live="polite" aria-atomic="true" class="a-app--announce a-live a-live--polite" data-i18n-attr="aria-label:game.live"></div>
+      <div aria-live="assertive" aria-atomic="true" class="a-app--announce a-live a-live--urgent" data-i18n-attr="aria-label:game.urgent"></div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <div class="a-game--hud">
+            <div class="a-game--score">0</div>
+            <div class="a-game--level">1</div>
+            <div class="a-game--lives"></div>
+            <div class="a-game--threat"></div>
+            <div class="a-game--aim" aria-hidden="true"></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Game over</h1>
+          <p class="c-menu--subtitle a-gameover--score"></p>
+          <p class="c-menu--subtitle a-gameover--high"></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="retry" data-i18n="gameover.retry">Play again</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="gameover.menu">Main menu</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--splash">
+        <section class="c-screen a-splash" tabindex="-1">
+          <h1 class="a-splash--logo">FIRE!</h1>
+          <div class="a-splash--details">
+            <div class="a-splash--version"></div>
+            <div class="a-splash--author" data-i18n="splash.author">an audio-only arcade by Oriol Gómez</div>
+          </div>
+          <div class="a-splash--instruction" data-i18n="splash.instruction">Press Enter to begin</div>
+          <div class="a-splash--help c-menu--prose">
+            <h2 data-i18n="splash.helpTitle">How to play</h2>
+            <ul>
+              <li data-i18n-html="splash.helpAim"></li>
+              <li data-i18n-html="splash.helpSpray"></li>
+              <li data-i18n-html="splash.helpStatus"></li>
+              <li data-i18n="splash.helpAudio"></li>
+            </ul>
+          </div>
+          <div class="a-splash--actions">
+            <button class="c-menu--button a-splash--language" data-action="language" data-i18n="language.button">Language</button>
+          </div>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

@@ -2,288 +2,37 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Read [`CLAUDE-FIRE.md`](./CLAUDE-FIRE.md) first** if you're touching gameplay code (`src/js/content/**` or `src/js/app/screen/**`). It documents the game's geometry, listener orientation, scoring formula, and per-building pitch family — none of which is recoverable from reading the code alone.
+
 ## Project
 
-`beatstar` — an audio rhythm game built on the syngen template. Players hear a hint pattern (up / down / left / right cues) and must echo it back on the beat. Difficulty scales with level: BPM rises and the number of measures to memorize increases.
+**FIRE!** — an audio-only arcade firefighter game built on top of the [syngen](https://github.com/nicross/syngen) Web Audio engine using the syngen-template framework. Ships as an HTML5 app (served from `public/`) and is structured for the Electron packaging that the template supports (`electron/main.js` is not currently present — add it back if you need a desktop build).
 
-Ships as both an HTML5 app (served from `public/`) and an Electron desktop app (`electron/main.js`). There is no test suite, no linter, and no `npm` scripts. All tasks run through Gulp.
+The player aims a fire-hose nozzle left/right and sprays to extinguish fires spreading across a row of buildings. Fully blind-accessible — the visual HUD is optional decoration.
 
-## beatstar — what's already decided
+There is no test suite, no linter, and no `npm` scripts. All tasks run through Gulp.
 
-The foundational design questions in the template's BLOCKING checklist further down this file have **already been answered** for beatstar. Don't re-ask them. The decisions are:
+**Read [`CLAUDE-FIRE.md`](./CLAUDE-FIRE.md) before touching `content/` code.** It documents the geometry (7 buildings on a -75°…+75° arc), listener orientation (screen-locked, fixed yaw 0), pitch family per building, scoring formula, music intensity bus, and the resolved answers to the template's foundational design questions. The rest of *this* file documents the underlying syngen-template framework — those conventions all still apply.
 
-1. **Perspective / movement.** Static / menu-driven — there is no avatar in space, just timed arrow presses. No collision, no grid, no continuous integration.
-2. **Audio listener.** **Stereo / non-spatial.** No `engine.position` calls, no binaural ear. Every voice routes through a `StereoPannerNode` with a per-direction pan baked into `content.audio.NOTE`. The L/R panning *is* the spatial cue.
-3. **Audio's role.** **Audio-first / blind-accessible.** The visual HUD is a courtesy; the entire game must be playable purely by ear.
-4. **Input devices.** Keyboard arrow keys (and WASD as an alias). The game screen reads raw `keydown` rather than `app.controls.ui()` because rhythm judging needs zero added input latency. `app.controls.ui()` is still used inside menu screens for navigation.
-5. **Persistence.** None for now. No `app.autosave`, no high scores. (Easy to add later — see "Possible extensions" below.)
-6. **Progression.** Endless / score chase. Levels are infinite; difficulty just keeps rising until the player runs out of lives. There's no level-clear screen — the success cue plays in-place and the next level rolls in.
-7. **Synth aesthetic.** Tonal synth, multiple lead voices (`bell`, `square`, `pluck`, `mellow`) selected per level by the active style. Hint = brighter shimmer; echo = warmer/dimmer flavor of the same voice family so the player can tell their own playing apart from the cue. No samples.
-
-### Note layout (root + 3rd + 5th + octave, follows the active key)
-
-Pans are **fixed** in `content.audio.NOTE`. Frequencies are **re-derived per level** by `content.audio.setTonality(rootSemitone, mode)` (called from `content.game.pickLevelParams()`), which delegates to `content.theory.arrowFreqs()`. The four arrow tones are scale degrees 1, 3, 5 from the active scale plus an octave above the root — so the *third* arrow shifts between major and minor 3rd as the mode flips, and all four shift together when the key modulates between levels.
-
-| Arrow | Pan   | Default (C major) | Vibe |
-|-------|-------|-------------------|-------|
-| up    |  0.00 | C4  (261.63 Hz)   | root, centred — earth |
-| right | +0.70 | E4  (329.63 Hz)   | bright, panned right — moves to Eb in minor |
-| down  |  0.00 | G4  (392.00 Hz)   | 5th, centred |
-| left  | -0.70 | C5  (523.25 Hz)   | octave, panned left — sky |
-
-Clockwise (up → right → down → left) walks the 1-3-5-8 arpeggio ascending, which is what `audio.tonalArpeggio()` (used during the modulation bridge) exploits. Players who can't pitch the octave by ear still get unambiguous left/right pan plus high/low, so every direction has at least two distinguishing axes regardless of key.
-
-### Difficulty curve
-
-Defined in `content/game.js` and `content/styles.js`:
+## Game-specific code at a glance
 
 ```
-bpm           = clamp(72 + 8 * (level - 1), ≤ 168)  // cap at level-13 tempo
-measures      = 1 + max(0, floor((level - 4) / 6))  // 1×9, 2×6, 3×6, … — 1m holds through L9 so subdivisions ramp first, then length takes over once per-beat density caps at L10
-meter         = pickMeter(style, level)             // 3, 4, 5, or 7 — palette per style
-subdivision   = subdivisionProbs(level)             // q/e/s shares per beat (caps at L10)
-patternsPerLv = max(3, level * 2)                   // clean rounds to advance
-lives         = 3 (max 5; bonus life on clean level w/ avg accuracy ≥ 0.75)
-tonality      = locked C major for L1-2; root shifts L3+; mode flips L4+
+src/js/content/audio.js   spatial pipeline, one-shot SFX, helpers
+src/js/content/fires.js   building model, crackle voices, growth/drain/spread
+src/js/content/hose.js    nozzle aim, spray voice, spray cone
+src/js/content/game.js    top-level FSM (running / levelClear / gameOver), scoring
+src/js/content/music.js   four-layer dark synth bed driven by total threat
+src/js/app/announce.js    polite / urgent aria-live wrapper
+src/js/app/highscores.js  single record in localStorage["fire.highscore"]
+src/js/app/screen/{splash,game,gameover,language}.js
+src/css/app/game.css      HUD + game-over palette
 ```
 
-Hit window per note is the note's **slot duration** in beats — a quarter has a beat-wide window, an eighth a half-beat, a sixteenth a quarter-beat. Tighter slot → more points (100 / 150 / 250). Clean-level bonus is `500 * level`.
+i18n storage key: `fire.lang`. Highscore key: `fire.highscore`. Both in `localStorage` (not `app.storage`) so they resolve before the IndexedDB store opens.
 
-Patterns are probabilistic, not "every beat". For each beat, `subdivisionProbs(level)` rolls a quarter (1 note), eighth pair (2), or sixteenth quad (4); subdivision share rises with level. So levels 1–3 are pure quarters; by level 10+ ~65% of beats subdivide.
+## Starting from scratch (template re-init)
 
-Each level is **multi-round**: the same level (style/meter/key) plays `patternsPerLevel(level)` clean patterns before advancing — L1=3, L2=4, L3=6, L4=8, L5=10. Style/meter/key only modulate at the level boundary; within a level the player gets fresh random patterns at the same difficulty so they can lock in.
-
-### State machine (content/game.js)
-
-```
-idle → intro → hint → transition → echo → verdict
-                                              ├→ next round (clean, more rounds left) — no pause
-                                              ├→ next level (clean, level cleared)    — verdict pause + bridge
-                                              ├→ retry round (miss, lives left)        — no pause
-                                              └→ gameover (lives hit 0)               — verdict pause
-```
-
-Every phase boundary lands on a musical bar so beats never drift relative to the backing track. The procedural drums in `content.music` ARE the click track once it's running. During the **intro**, however, a meter count-in (`audio.countIn`) plays alongside the music — accented woodblock-style ticks marking beat 1 — so the player can lock the meter even if it's a less familiar 3/5/7.
-
-All audio events for a level (count-in, hint notes, go cue, bridge chords) are pre-scheduled in `enterIntro()` at exact `audioContext.currentTime` times derived from a single `T0`. Subsequent `enterHint/Transition/Echo/Verdict` only flip game state — the audio is already queued.
-
-- **intro** (1 measure) — count-in clicks across the measure; bridge chords on top: first half = OLD tonic in OLD style instruments, second half = NEW V7. Resolves on beat 1 of hint, where music switches to the NEW style and starts the new progression. Level-info announcement (level + previous-level accuracy) goes only on the FIRST round of a level.
-- **hint** (M measures) — drums + bass + pad. Hint notes pre-scheduled at `introEnd + beat * beatDur + 2 ms` so the bell attack doesn't smear the kick transient.
-- **transition** (0 or 1 measure) — collapsed to **0** for 1-measure patterns (no empty wait); **1 measure** for 2+ measure patterns to give the player a breather to mentally rewind. The `audio.go()` cue is always scheduled at `transitionEnd - 0.5 * beatDur` regardless — for 1-measure patterns it lands inside the last half-beat of hint.
-- **echo** (M measures, no slack) — ends on the music's measure boundary so the next round's hint can start there with no gap. `handleArrow` gates on `state.echoStartTime` / `echoEndTime` (audio-clock), NOT on `state.phase`, because for 1-measure patterns hint→transition→echo can cross within a single audio sample and the frame pump is a tick behind.
-- **verdict** (1.4 s) — only entered on level-clear or game-over. Round-clear-but-more-rounds-left and miss-with-lives-remaining both skip verdict entirely (music keeps rolling, fail cue plays, next pattern starts on the next bar).
-
-The pattern generator avoids three of the same arrow in a row — easy patterns get tedious, hard ones stop being audibly distinguishable. Each clean round generates a fresh random pattern; misses retry with a fresh pattern too (the same level is the contract, not the same notes).
-
-Between levels the game can **modulate**: stay, up/down a 4th or 5th, up/down a whole step, and from level 4+ flip mode (major↔minor). Levels 1-2 stay in C major so the player can learn the four arrow tones first; root shifts begin at level 3. The modulation key is selected in `pickTonality()` and is announced to the player by ear — by the bridge measure that resolves into the new tonic.
-
-### Audio architecture
-
-Four content modules:
-
-**`content.theory`** — pure-data music helpers, no Web Audio. Exposes:
-- `arrowFreqs({rootSemitone, mode})` — Hz for the four arrows in the active key.
-- `arrowSemitones(mode)` — `[1, 3, 5, 8]` scale degrees in semitones (major or minor 3rd by mode).
-- `expand(descriptor, tonality)` → `{root, third, fifth, seventh, minor}` Hz — turns a `{r, t}` chord descriptor (relative to the active key) into concrete frequencies. `r` is semitones from the tonality root; `t` is one of the keys in `CHORD_TYPES` (`maj`, `min`, `maj7`, `min7`, `dom7`, `dim`, `halfdim`).
-- `keyName(rootSemitone, mode)` — for accessibility announcements.
-
-**`content.styles`** — registry of musical styles. Each style is a bag of knobs (`bpmRange`, `meterPalette`, `progressions`, `minorProgressions`, `drumKit`, `bassVoice`, `padVoice`, `leadVoice`, `pad` volume). Currently shipped: `lounge`, `synthwave`, `house`, `chiptune`, `rock`, `waltz`, `funk`, `jazz`, `ambient`, `latin`, `disco`. Picker functions: `pickFor(prevId)` (avoids repeating the previous level's style), `pickMeter(style, level)` (canonical meter under level 3, palette mix above), `pickProgression(style, mode)`, `subdivisionProbs(level)`. The `bpmRange` knob is currently descriptive only — every style plays at the level's BPM so the difficulty curve stays consistent.
-
-**`content.audio`** — short one-shot cues. All voices route through `engine.mixer.input()` and use `StereoPannerNode`s; no binaural ear, no `engine.position`.
-- `hint(direction, when?)` / `echo(direction, when?)` — arrow timbres. Both adapt to the current `leadVoice` set by `setLeadVoice(name)` (`bell` / `square` / `pluck` / `mellow`). Same frequency + pan; hint is brighter (e.g. for `bell`, sine + 5th harmonic shimmer), echo is warmer (sub-octave / triangle), so the player tells own-playing from cue.
-- `go(when?)` — listen→echo cue. Outside the four-arrow note set, with semitone tension that pulls toward the active up-arrow tone. Centre-panned, louder than a hint.
-- `countIn(t0, beatDur, beatsPerMeasure)` — woodblock-style ticks across the intro measure; beat 1 is accented.
-- `tonalArpeggio(t0, span)` — plays down/left/right/up for the active tonality. Used during the modulation bridge and on level intros.
-- `success`, `fail`, `levelUp`, `gameOver` — short fanfares composed from the four arrow voices in the active key.
-- `setLeadVoice(name)` / `setTonality(rootSemitone, mode)` — called by `content.game.pickLevelParams()` per level.
-- `now()` — passthrough to `audioContext.currentTime`.
-
-**`content.music`** — continuous procedural backing track. Audio-clock lookahead scheduler on `engine.loop.on('frame', tick)`; refills a 150 ms queue of upcoming 16th-step events. Voice families branch by the active style's `drumKit` / `bassVoice` / `padVoice`. Master bus at 0.32 with a fade-in/fade-out so transitions don't pop.
-
-Voicing keeps the bed out of the C4–C5 arrow band: bass starts at C2 (`content.theory.BASS_C`), pad sits an octave above, drums are broadband transients. Hints and echoes own the C4–C5 register (`content.theory.LEAD_C`).
-
-**Pad envelope is per-voice, not per-style.** `padChord()` reads the voice name (`saw`, `organ`, `rhodes`, `soft`, `strings`, `arp`) and picks both the timbre AND an attack/hold/release fraction. Bright pads (saw, organ) get a fast attack capped at 80 ms so the chord change lands ON the downbeat — a single shared `dur * 0.15` attack used to make the synthwave saw pad sound a half-beat late on every chord change. If you add a new pad voice, set its envelope explicitly; don't fall back to the default sine/triangle path expecting it to feel right.
-
-`content.music` exposes `start(opts)`, `stop()`, `configure(opts)` (called per level — switches style/meter/progression/tonality and optionally schedules a one-measure bridge in the OLD style starting at `alignAt`), `nextDownbeat()`, `bpm()` / `level()` getters. The bridge is scheduled by `content.game.enterIntro()` so the intro measure plays in the OLD style with old-tonic→new-V7 chord assignments per beat, and from measure 2 onward the lookahead automatically picks up the NEW style + progression.
-
-### Hooking up announcer / phase / judgement events
-
-`content.game` exposes three pubsub-style hooks so the UI layer doesn't have to poll game state:
-
-- `onAnnounce((key, params, level) => ...)` — i18n key + params + 'polite'|'assertive'. The game screen routes these to `app.announce.polite/assertive`.
-- `onPhaseChange((newPhase, prevPhase) => ...)` — used by the game screen to refresh its HUD and to defer the screen swap to `gameover` until the gameOver cue has had ~1.2 s to play.
-- `onJudgement((beatIndex, 'hit'|'miss') => ...)` — currently unused by the UI but available if you want to flash a visual or trigger haptics on each press.
-
-### Input handling
-
-The game screen binds raw `window.keydown` and dispatches to `content.game.handleArrow(direction)` immediately. Two reasons not to use `app.controls.ui()` here:
-
-1. `ui()` is edge-triggered per frame, so the reported press time is *the next frame after* the actual keydown — at 60 fps that's up to 16 ms of jitter, which at 140 BPM (≈430 ms/beat) is ~4% of the hit window.
-2. `ui()` debounces to one fire per direction per frame, but a rhythm game can absolutely take two presses of the same arrow within one frame at high BPM.
-
-`F1`–`F4` are reserved for screen-reader status reads (level / score / lives / phase) and are `preventDefault`-ed in capture phase along with `F3` and `F5` so the browser doesn't open Help / Find / Reload while focus is in the app.
-
-### Learn screen
-
-A `learn` screen (`src/js/app/screen/learn.js`, reached from the main menu) auditions each of the four arrow voices in isolation — `hint` first, then `echo` ~600 ms later — so players can map timbre/pan/pitch to direction before committing to a real round. Buttons trigger via click; arrow keys also trigger via `app.controls.ui()`. The screen does NOT call `setLeadVoice` or `setTonality`, so it auditions whatever the last level left configured (defaults to `bell` in C major before any game has been played).
-
-### Level-select and persistence
-
-There's a player-visible `levelSelect` screen (`src/js/app/screen/levelSelect.js`, reached from the main menu) that lets players start at any previously-reached level. The "highest unlocked" level is bumped every time `pickLevelParams()` runs and persisted directly to `localStorage["beatstar.highestLevel"]` — NOT through `app.storage`, because the value should survive `engine.state` resets and there's no other persistent state in this game. `content.game` exposes `setStartLevel(n)` / `getStartLevel()` / `getHighestUnlocked()` / `bpmForLevel(level)` for the UI.
-
-The Main Menu's plain "Start Game" button always resets to level 1; "Start at Level…" goes through the picker. The gameover screen's "Play Again" honours whatever start level was last set, so a player practising level 10 doesn't get bumped to level 1 on death.
-
-### Hidden style-preview screen
-
-`Ctrl+Shift+P` from the main menu opens `src/js/app/screen/stylePreview.js` — a hidden audition screen that lists every style and plays a few measures (in C major) plus a short hint-note pass through the four arrows when Enter is pressed. Left/Right adjust a "preview level" that drives the BPM via `content.game.bpmForLevel`, and changing level mid-preview restarts the audition at the new tempo so timbre and tempo can be evaluated together. Useful for quickly catching when a style sounds out-of-sync or muddy at high BPM. There's no menu button — the hotkey is the only entry.
-
-### Menu nav utility
-
-`app.utility.menuNav.handle(ui, root)` translates an `app.controls.ui()` delta into focus moves through the focusable buttons inside `root` — Up = previous, Down = next. Wired into every menu-style screen (menu, language, gameover, levelSelect, stylePreview) so arrow keys navigate menus the way most players expect; Tab still works (focus-trap is untouched). Enter/Space activate the focused button via browser default — never wire an unconditional `if (ui.enter) dispatch('foo')` in a menu screen, that bypasses the focused selection.
-
-### Possible extensions
-
-- **High scores** — drop in `app.highscores` (Pac-Man's `src/js/app/highscores.js` is the reference) with a `beatstar-highscores-v1` localStorage key. Wire the gameover screen to write the score and a `Top Scores` menu button to read it. The `beatstar.highestLevel` localStorage key already demonstrates this pattern (small, persistent-across-resets values go to localStorage; richer state would still go through `app.storage`).
-- **Game-feel polish** — small haptic pulse on each hit/miss via `app.haptics.enqueue`. Per-beat visual flash in the HUD by subscribing to `onJudgement`.
-- **Style variant preview** — already implemented as a hidden screen (see "Hidden screens" below). For a player-facing version, surface the same screen via a menu button and add an "audition both major and minor" toggle, then store a forced-style preference in `app.settings` (override `content.styles.pickFor` when set).
-- **Note density** — add a difficulty floor knob: at low levels only beats 1 and 3 carry notes (call beats 2 and 4 "rests" and skip the hint scheduler for them). Raises the floor and stretches the curve.
-
-## Multiplayer
-
-beatstar ships an online turn-rotation party mode (2–6 players). Documented separately because it touches network, state model, and audio scheduling. Lives in three files:
-
-- **`src/js/app/net.js`** — PeerJS wrapper. Same shape as the rest of the games (bumper / racing / tennis); see the Multiplayer section in the template's CLAUDE.md (parent dir's syngen template) for the canonical TURN config + gotchas. PEER_ID_PREFIX is `'beatstar-'` so room codes don't collide with other games on the public broker. Capacity is 1 host + 5 clients = 6 max.
-- **`src/js/app/screen/multiplayer.js`** — lobby (name + host/join + peer list + Start). Stripped of bumper's mode/duration radios since beatstar has only one mode.
-- **`src/js/content/mp.js`** — wire-protocol bridge between `content.game` and `app.net`. The only place that knows both sides exist. Loaded under `content/`, so app.net references must be lazy (`const NET = () => app.net`) — the alphabetical concat order means content modules load before app modules.
-
-### Game rules (player-facing)
-
-- Always starts at level 1 for everyone, regardless of any saved single-player progress. MP is a fresh communal climb each session.
-- Each player begins with **4 lives** (vs. 3 in single-player) and rotates turn-by-turn.
-- **Clean clear of a level** → shared global level advances + turn passes to next non-eliminated player.
-- **Any miss** → active player loses one life + turn passes (level stays).
-- **Lives drop to 0** → player eliminated. They keep watching (audio + HUD) but their keys do nothing.
-- **All players eliminated** → game over with leaderboard sorted by score.
-- Each peer that takes a turn at level N persists `localStorage["beatstar.highestLevel"] = max(current, N)` — so MP play unlocks single-player practice levels for that device's player. Eliminated players also bump on the level they died at. The check is per-peer: only the active player's peer ever bumps its own storage; spectators never accumulate levels for free.
-
-### Architecture (host-authoritative)
-
-Topology is the same star pattern as bumper/racing — host owns the simulation, clients mirror.
-
-- **Pattern generation** is host-only. On every new round (`enterIntro` or `enterRoundContinuation`), the host's `content.game` emits `onMpPatternStart` and `mp.js` broadcasts the full payload (style id, meter, tonality, progression, bridge chords, BPM, the pattern itself).
-- **Audio scheduling is independent per peer.** Each peer (host + clients) schedules its own count-in / hint cues / go cue / music against its own `audioContext.currentTime`. PeerJS messages are reliable + ordered, so cross-peer drift is bounded by ~50–200 ms of network latency at round start; within a single peer, audio is rock-solid because all timing derives from one local `T0`.
-- **Clients DO NOT run `content.game.frame()`** — the simulation only ticks on the host. `frame()` returns early on non-host peers in MP mode. This is critical: if clients ran their own miss-detection it would auto-fail the active player on every round.
-- **Active client input** plays an echo locally for zero-latency feel, then sends `mpInput {dir, offset}` to host where `offset = clientNow - clientT0`. Host applies via `handleArrow(dir, hostT0 + offset, originPeerId)` — translating client clock to host clock via the per-round T0 anchor. The input window judges against the offset, not the network arrival time, so a press that was on-time on the client's clock counts as on-time on the host's.
-- **Remote input grace.** When the active player is remote, host's `frame()` adds `MP_REMOTE_INPUT_GRACE_S = 0.35` to both the per-frame miss cutoff AND the echo→verdict transition. Without it, network RTT would auto-miss legitimate presses that arrived a tick after the local miss-detection ran.
-
-### Wire protocol
-
-Layered on top of `app.net`'s generic envelope. See `src/js/content/mp.js`'s top-of-file comment for the full schema; the message types are:
-
-- **h→c:** `mpInit`, `mpPatternStart`, `mpEcho`, `mpJudgement`, `mpRoster`, `mpAnnounce`, `mpGameOver`
-- **c→h:** `mpInput`
-
-`mpAnnounce` is host-broadcast for every `announce()` event from the host's `content.game`, so screen-reader users on every peer hear the same line. The client funnels it through `content.game.mpAnnounce(key, params, level)` which fires the local `onAnnounce` subscribers — same pipeline as a host-side announcement, so the game screen handler runs uniformly.
-
-### Race condition fix
-
-When the host transitions to the game screen and `content.mp.start({role:'host'})` runs, the obvious order would be: attach subscribers → `G().startMulti()` → which immediately calls `enterIntro()` → emits `mpPatternStart` → broadcasts. But clients haven't transitioned yet (they receive `mpInit` first, then async-FSM-transition to the game screen, then attach `content.mp`'s listener). The first `mpPatternStart` would hit clients before their listener exists.
-
-Fix: `mp.js`'s host path sends `mpInit` first, then defers `G().startMulti()` by 300 ms via `setTimeout`. That window covers the screen swap + listener attach on each client. PeerJS message ordering does the rest.
-
-### State model (`content.game.state.mp`)
-
-```
-mp: {
-  isHost,              // this peer is the room host
-  selfPeerId,          // this peer's PeerJS id
-  selfIndex,           // index of this peer in players[]
-  activeIndex,         // whose turn it is right now
-  players: [{          // shared roster; same order on every peer
-    peerId, name,
-    lives,             // starts at 4, decrements per miss, 0 = eliminated
-    score,             // per-player session score
-    eliminated,        // true once lives hit 0
-    highestLevel,      // max state.level this player was active for (gameover leaderboard)
-  }],
-  mpT0,                // local audio anchor for the current round; used to map active client's offsetFromT0 → host clock
-  lastTurnStats,       // {name, level, percent} from outgoing player; threaded into next intro's "Bob reached 87%" announce
-  finalRoster,         // snapshot frozen at game-over for the leaderboard render
-}
-```
-
-Note: there's no per-player `level` field — level is shared global state (`state.level`). `highestLevel` tracks the max level each player was active for, used only for the gameover leaderboard. Level itself advances on clean-clear and stays put on miss.
-
-### Persistence
-
-Each peer independently calls `bumpHighestUnlocked(state.level)` when it becomes the active player (host: in `passMpTurn` / `startMulti` / `enterMpVerdict` clean-clear / elimination paths; client: in `clientApplyPatternStart`). The check `activePlayer.peerId === state.mp.selfPeerId` ensures only the device whose player is actually playing bumps its own storage. The same `beatstar.highestLevel` key is shared with single-player level-clears, so MP and single-player progress are unified per device.
-
-When in doubt about wiring screens, audio scheduling, or timing-window semantics, the implementation is small — `content/{audio,music,theory,styles,game,mp}.js`, `app/net.js`, and `app/screen/{game,multiplayer,gameover}.js` — just read it.
-
-## Starting a new game from this template
-
-**This is a BLOCKING requirement.** Whenever the user describes a brand-new game to build on top of this template — i.e. `src/js/content/` is empty or contains only stub/example code, and the project does not yet have a game-specific `CLAUDE.md` of its own — you MUST ask the foundational design questions below before writing any `content/` code or making any architectural commitments. Picking wrong and refactoring later is expensive (especially #2 — audio listener mode is hard to retrofit). Skip questions the user has already answered explicitly in their first prompt; batch the remaining questions into a single message so the user answers them all at once.
-
-Once you have an existing game-specific `CLAUDE.md` in the project root, ongoing work is no longer "starting a new game" and these questions do not need to be re-asked.
-
-### Required questions
-
-1. **Perspective and movement model.** Top-down 2D tile-based (Pac-Man, Zelda 1)? Top-down 2D continuous? Side-scrolling 2D? First-person 3D? Third-person 3D? Static / turn-based / menu-driven? This determines the coordinate system, collision model, and how `app.controls.game()` is consumed.
-
-2. **Audio listener behavior** — *the single most important question, ask it explicitly even if the user gave hints.*
-   - **Screen-locked (Pac-Man style)** — listener yaw is **fixed**; sounds always come from their actual screen position. A ghost south of the player always sounds behind, no matter which way the player last moved. Best for fixed-camera 2D games where the player views the world from above and the camera never turns.
-   - **Player-locked (FPS-style)** — listener yaw tracks the player's facing direction; "front" is whatever the player is facing. Best for first-person 3D and games where the avatar's heading IS the camera.
-   - **Camera-locked (third-person)** — listener yaw tracks the camera, not the avatar. Useful when camera and avatar can rotate independently.
-   - **Stereo / non-spatial** — skip 3D positioning entirely; use `StereoPannerNode` per source, or mono cues. Best for menu-driven, turn-based, or purely musical games.
-
-3. **Audio's role.** Audio-first / blind-accessible (sighted UI minimal, must be playable purely by ear)? Equal (visuals and audio both first-class)? Audio supportive (visuals primary, audio feedback only)? This affects how much effort goes into spatial cues, screen-reader announcements, and visual UI.
-
-4. **Input devices.** Keyboard only? Keyboard + gamepad? Keyboard + mouse? All three? The template ships with all three adapters wired; the answer determines which mappings to define and which adapters to disable.
-
-5. **Persistence.** Continuous autosave of full game state? Discrete saves (manual / per level)? High scores only? No persistence? This determines whether `app.autosave` stays enabled and what `engine.state.export()` should serialize.
-
-6. **Progression structure.** Endless / score chase? Levels with discrete progression? Branching / non-linear? Single fixed scenario? Drives the screen FSM (need a level-clear screen? a game-over screen? a high-scores screen?).
-
-7. **Synth aesthetic.** Chiptune / retro (raw squares and saws)? Modern synth (filtered triangles, soft pads, sub-bass)? Procedural / generative? The template is synth-only — sampled audio needs additional wiring.
-
-### Implementation pointers per answer
-
-**Audio listener — screen-locked.** Set yaw to a constant in `content.audio.updateListener()` and don't update it from player direction. Anchor audio-front to whichever screen direction feels like "up" to the player (typically screen-north). With the screen→audio y-flip in place, `LISTENER_YAW = Math.PI / 2` puts audio-front at screen-north:
-
-```js
-const LISTENER_YAW = Math.PI / 2 // screen-north = audio-front
-function updateListener() {
-  const p = content.player.getPosition()
-  engine.position.setVector(tileToM(p))
-  engine.position.setQuaternion(engine.tool.quaternion.fromEuler({yaw: LISTENER_YAW}))
-}
-```
-
-`behindness()` reads the same constant via `_lastYaw`, so a "behind" muffle still triggers for sources opposite the anchored front. Build a diagnostic screen that emits ticks at front/right/behind/left around a static listener with the same yaw, and verify by ear after any change. The `audio-pacman` repo (`../pacman/src/js/content/audio.js`) is the reference implementation.
-
-**Audio listener — player-locked.** Update yaw from the player's facing every frame:
-
-```js
-const d = content.player.state.dir
-const yaw = Math.atan2(-d.y, d.x) // negate y to match the screen→audio flip
-engine.position.setQuaternion(engine.tool.quaternion.fromEuler({yaw}))
-```
-
-`behindness()` then naturally means "behind the player's heading" — the FPS interpretation.
-
-**Audio listener — camera-locked.** Track the camera's yaw, not the avatar's. If the camera lags behind the avatar (smoothed follow), low-pass the yaw before applying so listener orientation doesn't snap.
-
-**Audio — stereo only.** Skip the binaural pipeline entirely. Per source: a `StereoPannerNode` whose `pan` is the source's screen-x relative to the player, clamped to `[-1, 1]`. No `engine.position`, no listener yaw.
-
-**Movement — tile-based grid.** Use queued-direction movement (store current `dir` and a queued `dir`; on each tile center, swap if the new tile is passable). Add a small "cornering" window near tile centers where motion happens on both axes for smoothness. The pacman repo's `content/pacman.js` is the reference.
-
-**Movement — continuous free.** Read `app.controls.game()` each frame for `{x, y}` and integrate position. Collision is geometric (AABB or circle-vs-tile), no grid snap needed.
-
-**Persistence — autosave.** Leave `app.autosave` running. Each `content.*` module exposes import/export hooks via `engine.state`. Keep saved state small — most gameplay state should rebuild on level start.
-
-**Persistence — high scores only.** Disable `app.autosave` in `main.js`. Add a dedicated `app.highscores` module reading/writing its own storage key. The pacman repo's `src/js/app/highscores.js` is a reference.
-
-**Progression — levels.** Add `levelClear` and `gameOver` screens to the FSM. The game's top-level FSM (in `content/game.js` or similar) typically transitions `intro → ready → play → death/levelClear → play (next level) | gameOver`.
+This directory has already been instantiated as FIRE! — the foundational design questions in the original syngen-template doc are answered in `CLAUDE-FIRE.md` under "Foundational answers". If you ever fork this repo to start a *different* game, do NOT begin coding `content/` until you've revisited those seven questions (perspective, audio listener, audio role, input, persistence, progression, synth aesthetic) and recorded the answers in a new `CLAUDE-FIRE.md`-equivalent. Listener mode (#2) in particular is hard to retrofit.
 
 ## Common commands
 

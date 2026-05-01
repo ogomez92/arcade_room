@@ -70,14 +70,15 @@ content.theory = (() => {
   }
 
   // Frequencies for the four arrow keys at the C4 register.
+  // Clockwise ascending: up (root) → right (3rd) → down (5th) → left (octave).
   function arrowFreqs(tonality) {
     const offsets = arrowSemitones(tonality.mode)
     const baseC4 = LEAD_C * Math.pow(2, tonality.rootSemitone / 12)
     return {
-      down:  baseC4 * Math.pow(2, offsets[0] / 12),
-      left:  baseC4 * Math.pow(2, offsets[1] / 12),
-      right: baseC4 * Math.pow(2, offsets[2] / 12),
-      up:    baseC4 * Math.pow(2, offsets[3] / 12),
+      up:    baseC4 * Math.pow(2, offsets[0] / 12),
+      right: baseC4 * Math.pow(2, offsets[1] / 12),
+      down:  baseC4 * Math.pow(2, offsets[2] / 12),
+      left:  baseC4 * Math.pow(2, offsets[3] / 12),
     }
   }
 

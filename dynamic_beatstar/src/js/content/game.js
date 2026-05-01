@@ -27,7 +27,10 @@
 // Difficulty:
 //   bpm         = clamp(72 + 6 * (level - 1), ≤ 138), then nudged into
 //                 the chosen style's bpmRange
-//   measures    = 1 + floor((level - 1) / 6)         // 1×6, 2×6, 3×6, …
+//   measures    = 1 + max(0, floor((level - 4) / 6)) // 1×9, 2×6, 3×6, …
+//                                                    // (1m holds through
+//                                                    // L9 so subdivisions
+//                                                    // ramp first)
 //   meter       = pickMeter(style, level)            // 3/4/5/7
 //   subdivision = subdivisionProbs(level)            // q/e/s
 //
@@ -231,7 +234,7 @@ content.game = (() => {
     return targetBpm(level)
   }
 
-  function measuresFor(level) { return 1 + Math.floor((level - 1) / 6) }
+  function measuresFor(level) { return 1 + Math.max(0, Math.floor((level - 4) / 6)) }
 
   // Clean-round count required to advance from this level. Curve:
   // L1=3, L2=4, L3=6, L4=8, L5=10, L6=12, ...
@@ -662,12 +665,7 @@ content.game = (() => {
         )
       } else {
         // ROUND CLEAR — no pause, music continues, next pattern starts
-        // on the next bar (= current echo end). Polite "X of Y" reads
-        // in parallel with the new hint.
-        announce('ann.roundClear', {
-          cleared: state.patternsCleared,
-          total:   state.patternsRequired,
-        }, 'polite')
+        // on the next bar (= current echo end).
         enterRoundContinuation(false)
       }
     } else {
@@ -923,10 +921,6 @@ content.game = (() => {
         // the verdict pause ends.
       } else {
         // ROUND CLEAR — same player, next pattern, no pause.
-        announce('ann.roundClear', {
-          cleared: state.patternsCleared,
-          total:   state.patternsRequired,
-        }, 'polite')
         enterRoundContinuation(false)
       }
     } else {

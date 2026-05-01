@@ -134,7 +134,7 @@ app.screen.stylePreview = app.screenManager.invent({
     // keep the bell attack from smearing the kick transient). Skip the
     // first measure so the bed establishes itself before the lead enters.
     const beatDur = 60 / bpm
-    const arrows = ['down', 'left', 'right', 'up']
+    const arrows = ['up', 'right', 'down', 'left']
     const leadStart = T0 + meter * beatDur
     for (let i = 0; i < meter * 2; i++) {
       content.audio.hint(arrows[i % 4], leadStart + i * beatDur + 0.002)

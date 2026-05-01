@@ -15,11 +15,11 @@
 //   pluck   — short triangle pluck with quick filter sweep
 //   mellow  — soft sine + breathy band-passed noise
 //
-// Pentatonic note layout (pleasant when chained in any order):
-//   down  → C4 (low,  centred)   — earth
-//   left  → E4 (mid,  panned L)
-//   right → G4 (mid,  panned R)
-//   up    → C5 (high, centred)   — sky
+// Note layout — clockwise ascending arpeggio (1-3-5-8):
+//   up    → C4 (root,   centred)
+//   right → E4 (3rd,    panned R)
+//   down  → G4 (5th,    centred)
+//   left  → C5 (octave, panned L)
 //
 // Plus a meter count-in (woodblock-style ticks emphasising beat 1), the
 // listen→echo "go" cue, and short success/fail/levelUp/gameOver gestures.
@@ -28,10 +28,10 @@ content.audio = (() => {
   // setTonality(rootSemitone, mode) is called by content.game on each
   // level start.
   const NOTE = {
-    down:  {freq: 261.6256, pan:  0.00, label: 'C4'},
-    left:  {freq: 329.6276, pan: -0.70, label: 'E4'},
-    right: {freq: 391.9954, pan:  0.70, label: 'G4'},
-    up:    {freq: 523.2511, pan:  0.00, label: 'C5'},
+    up:    {freq: 261.6256, pan:  0.00, label: 'C4'},
+    right: {freq: 329.6276, pan:  0.70, label: 'E4'},
+    down:  {freq: 391.9954, pan:  0.00, label: 'G4'},
+    left:  {freq: 523.2511, pan: -0.70, label: 'C5'},
   }
 
   let leadVoice = 'bell'
@@ -255,7 +255,7 @@ content.audio = (() => {
   // ---------- short fanfares ----------
   function success(when) {
     const t0 = (when != null ? when : ctx().currentTime)
-    const seq = ['down', 'left', 'right', 'up']
+    const seq = ['up', 'right', 'down', 'left']
     const step = 0.08
     seq.forEach((dir, i) => echo(dir, t0 + i * step))
   }
@@ -278,14 +278,14 @@ content.audio = (() => {
 
   function levelUp(when) {
     const t0 = (when != null ? when : ctx().currentTime)
-    const seq = ['down', 'left', 'right', 'up', 'up']
+    const seq = ['up', 'right', 'down', 'left', 'left']
     const step = 0.1
     seq.forEach((dir, i) => hint(dir, t0 + i * step))
   }
 
   function gameOver(when) {
     const t0 = (when != null ? when : ctx().currentTime)
-    const seq = ['up', 'right', 'left', 'down']
+    const seq = ['left', 'down', 'right', 'up']
     const step = 0.2
     seq.forEach((dir, i) => echo(dir, t0 + i * step))
   }
@@ -300,18 +300,18 @@ content.audio = (() => {
   // gets a major third (left arrow), minor gets a minor third.
   function setTonality(rootSemitone, mode) {
     const freqs = content.theory.arrowFreqs({rootSemitone, mode})
+    NOTE.up.freq    = freqs.up
+    NOTE.right.freq = freqs.right
     NOTE.down.freq  = freqs.down
     NOTE.left.freq  = freqs.left
-    NOTE.right.freq = freqs.right
-    NOTE.up.freq    = freqs.up
   }
 
-  // Short tonal arpeggio (down→left→right→up at the given start time).
-  // Used at level intros and for the modulation bridge between levels —
-  // sounds the four arrow tones in the new scale so the player can
-  // calibrate before the count-in finishes.
+  // Short tonal arpeggio (up→right→down→left at the given start time —
+  // clockwise = ascending). Used at level intros and for the modulation
+  // bridge between levels — sounds the four arrow tones in the new
+  // scale so the player can calibrate before the count-in finishes.
   function tonalArpeggio(t0, span) {
-    const seq = ['down', 'left', 'right', 'up']
+    const seq = ['up', 'right', 'down', 'left']
     const step = (span || 0.5) / seq.length
     seq.forEach((dir, i) => hint(dir, t0 + i * step))
   }

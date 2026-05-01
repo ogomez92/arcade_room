@@ -1,0 +1,90 @@
+.a-game {
+  align-items: center;
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(255, 80, 30, 0.18) 0%, rgba(0, 0, 0, 0) 60%),
+    radial-gradient(circle at 50% 30%, rgba(120, 30, 30, 0.10) 0%, rgba(0, 0, 0, 0) 70%),
+    #0a0606;
+  color: #ffd9b3;
+  font-family: monospace;
+  text-align: center;
+}
+
+.a-game--hud {
+  display: grid;
+  gap: 0.6em;
+  grid-template-columns: 1fr;
+  letter-spacing: 0.1em;
+}
+  .a-game--score {
+    color: #ffeac7;
+    font-size: 4em;
+    font-weight: 700;
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(255, 110, 50, 0.5);
+  }
+  .a-game--level {
+    color: #ffb88a;
+    font-size: 1.4em;
+  }
+  .a-game--lives {
+    color: #ff5a3a;
+    font-size: 1.6em;
+    letter-spacing: 0.2em;
+    min-height: 1.6em;
+  }
+  .a-game--threat {
+    color: #ff8c3a;
+    font-size: 1.2em;
+    min-height: 1.4em;
+  }
+  .a-game--aim {
+    color: #5dc6ff;
+    font-size: 1.6em;
+    letter-spacing: 0.4em;
+  }
+
+.a-live {
+  left: -10000px;
+  position: absolute;
+}
+
+.a-app--announce {
+  /* aria-live regions visually hidden but still read by screen readers */
+}
+
+/* Game over screen — shares c-menu styling but uses fire palette */
+.a-gameover {
+  align-items: center;
+  background: radial-gradient(ellipse at 50% 50%, rgba(150, 30, 30, 0.18) 0%, rgba(0, 0, 0, 0) 65%), #0a0606;
+  text-align: center;
+}
+  .a-gameover .c-menu--title {
+    color: #ff5a3a;
+    text-shadow: 0 0 24px rgba(255, 80, 40, 0.5);
+  }
+
+/* Splash help block */
+.a-splash--help {
+  margin-top: 1.5rem;
+  max-width: 36em;
+}
+  .a-splash--help h2 {
+    font-size: 1.2em;
+    margin-bottom: 0.4rem;
+  }
+  .a-splash--help ul {
+    list-style: none;
+    padding: 0;
+  }
+  .a-splash--help li {
+    margin: 0.25rem 0;
+    opacity: 0.9;
+  }
+  .a-splash--help kbd {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 0.2em;
+    font-family: inherit;
+    font-size: 0.95em;
+    padding: 0 0.4em;
+  }
