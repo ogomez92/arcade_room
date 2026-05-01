@@ -40,11 +40,13 @@ const HUD = (() => {
     if (el.ammo) el.ammo.textContent = car.bullets || 0
     if (el.item) {
       const t = car.item
-      const label = t === 'nitro' ? 'NITRO'
-        : t === 'mine' ? 'MINE'
-        : t === 'decoy' ? 'DECOY'
-        : '—'
-      el.item.textContent = car.nitroT > 0 ? `NITRO ${car.nitroT.toFixed(1)}s` : label
+      const label = t === 'nitro' ? I18n.t('hud.itemNitro')
+        : t === 'mine' ? I18n.t('hud.itemMine')
+        : t === 'decoy' ? I18n.t('hud.itemDecoy')
+        : I18n.t('hud.itemNone')
+      el.item.textContent = car.nitroT > 0
+        ? I18n.t('hud.itemNitroActive', { sec: car.nitroT.toFixed(1) })
+        : label
     }
 
     // Visual cues
@@ -69,8 +71,12 @@ const HUD = (() => {
   }
 
   function showFinish(place, totalRacers, time) {
-    el.finishTitle.textContent = place === 1 ? 'VICTORY' : 'RACE COMPLETE'
-    el.finishDetail.textContent = `Finished ${ordinal(place)} of ${totalRacers} in ${time.toFixed(2)}s`
+    el.finishTitle.textContent = I18n.t(place === 1 ? 'finish.victory' : 'finish.complete')
+    el.finishDetail.textContent = I18n.t('finish.detail', {
+      ordinal: ordinal(place),
+      total: totalRacers,
+      time: time.toFixed(2),
+    })
     el.finish.hidden = false
     setTimeout(() => {
       const retry = document.getElementById('finish-retry')
@@ -81,12 +87,13 @@ const HUD = (() => {
   function hideFinish() { el.finish.hidden = true }
 
   function showGameOver(stats) {
+    const ofTotal = (n, total) => I18n.t('gameover.ofTotal', { n, total })
     const rows = [
-      ['Position',  `${ordinal(stats.position)} of ${stats.totalRacers}`],
-      ['Lap',       `${stats.lap} of ${stats.totalLaps}`],
-      ['Lap progress', `${Math.round(stats.lapPct)}%`],
-      ['Race time', `${stats.time.toFixed(2)}s`],
-      ['Top speed', `${Math.round(stats.topSpeed * 3.6)} km/h`],
+      [I18n.t('gameover.position'), ofTotal(ordinal(stats.position), stats.totalRacers)],
+      [I18n.t('gameover.lap'),      ofTotal(stats.lap, stats.totalLaps)],
+      [I18n.t('gameover.lapPct'),   `${Math.round(stats.lapPct)}%`],
+      [I18n.t('gameover.time'),     `${stats.time.toFixed(2)}s`],
+      [I18n.t('gameover.topSpeed'), `${Math.round(stats.topSpeed * 3.6)} ${I18n.t('hud.unitKmh')}`],
     ]
     el.gameoverStats.innerHTML = rows
       .map(([k, v]) => `<li>${k}<strong>${v}</strong></li>`)
@@ -103,6 +110,13 @@ const HUD = (() => {
   function hideSplash() { el.splash.style.display = 'none' }
 
   function ordinal(n) {
+    if (typeof I18n !== 'undefined') {
+      const key = 'ord.' + n
+      const v = I18n.t(key)
+      if (v !== key) return v
+      // Spanish fallback for n>8: keep the ordinal-mark suffix.
+      if (I18n.get && I18n.get() === 'es') return n + '.º'
+    }
     const s = ['th','st','nd','rd'], v = n % 100
     return n + (s[(v - 20) % 10] || s[v] || s[0])
   }

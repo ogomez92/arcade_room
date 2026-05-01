@@ -168,29 +168,29 @@
   }
 
   function itemLabel(t) {
-    return t === 'nitro' ? 'Nitro Burst'
-      : t === 'mine' ? 'Ion Mine'
-      : t === 'decoy' ? 'Decoy Beacon'
-      : t
+    if (t === 'nitro') return I18n.t('item.nitro')
+    if (t === 'mine')  return I18n.t('item.mine')
+    if (t === 'decoy') return I18n.t('item.decoy')
+    return t
   }
 
   function onPickupCollected(p) {
     if (p.type === 'health') {
       car.health = Math.min(Car.HEALTH_MAX, car.health + 30)
-      HUD.announce('Health pack collected.')
+      HUD.announce(I18n.t('ann.healthPack'))
     } else if (p.type === 'shooter') {
       car.bullets += 3
-      HUD.announce(`Shooter ammo, ${car.bullets} rounds.`)
+      HUD.announce(I18n.t('ann.shooter', { n: car.bullets }))
     } else {
       // Item pickups (nitro / mine / decoy) fill a single slot. If the slot
       // is already occupied we refuse the pickup so the player isn't forced
       // to overwrite an item they're saving — but the audio still fires to
       // acknowledge the passthrough.
       if (car.item) {
-        HUD.announce(`Can't carry ${itemLabel(p.type)} — already holding ${itemLabel(car.item)}.`)
+        HUD.announce(I18n.t('ann.cantCarry', { item: itemLabel(p.type), held: itemLabel(car.item) }))
       } else {
         car.item = p.type
-        HUD.announce(`${itemLabel(p.type)} acquired. Press Space to use.`)
+        HUD.announce(I18n.t('ann.acquired', { item: itemLabel(p.type) }))
       }
     }
     Audio.playPickup(p.type)
@@ -203,13 +203,13 @@
     if (item === 'nitro') {
       car.nitroT = 2.0
       Audio.playItemActivate('nitro')
-      HUD.announce('Nitro burst!', true)
+      HUD.announce(I18n.t('ann.nitro'), true)
     } else if (item === 'mine') {
       const selfAbs = (car.lap - 1) * Track.length + car.z
       const ownerId = isOnline() ? (online.role === 'host' ? 'host' : online.selfId) : 'local'
       Mines.dropAt(ownerId, car.x, selfAbs)
       Audio.playItemActivate('mine')
-      HUD.announce('Mine dropped.', true)
+      HUD.announce(I18n.t('ann.mineDrop'), true)
       if (isOnline()) {
         if (online.role === 'host') {
           // Already dropped on host's own list.
@@ -220,7 +220,7 @@
       }
     } else if (item === 'decoy') {
       Audio.playItemActivate('decoy')
-      HUD.announce('Decoy released!', true)
+      HUD.announce(I18n.t('ann.decoyRelease'), true)
       if (!isOnline()) {
         // SP: nothing to dodge (AI doesn't shoot), but play the confirmation
         // so practicing the sound still works.
@@ -248,7 +248,7 @@
       pendingShoot = direction
       const panInit = direction === 'left' ? -0.7 : direction === 'right' ? 0.7 : 0
       Audio.playBulletFire(panInit)
-      HUD.announce(`Fired ${direction}. ${car.bullets} left.`)
+      HUD.announce(I18n.t('ann.fired', { dir: I18n.t('dir.' + direction), n: car.bullets }))
       if (online.role === 'host') {
         // Host fires directly in its own sim
         hostFireFromSelf(direction)
@@ -257,7 +257,7 @@
       return
     }
     const ok = Bullets.fire(car, ais, direction)
-    if (ok) HUD.announce(`Fired ${direction}. ${car.bullets} left.`)
+    if (ok) HUD.announce(I18n.t('ann.fired', { dir: I18n.t('dir.' + direction), n: car.bullets }))
   }
 
   function startCountdown() {
@@ -267,7 +267,7 @@
     HUD.activate()
     Audio.init()
     Audio.resume()
-    HUD.announce('Three', true)
+    HUD.announce(I18n.t('ann.three'), true)
     Audio.playCountdown(3)
     Input.clear()
   }
@@ -275,7 +275,7 @@
   function beginRace() {
     phase = 'race'
     Audio.resetCues()
-    HUD.announce('Go!', true)
+    HUD.announce(I18n.t('ann.go'), true)
   }
 
   function triggerGameOver() {
@@ -302,7 +302,11 @@
       topSpeed,
     })
     HUD.announce(
-      `Game over. Wrecked in ${HUD.ordinal(place)} place, lap ${lap} of ${TOTAL_LAPS}, ${Math.round(lapPct)} percent through. Press Enter to try again.`,
+      I18n.t('gameover.announce', {
+        ordinal: HUD.ordinal(place),
+        lap, totalLaps: TOTAL_LAPS,
+        pct: Math.round(lapPct),
+      }),
       true
     )
   }
@@ -316,7 +320,11 @@
     const racers = ais.length + 1
     HUD.showFinish(place, racers, raceTime)
     HUD.announce(
-      `Race complete. Finished ${HUD.ordinal(place)} of ${racers} in ${raceTime.toFixed(2)} seconds. Press Enter to restart.`,
+      I18n.t('finish.announce', {
+        ordinal: HUD.ordinal(place),
+        total: racers,
+        time: raceTime.toFixed(2),
+      }),
       true
     )
     Audio.playFinish()
@@ -325,21 +333,21 @@
   function handleAnnounceKeys(car, ais) {
     if (Input.wasPressed('F1')) {
       const pos = HUD.computePosition(car, ais)
-      HUD.announce(`Position ${pos} of ${ais.length + 1}.`, true)
+      HUD.announce(I18n.t('ann.position', { n: pos, total: ais.length + 1 }), true)
     }
     if (Input.wasPressed('F2')) {
-      HUD.announce(`Lap ${Math.min(car.lap, TOTAL_LAPS)} of ${TOTAL_LAPS}.`, true)
+      HUD.announce(I18n.t('ann.lapStatus', { n: Math.min(car.lap, TOTAL_LAPS), total: TOTAL_LAPS }), true)
     }
     if (Input.wasPressed('F3')) {
-      HUD.announce(`Speed ${Math.round(car.speed * 3.6)} kilometers per hour, gear ${car.gear}.`, true)
+      HUD.announce(I18n.t('ann.speedStatus', { kmh: Math.round(car.speed * 3.6), gear: car.gear }), true)
     }
     if (Input.wasPressed('F4')) {
-      HUD.announce(`Health ${Math.round(car.health)} percent.`, true)
+      HUD.announce(I18n.t('ann.healthStatus', { pct: Math.round(car.health) }), true)
     }
     if (Input.wasPressed('KeyM')) {
       const ctx = syngen.context()
       if (ctx.state === 'running') ctx.suspend(); else ctx.resume()
-      HUD.announce(ctx.state === 'running' ? 'Muted' : 'Unmuted', true)
+      HUD.announce(I18n.t(ctx.state === 'running' ? 'ann.muted' : 'ann.unmuted'), true)
     }
   }
 
@@ -457,7 +465,7 @@
       if (msg.targetId === online.selfId) {
         const dmg = msg.quality > 0.7 ? 35 : msg.quality > 0.35 ? 18 : 10
         car.health = Math.max(0, car.health - dmg)
-        HUD.announce(msg.quality > 0.7 ? 'Direct hit!' : msg.quality > 0.35 ? 'Hit!' : 'Clipped!', true)
+        HUD.announce(I18n.t(msg.quality > 0.7 ? 'ann.directHit' : msg.quality > 0.35 ? 'ann.hit' : 'ann.clipped'), true)
       }
     } else if (ev === 'miss') {
       applyMissAudio(msg.x, msg.zAbs)
@@ -466,17 +474,17 @@
       if (msg.targetId === online.selfId) {
         if (msg.type === 'health') {
           car.health = Math.min(Car.HEALTH_MAX, car.health + 30)
-          HUD.announce('Health pack collected.')
+          HUD.announce(I18n.t('ann.healthPack'))
         } else if (msg.type === 'shooter') {
           car.bullets += 3
-          HUD.announce(`Shooter ammo, ${car.bullets} rounds.`)
+          HUD.announce(I18n.t('ann.shooter', { n: car.bullets }))
         } else {
           // Item pickup — fill slot if free
           if (car.item) {
-            HUD.announce(`Can't carry ${itemLabel(msg.type)} — already holding ${itemLabel(car.item)}.`)
+            HUD.announce(I18n.t('ann.cantCarry', { item: itemLabel(msg.type), held: itemLabel(car.item) }))
           } else {
             car.item = msg.type
-            HUD.announce(`${itemLabel(msg.type)} acquired. Press Space to use.`)
+            HUD.announce(I18n.t('ann.acquired', { item: itemLabel(msg.type) }))
           }
         }
       }
@@ -490,7 +498,7 @@
       if (msg.victimId === online.selfId) {
         car.health = Math.max(0, car.health - 35)
         car.speed = Math.max(60, car.speed * 0.4)
-        HUD.announce('Mine triggered!', true)
+        HUD.announce(I18n.t('ann.mineTriggered'), true)
       }
     } else if (ev === 'decoy') {
       // Ghost sound: a ghostly descending sweep, played spatially from the
@@ -630,7 +638,7 @@
       if (who.local) {
         if (pickup.type === 'health') car.health = Math.min(Car.HEALTH_MAX, car.health + 30)
         else car.bullets += 3
-        HUD.announce(pickup.type === 'health' ? 'Health pack collected.' : `Shooter ammo, ${car.bullets} rounds.`)
+        HUD.announce(pickup.type === 'health' ? I18n.t('ann.healthPack') : I18n.t('ann.shooter', { n: car.bullets }))
       }
       Audio.playPickup(pickup.type)
       Net.broadcast({ t: 'event', ev: 'pickup', targetId, type: pickup.type })
@@ -650,7 +658,7 @@
       if (victimId === 'host') {
         car.health = Math.max(0, car.health - 35)
         car.speed = Math.max(60, car.speed * 0.4)
-        HUD.announce('Mine triggered!', true)
+        HUD.announce(I18n.t('ann.mineTriggered'), true)
       } else {
         const botVictim = bots.find(b => b.id === victimId)
         if (botVictim) {
@@ -669,8 +677,8 @@
           const dmg = quality > 0.7 ? 35 : quality > 0.35 ? 18 : 10
           car.health = Math.max(0, car.health - dmg)
           tx = car.x; tzAbs = selfAbs
-          if (quality > 0.7) HUD.announce('Direct hit taken!', true)
-          else HUD.announce('Hit!', true)
+          if (quality > 0.7) HUD.announce(I18n.t('ann.directHitTaken'), true)
+          else HUD.announce(I18n.t('ann.hitTaken'), true)
         } else {
           const p = online.players.get(targetId)
           if (p) {
@@ -711,7 +719,7 @@
           car.health -= 6
           car._hitCooldown = 0.5
           Audio.playHit()
-          HUD.announce('Impact.')
+          HUD.announce(I18n.t('ann.impact'))
         }
         Net.broadcast({ t: 'event', ev: 'bump', a: online.selfId, b: other.id })
       }
@@ -756,8 +764,8 @@
     } else if (phase === 'countdown') {
       const prev = countdown
       countdown += dt
-      if (prev < 1 && countdown >= 1) { HUD.announce('Two', true); Audio.playCountdown(2) }
-      if (prev < 2 && countdown >= 2) { HUD.announce('One', true); Audio.playCountdown(1) }
+      if (prev < 1 && countdown >= 1) { HUD.announce(I18n.t('ann.two'), true); Audio.playCountdown(2) }
+      if (prev < 2 && countdown >= 2) { HUD.announce(I18n.t('ann.one'), true); Audio.playCountdown(1) }
       if (prev < 3 && countdown >= 3) { Audio.playCountdown(0); beginRace() }
       Render.render(car, ais, Pickups.getList(), Bullets.getList())
       HUD.update(car, ais, TOTAL_LAPS)
@@ -779,7 +787,7 @@
 
       if (prevNitroT > 0 && car.nitroT === 0) {
         Audio.playNitroEnd(0)
-        HUD.announce('Nitro spent.')
+        HUD.announce(I18n.t('ann.nitroSpent'))
       }
 
       if (car.speed > topSpeed) topSpeed = car.speed
@@ -790,9 +798,9 @@
 
       if (!prevOffroad && car.offroad) {
         const side = car.x > 0 ? 'right' : 'left'
-        HUD.announce(`Off track ${side}! Steer to center.`, true)
+        HUD.announce(I18n.t('ann.offTrack', { side: I18n.t('side.' + side) }), true)
       } else if (prevOffroad && !car.offroad) {
-        HUD.announce('Back on track.')
+        HUD.announce(I18n.t('ann.backOnTrack'))
       }
 
       const wrapped = prevZ > car.z + Track.length / 2
@@ -802,7 +810,7 @@
           finishRace()
         } else {
           Audio.playLap()
-          HUD.announce(`Lap ${car.lap} of ${TOTAL_LAPS}.`)
+          HUD.announce(I18n.t('ann.lapDone', { n: car.lap, total: TOTAL_LAPS }))
         }
       }
 
@@ -832,7 +840,7 @@
               car._hitCooldown = 0.5
               Audio.playHit()
               const side = (ai.x - car.x) < 0 ? 'left' : 'right'
-              HUD.announce(`Impact on ${side}.`)
+              HUD.announce(I18n.t('ann.impactSide', { side: I18n.t('side.' + side) }))
             }
           }
         }
@@ -841,13 +849,12 @@
         Pickups.update(dt, car, onPickupCollected)
         Bullets.update(dt, car, ais,
           (_hitAi, quality) => {
-            if (quality > 0.7) HUD.announce('Direct hit!')
-            else if (quality > 0.35) HUD.announce('Hit.')
-            else HUD.announce('Clipped.')
+            if (quality > 0.7) HUD.announce(I18n.t('ann.directHit'))
+            else if (quality > 0.35) HUD.announce(I18n.t('ann.hit'))
+            else HUD.announce(I18n.t('ann.clipped'))
           },
           (b) => {
-            const side = b.direction === 'left' ? 'left' : b.direction === 'right' ? 'right' : 'forward'
-            HUD.announce(`Missed ${side}.`)
+            HUD.announce(I18n.t('ann.missedSide', { side: I18n.t('dir.' + b.direction) }))
           }
         )
         Mines.update(dt, car, (_mine, victim) => {
@@ -855,7 +862,7 @@
             car.health = Math.max(0, car.health - 35)
             car.speed = Math.max(60, car.speed * 0.4)
             Audio.playMineExplosion(0)
-            HUD.announce('Mine triggered!', true)
+            HUD.announce(I18n.t('ann.mineTriggered'), true)
           }
         })
 
@@ -881,7 +888,7 @@
               trackLength: Track.length,
             })
             ais.push(newAi)
-            HUD.announce(`New challenger ahead — ${ais.length + 1} racers now.`)
+            HUD.announce(I18n.t('ann.newChallenger', { n: ais.length + 1 }))
           }
         }
 
@@ -963,7 +970,7 @@
     // Tell everyone
     Net.broadcast({ t: 'lobby', players: buildLobbyList() })
     refreshLobbyUI()
-    HUD.announce(`${name || 'Racer'} joined.`)
+    HUD.announce(I18n.t('lobby.joined', { name: name || 'Racer' }))
   })
 
   Net.on('peer-leave', ({ id }) => {
@@ -973,20 +980,20 @@
       rebuildAis()
       Net.broadcast({ t: 'lobby', players: buildLobbyList() })
       refreshLobbyUI()
-      HUD.announce('A racer left.')
+      HUD.announce(I18n.t('lobby.left'))
     }
   })
 
   Net.on('disconnected', () => {
     if (!online) return
-    HUD.announce('Disconnected from host.', true)
+    HUD.announce(I18n.t('lobby.disconnected'), true)
     leaveOnline()
   })
 
   Net.on('error', (err) => {
     console.error('Net error', err)
     const status = document.getElementById('online-join-status')
-    if (status) status.textContent = (err && err.message) || 'Network error.'
+    if (status) status.textContent = (err && err.message) || I18n.t('lobby.netError')
   })
 
   Net.on('msg', ({ from, msg }) => {
@@ -1086,32 +1093,34 @@
     const hint = document.getElementById('online-lobby-hint')
     const startBtn = document.getElementById('online-lobby-start')
     if (online && online.role === 'host') {
-      title.textContent = 'LOBBY — YOU ARE HOST'
-      codeEl.textContent = `Room code: ${online.code}`
+      title.textContent = I18n.t('lobby.titleHost')
+      codeEl.textContent = I18n.t('lobby.code', { code: online.code })
       const free = Net.MAX_PLAYERS - 1 - online.players.size
       hint.textContent = free > 0
-        ? `Share the code. Empty slots (${free}) will be filled with CPU racers. Start when ready.`
-        : 'Full lobby. Press Start Race when ready.'
+        ? I18n.t('lobby.hintHost', { free })
+        : I18n.t('lobby.hintFull')
       startBtn.hidden = false
     } else if (online) {
-      title.textContent = 'LOBBY'
-      codeEl.textContent = `Room code: ${online.code}`
-      hint.textContent = 'Waiting for host to start the race.'
+      title.textContent = I18n.t('lobby.title')
+      codeEl.textContent = I18n.t('lobby.code', { code: online.code })
+      hint.textContent = I18n.t('lobby.hintClient')
       startBtn.hidden = true
     }
     // Build player rows
     if (online) {
       const rows = []
+      const youTag = ' ' + I18n.t('lobby.youTag')
+      const hostTag = ' ' + I18n.t('lobby.hostTag')
       const list = online.role === 'host'
         ? buildLobbyList()
         : [
-            { id: 'host', name: 'Host', slot: 0, isHost: true },
-            { id: online.selfId, name: online.selfName + ' (you)', slot: online.selfSlot, isHost: false },
+            { id: 'host', name: I18n.t('lobby.host'), slot: 0, isHost: true },
+            { id: online.selfId, name: online.selfName + youTag, slot: online.selfSlot, isHost: false },
             ...Array.from(online.players.values()).map(p => ({ id: p.id, name: p.name, slot: p.slot, isHost: false })),
           ]
       for (const entry of list) {
-        const label = entry.isHost ? `${entry.name} (host)` : entry.name
-        rows.push(`<li>${escapeHtml(label)}<strong>Slot ${entry.slot + 1}</strong></li>`)
+        const label = entry.isHost ? `${entry.name}${hostTag}` : entry.name
+        rows.push(`<li>${escapeHtml(label)}<strong>${escapeHtml(I18n.t('lobby.slot', { n: entry.slot + 1 }))}</strong></li>`)
       }
       ul.innerHTML = rows.join('')
     }
@@ -1177,6 +1186,13 @@
     const menu = document.getElementById('menu')
     const learnList = document.getElementById('learn-list')
     const learnDesc = document.getElementById('learn-desc')
+
+    I18n.onChange(() => {
+      // Re-render anything dynamic that doesn't carry data-i18n attributes.
+      if (!learnDlg.hidden) buildLearnList()
+      if (!document.getElementById('online-lobby').hidden) refreshLobbyUI()
+      HUD.announce(I18n.t('splash.lang'))
+    })
     const nameDlg = document.getElementById('online-name')
     const joinDlg = document.getElementById('online-join')
     const lobbyDlg = document.getElementById('online-lobby')
@@ -1191,49 +1207,50 @@
     let pendingNameMode = null   // 'host' | 'join'
 
     const SOUNDS = [
-      { key: 'engine',           name: 'Player engine' },
-      { key: 'exhaust',          name: 'Exhaust airflow' },
-      { key: 'wind',             name: 'Wind rushing by' },
-      { key: 'center',           name: 'Center-line cue' },
-      { key: 'railLeft',         name: 'Left rail proximity' },
-      { key: 'railRight',        name: 'Right rail proximity' },
-      { key: 'offroad',          name: 'Off-track metal grind' },
-      { key: 'aiEngine',         name: 'Opponent engine' },
-      { key: 'pickupHealth',     name: 'Health pickup beacon' },
-      { key: 'pickupShooter',    name: 'Shooter pickup beacon' },
-      { key: 'pickupNitro',      name: 'Nitro Burst beacon' },
-      { key: 'pickupMine',       name: 'Ion Mine pickup beacon' },
-      { key: 'pickupDecoy',      name: 'Decoy Beacon pickup' },
-      { key: 'mineArmed',        name: 'Armed mine on track (avoid)' },
-      { key: 'travel',           name: 'Bullet in flight' },
-      { action: 'edgeTick',      name: 'Edge-of-track tick' },
-      { action: 'gearUp',        name: 'Gear up-shift' },
-      { action: 'gearDown',      name: 'Gear down-shift' },
-      { action: 'curveLeft',     name: 'Left curve warning' },
-      { action: 'curveRight',    name: 'Right curve warning' },
-      { action: 'straight',      name: 'Long straight ahead' },
-      { action: 'checkpoint',    name: 'Checkpoint' },
-      { action: 'lap',           name: 'Lap complete' },
-      { action: 'finish',        name: 'Race finish fanfare' },
-      { action: 'countdown3',    name: 'Countdown beep' },
-      { action: 'countdown0',    name: 'Countdown GO' },
-      { action: 'hit',           name: 'Collision impact' },
-      { action: 'alarm',         name: 'Low-health alarm' },
-      { action: 'fire',          name: 'Shoot — bullet fire' },
-      { action: 'explosion',     name: 'Explosion on direct hit' },
-      { action: 'miss',          name: 'Bullet miss' },
-      { action: 'pickupHealthFx',name: 'Health pickup collected' },
-      { action: 'pickupShooterFx',name: 'Shooter pickup collected' },
-      { action: 'pickupNitroFx', name: 'Nitro pickup collected' },
-      { action: 'pickupMineFx',  name: 'Ion Mine pickup collected' },
-      { action: 'pickupDecoyFx', name: 'Decoy pickup collected' },
-      { action: 'nitroActivate', name: 'Nitro Burst activation' },
-      { action: 'nitroEnd',      name: 'Nitro Burst ends' },
-      { action: 'mineActivate',  name: 'Ion Mine dropped (arming)' },
-      { action: 'mineExplode',   name: 'Ion Mine explosion / EMP' },
-      { action: 'decoyActivate', name: 'Decoy Beacon released' },
-      { action: 'decoyClear',    name: 'Missile lock cleared' },
+      { key: 'engine' },
+      { key: 'exhaust' },
+      { key: 'wind' },
+      { key: 'center' },
+      { key: 'railLeft' },
+      { key: 'railRight' },
+      { key: 'offroad' },
+      { key: 'aiEngine' },
+      { key: 'pickupHealth' },
+      { key: 'pickupShooter' },
+      { key: 'pickupNitro' },
+      { key: 'pickupMine' },
+      { key: 'pickupDecoy' },
+      { key: 'mineArmed' },
+      { key: 'travel' },
+      { action: 'edgeTick' },
+      { action: 'gearUp' },
+      { action: 'gearDown' },
+      { action: 'curveLeft' },
+      { action: 'curveRight' },
+      { action: 'straight' },
+      { action: 'checkpoint' },
+      { action: 'lap' },
+      { action: 'finish' },
+      { action: 'countdown3' },
+      { action: 'countdown0' },
+      { action: 'hit' },
+      { action: 'alarm' },
+      { action: 'fire' },
+      { action: 'explosion' },
+      { action: 'miss' },
+      { action: 'pickupHealthFx' },
+      { action: 'pickupShooterFx' },
+      { action: 'pickupNitroFx' },
+      { action: 'pickupMineFx' },
+      { action: 'pickupDecoyFx' },
+      { action: 'nitroActivate' },
+      { action: 'nitroEnd' },
+      { action: 'mineActivate' },
+      { action: 'mineExplode' },
+      { action: 'decoyActivate' },
+      { action: 'decoyClear' },
     ]
+    const soundName = (s) => I18n.t('sound.' + (s.key || s.action))
 
     let currentDemo = null
     function stopCurrentDemo() {
@@ -1283,11 +1300,12 @@
         const btn = document.createElement('button')
         btn.className = 'menu-item'
         btn.setAttribute('role', 'option')
-        btn.setAttribute('aria-label', s.name)
-        btn.textContent = s.name
+        const name = soundName(s)
+        btn.setAttribute('aria-label', name)
+        btn.textContent = name
         btn.dataset.idx = i
         btn.addEventListener('focus', () => {
-          learnDesc.textContent = `${s.name}. Press Enter to play.`
+          learnDesc.textContent = I18n.t('learn.replay', { name: soundName(s) })
         })
         btn.addEventListener('click', () => playSound(s))
         learnList.appendChild(btn)
@@ -1332,7 +1350,7 @@
       splash.style.display = 'none'
       hideAllOverlays()
       nameDlg.hidden = false
-      nameMode.textContent = mode === 'host' ? 'Hosting a new race.' : 'Joining an online race.'
+      nameMode.textContent = I18n.t(mode === 'host' ? 'name.modeHost' : 'name.modeJoin')
       nameStatus.textContent = ''
       const saved = (window.localStorage && localStorage.getItem('woc-name')) || ''
       nameInput.value = saved
@@ -1362,7 +1380,7 @@
       try { localStorage.setItem('woc-name', name) } catch (_) {}
       try { Audio.init(); Audio.resume() } catch (_) {}
       if (pendingNameMode === 'host') {
-        nameStatus.textContent = 'Creating room...'
+        nameStatus.textContent = I18n.t('name.creating')
         try {
           const { code } = await Net.hostRoom(name)
           online = {
@@ -1376,9 +1394,9 @@
           phase = 'lobby'
           HUD.hideSplash()
           showLobby()
-          HUD.announce(`Room created. Code ${code.split('').join(' ')}. Waiting for racers.`, true)
+          HUD.announce(I18n.t('lobby.created', { code: code.split('').join(' ') }), true)
         } catch (e) {
-          nameStatus.textContent = 'Could not create room. ' + (e && e.message || 'Try again.')
+          nameStatus.textContent = I18n.t('name.cantCreate') + ' ' + ((e && e.message) || I18n.t('name.tryAgain'))
         }
       } else {
         // Ask for code next
@@ -1389,11 +1407,11 @@
     async function submitJoinCode() {
       const code = (codeInput.value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
       if (code.length !== 6) {
-        joinStatus.textContent = 'Room code must be 6 characters.'
+        joinStatus.textContent = I18n.t('join.codeLength')
         return
       }
       const name = (nameInput.value || '').trim().slice(0, 16) || 'Racer'
-      joinStatus.textContent = 'Connecting to host...'
+      joinStatus.textContent = I18n.t('join.connecting')
       try { Audio.init(); Audio.resume() } catch (_) {}
       try {
         await Net.joinRoom(code, name)
@@ -1408,9 +1426,9 @@
         phase = 'lobby'
         HUD.hideSplash()
         showLobby()
-        HUD.announce('Joined lobby. Waiting for host to start.')
+        HUD.announce(I18n.t('join.joined'))
       } catch (e) {
-        joinStatus.textContent = (e && e.message) || 'Could not join.'
+        joinStatus.textContent = (e && e.message) || I18n.t('join.cantJoin')
       }
     }
 
@@ -1421,6 +1439,7 @@
       else if (action === 'help') showHelp()
       else if (action === 'host') showNameEntry('host')
       else if (action === 'join') showNameEntry('join')
+      else if (action === 'lang') I18n.toggle()
     }
 
     menu.querySelectorAll('.menu-item').forEach(btn => {

@@ -8,72 +8,57 @@
 </head>
 <body>
   <main class="app">
-    <div id="splash" class="splash" role="dialog" aria-label="Main menu">
-      <h1>WHEELS OF CLAUDO</h1>
-      <p class="sub">Anti-gravity racer</p>
-      <div id="menu" class="menu" role="menu" aria-label="Main menu">
-        <button class="menu-item" data-action="start" role="menuitem">Start Game</button>
-        <button class="menu-item" data-action="host" role="menuitem">Host Online Race</button>
-        <button class="menu-item" data-action="join" role="menuitem">Join Online Race</button>
-        <button class="menu-item" data-action="learn" role="menuitem">Learn Sounds</button>
-        <button class="menu-item" data-action="help" role="menuitem">Help</button>
+    <div id="splash" class="splash" role="dialog" data-i18n-aria="splash.menuAria">
+      <h1 data-i18n="splash.title">WHEELS OF CLAUDO</h1>
+      <p class="sub" data-i18n="splash.subtitle">Anti-gravity racer</p>
+      <div id="menu" class="menu" role="menu" data-i18n-aria="splash.menuAria">
+        <button class="menu-item" data-action="start" role="menuitem" data-i18n="splash.start">Start Game</button>
+        <button class="menu-item" data-action="host" role="menuitem" data-i18n="splash.host">Host Online Race</button>
+        <button class="menu-item" data-action="join" role="menuitem" data-i18n="splash.join">Join Online Race</button>
+        <button class="menu-item" data-action="learn" role="menuitem" data-i18n="splash.learn">Learn Sounds</button>
+        <button class="menu-item" data-action="help" role="menuitem" data-i18n="splash.help">Help</button>
+        <button class="menu-item" data-action="lang" role="menuitem" id="menu-lang" data-i18n="splash.lang">Language: English</button>
       </div>
-      <p class="sub">Use Up / Down arrows and Enter.</p>
+      <p class="sub" data-i18n="splash.hint">Use Up / Down arrows and Enter.</p>
     </div>
 
-    <div id="help" class="overlay" hidden role="dialog" aria-label="Help" tabindex="-1">
-      <h2>HELP</h2>
-      <ul class="instructions">
-        <li>Arrow Left / Right: steer</li>
-        <li>Arrow Down: brake</li>
-        <li>Shift: boost (drains health)</li>
-        <li>A: shoot left &mdash; S: shoot forward &mdash; D: shoot right (needs ammo)</li>
-        <li>Space: use held item (Nitro Burst, Ion Mine, or Decoy Beacon)</li>
-        <li>F1: position &mdash; F2: lap &mdash; F3: speed &mdash; F4: health</li>
-        <li>M: mute / unmute</li>
-      </ul>
-      <p class="sub">3 laps. Engine pans left/right with your lane position &mdash; steer TOWARD the quieter side to center.</p>
-      <p class="sub">Ticking warns near the edge. Metal grinding = off track, drains health.</p>
-      <p class="sub">Pickups float ahead. Sine chord = health. Metallic pulse = shooter ammo. Revving triangle = Nitro (short super-boost, no drain). Low ominous hum with crackle = Ion Mine (drop with Space; blows up whoever drives over it). Radio warble = Decoy Beacon (clears incoming missile locks).</p>
-      <p class="sub">Bullets home onto any car you can hear. Direct hits slow more than clips.</p>
-      <p class="sub">A dropped mine emits a low, slow 60Hz pulse so you can steer around it. Run over one and you hear a loud EMP thump — and lose half your speed.</p>
-      <p class="sub">Online: host creates a room and shares the 6-character code. Others pick Join, enter the code, and race. Same controls, same items, real humans.</p>
-      <p class="sub">Press Escape or Enter to return to menu.</p>
+    <div id="help" class="overlay" hidden role="dialog" data-i18n-aria="help.aria" tabindex="-1">
+      <div id="help-content" data-i18n-html="help.body"></div>
     </div>
 
-    <div id="online-name" class="overlay" hidden role="dialog" aria-label="Enter name" tabindex="-1">
-      <h2>YOUR NAME</h2>
-      <p class="sub">Type a name, then press Enter.</p>
-      <input id="online-name-input" class="text-input" type="text" maxlength="16" autocomplete="off" aria-label="Your name" />
+    <div id="online-name" class="overlay" hidden role="dialog" data-i18n-aria="name.title" tabindex="-1">
+      <h2 data-i18n="name.title">YOUR NAME</h2>
+      <p class="sub" data-i18n="name.prompt">Type a name, then press Enter.</p>
+      <input id="online-name-input" class="text-input" type="text" maxlength="16" autocomplete="off" data-i18n-aria="name.title" />
       <p id="online-name-mode" class="sub"></p>
       <p id="online-name-status" class="sub" aria-live="polite"></p>
-      <p class="sub">Press Escape to return to the menu.</p>
+      <p class="sub" data-i18n="name.escape">Press Escape to return to the menu.</p>
     </div>
 
-    <div id="online-join" class="overlay" hidden role="dialog" aria-label="Join online race" tabindex="-1">
-      <h2>JOIN RACE</h2>
-      <p class="sub">Enter the 6-character room code, then press Enter.</p>
-      <input id="online-code-input" class="text-input" type="text" maxlength="6" autocomplete="off" autocapitalize="characters" aria-label="Room code" />
+    <div id="online-join" class="overlay" hidden role="dialog" data-i18n-aria="join.title" tabindex="-1">
+      <h2 data-i18n="join.title">JOIN RACE</h2>
+      <p class="sub" data-i18n="join.prompt">Enter the 6-character room code, then press Enter.</p>
+      <input id="online-code-input" class="text-input" type="text" maxlength="6" autocomplete="off" autocapitalize="characters" data-i18n-aria="lobby.codeAria" />
       <p id="online-join-status" class="sub" aria-live="polite"></p>
-      <p class="sub">Press Escape to return to the menu.</p>
+      <p class="sub" data-i18n="name.escape">Press Escape to return to the menu.</p>
     </div>
 
-    <div id="online-lobby" class="overlay" hidden role="dialog" aria-label="Online race lobby" tabindex="-1">
-      <h2 id="online-lobby-title">LOBBY</h2>
+    <div id="online-lobby" class="overlay" hidden role="dialog" data-i18n-aria="lobby.title" tabindex="-1">
+      <h2 id="online-lobby-title" data-i18n="lobby.title">LOBBY</h2>
       <p class="sub" id="online-lobby-code"></p>
-      <ul id="online-lobby-players" class="gameover-stats" aria-live="polite" aria-label="Players in lobby"></ul>
+      <ul id="online-lobby-players" class="gameover-stats" aria-live="polite" data-i18n-aria="lobby.playersAria"></ul>
       <p id="online-lobby-hint" class="sub"></p>
-      <div class="menu" id="online-lobby-actions" role="group" aria-label="Lobby actions">
-        <button id="online-lobby-start" class="menu-item" type="button" hidden>Start Race</button>
-        <button id="online-lobby-leave" class="menu-item" type="button">Leave</button>
+      <div class="menu" id="online-lobby-actions" role="group" data-i18n-aria="lobby.actionsAria">
+        <button id="online-lobby-start" class="menu-item" type="button" hidden data-i18n="lobby.start">Start Race</button>
+        <button id="online-lobby-leave" class="menu-item" type="button" data-i18n="lobby.leave">Leave</button>
       </div>
-      <p class="sub">Press Escape to leave.</p>
+      <p class="sub" data-i18n="lobby.escape">Press Escape to leave.</p>
     </div>
 
-    <div id="learn" class="overlay" hidden role="dialog" aria-label="Learn sounds" tabindex="-1">
-      <h2>LEARN SOUNDS</h2>
-      <p class="sub">Arrow Up / Down to browse. Enter to replay. Escape to return.</p>
-      <div id="learn-list" class="menu" role="listbox" aria-label="Game sounds"></div>
+    <div id="learn" class="overlay" hidden role="dialog" data-i18n-aria="learn.aria" tabindex="-1">
+      <h2 data-i18n="learn.title">LEARN SOUNDS</h2>
+      <p class="sub" data-i18n="learn.prompt">Arrow Up / Down to browse. Enter to replay. Escape to return.</p>
+      <div id="learn-list" class="menu" role="listbox" data-i18n-aria="learn.listAria"></div>
       <p id="learn-desc" class="sub" aria-live="polite"></p>
     </div>
 
@@ -81,17 +66,17 @@
 
     <div id="hud" class="hud" aria-hidden="true">
       <div class="hud-row top">
-        <div class="hud-box"><span class="label">POS</span><span id="hud-pos">1/4</span></div>
-        <div class="hud-box"><span class="label">LAP</span><span id="hud-lap">1/3</span></div>
+        <div class="hud-box"><span class="label" data-i18n="hud.pos">POS</span><span id="hud-pos">1/4</span></div>
+        <div class="hud-box"><span class="label" data-i18n="hud.lap">LAP</span><span id="hud-lap">1/3</span></div>
       </div>
       <div class="hud-row bottom">
-        <div class="hud-box"><span class="label">SPEED</span><span id="hud-speed">0</span><span class="unit">km/h</span></div>
-        <div class="hud-box gear"><span class="label">GEAR</span><span id="hud-gear">1</span></div>
-        <div class="hud-box"><span class="label">HEALTH</span>
+        <div class="hud-box"><span class="label" data-i18n="hud.speed">SPEED</span><span id="hud-speed">0</span><span class="unit" data-i18n="hud.unitKmh">km/h</span></div>
+        <div class="hud-box gear"><span class="label" data-i18n="hud.gear">GEAR</span><span id="hud-gear">1</span></div>
+        <div class="hud-box"><span class="label" data-i18n="hud.health">HEALTH</span>
           <div class="bar"><div id="hud-health-bar" class="bar-fill"></div></div>
         </div>
-        <div class="hud-box"><span class="label">AMMO</span><span id="hud-ammo">0</span></div>
-        <div class="hud-box"><span class="label">ITEM</span><span id="hud-item">—</span></div>
+        <div class="hud-box"><span class="label" data-i18n="hud.ammo">AMMO</span><span id="hud-ammo">0</span></div>
+        <div class="hud-box"><span class="label" data-i18n="hud.item">ITEM</span><span id="hud-item">—</span></div>
       </div>
     </div>
 
@@ -99,21 +84,22 @@
     <div id="announce-assert" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
 
     <div id="finish" class="finish" hidden role="dialog" aria-modal="true" aria-labelledby="finish-title" aria-describedby="finish-detail" tabindex="-1">
-      <h2 id="finish-title">Race complete</h2>
+      <h2 id="finish-title" data-i18n="finish.title">Race complete</h2>
       <p id="finish-detail"></p>
-      <button id="finish-retry" class="menu-item" type="button">Race Again</button>
+      <button id="finish-retry" class="menu-item" type="button" data-i18n="finish.retry">Race Again</button>
     </div>
 
     <div id="gameover" class="gameover" hidden role="dialog" aria-modal="true" aria-labelledby="gameover-title" aria-describedby="gameover-stats" tabindex="-1">
-      <h2 id="gameover-title">GAME OVER</h2>
-      <p class="sub go-epitaph">Your ship is wrecked.</p>
+      <h2 id="gameover-title" data-i18n="gameover.title">GAME OVER</h2>
+      <p class="sub go-epitaph" data-i18n="gameover.epitaph">Your ship is wrecked.</p>
       <ul id="gameover-stats" class="gameover-stats"></ul>
-      <button id="gameover-retry" class="menu-item" type="button">Try Again</button>
+      <button id="gameover-retry" class="menu-item" type="button" data-i18n="gameover.retry">Try Again</button>
     </div>
   </main>
 
   <script src="./syngen.js"></script>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="./js/i18n.js"></script>
   <script src="./js/input.js"></script>
   <script src="./js/track.js"></script>
   <script src="./js/audio.js"></script>
