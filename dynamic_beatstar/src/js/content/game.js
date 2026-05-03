@@ -250,20 +250,31 @@ content.game = (() => {
   // The pattern fills exactly `measures * meter` beats: each beat is
   // probabilistically subdivided into 1, 2, or 4 events.
   // ----------------------------------------------------------------
-  function pickArrow(prev, prevPrev) {
+  // Arrow palette eases in across the first three patterns of each
+  // level: pattern 1 only draws from root (up) + fifth (down); pattern
+  // 2 adds third (right); pattern 3+ unlocks the upper octave (left).
+  // Resets every time a new level begins because patternsCleared does.
+  function arrowsForRound(roundIdx) {
+    if (roundIdx <= 0) return ['up', 'down']
+    if (roundIdx === 1) return ['up', 'down', 'right']
+    return ARROWS
+  }
+
+  function pickArrow(arrows, prev, prevPrev) {
     // Simple anti-repetition: never three in a row of the same direction.
     let pick
     let safety = 0
     do {
-      pick = ARROWS[Math.floor(Math.random() * ARROWS.length)]
+      pick = arrows[Math.floor(Math.random() * arrows.length)]
       safety++
     } while (safety < 10 && prev != null && prev === prevPrev && pick === prev)
     return pick
   }
 
-  function generatePattern(meter, measures, level) {
+  function generatePattern(meter, measures, level, roundIdx) {
     const totalBeats = meter * measures
     const probs = ST().subdivisionProbs(level)
+    const arrows = arrowsForRound(roundIdx | 0)
     const out = []
     let prev = null, prevPrev = null
 
@@ -287,7 +298,7 @@ content.game = (() => {
       for (let k = 0; k < div; k++) {
         const beat = b + k * slot
         if (beat >= cutoffBeat) continue
-        const dir = pickArrow(prev, prevPrev)
+        const dir = pickArrow(arrows, prev, prevPrev)
         out.push({dir, beat, slot})
         prevPrev = prev
         prev = dir
@@ -455,7 +466,7 @@ content.game = (() => {
 
   function enterIntro(freshLevel, isFirstRound) {
     if (freshLevel) {
-      state.pattern = generatePattern(state.meter, state.measures, state.level)
+      state.pattern = generatePattern(state.meter, state.measures, state.level, state.patternsCleared)
     }
     state.judged = new Array(state.pattern.length)
     state.levelMisses = 0
@@ -702,7 +713,7 @@ content.game = (() => {
   // breather so the fail cue rings out and the player can recover.
   function enterRoundContinuation(samePattern) {
     if (!samePattern) {
-      state.pattern = generatePattern(state.meter, state.measures, state.level)
+      state.pattern = generatePattern(state.meter, state.measures, state.level, state.patternsCleared)
     }
     state.judged = new Array(state.pattern.length)
     state.levelMisses = 0
