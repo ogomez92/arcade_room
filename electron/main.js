@@ -114,7 +114,7 @@ ipcMain.on('games:list', (e) => {
     const root = path.join(__dirname, '..')
     const skip = new Set(['electron', 'template', 'node_modules'])
     const items = fs.readdirSync(root, {withFileTypes: true})
-      .filter(d => d.isDirectory() && !skip.has(d.name) && !d.name.startsWith('.'))
+      .filter(d => d.isDirectory() && !skip.has(d.name) && !d.name.startsWith('.') && !d.name.startsWith('!'))
       .filter(d => fs.existsSync(path.join(root, d.name, 'public', 'index.html')))
       .map(d => d.name)
       .sort()

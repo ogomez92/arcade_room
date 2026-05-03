@@ -31,6 +31,7 @@ const ignorePatterns = [
   /^\/\.claude(\/|$)/,
   /^\/dist(\/|$)/,
   /^\/template(\/|$)/,            // never ship the empty starter
+  /^\/![^/]*(\/|$)/,              // hidden games (directories prefixed with !)
   /^\/README\.md$/,
   /^\/index\.html$/,              // Caddy-templated launcher (web-only)
 ]

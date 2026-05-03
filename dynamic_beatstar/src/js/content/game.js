@@ -52,7 +52,6 @@ content.game = (() => {
   const BPM_CAP = BPM_BASE + BPM_STEP * (BPM_CAP_LEVEL - 1)
   const VERDICT_HOLD_S = 1.4
   const STARTING_LIVES = 3
-  const MAX_LIVES = 5
   const MP_STARTING_LIVES = 4
   const HIGHEST_UNLOCKED_KEY = 'beatstar.highestLevel'
   // Extra grace at the end of an echo phase before declaring outstanding
@@ -287,6 +286,12 @@ content.game = (() => {
     const transitionBeats = measures >= 2 ? meter : 0
     const cutoffBeat = totalBeats + transitionBeats - 0.75
 
+    // Cap sixteenth quads at one per pattern; later beats that roll a
+    // sixteenth get demoted to eighth so the player isn't drowning in
+    // 0.25-beat slots back-to-back. Inside the allowed quad, keep only
+    // 2 of the 4 sixteenth slots (random subset) — keeps the sub-beat
+    // feel without forcing four-note density.
+    let sixteenthQuadsUsed = 0
     for (let b = 0; b < totalBeats; b++) {
       const r = Math.random()
       let div
@@ -294,8 +299,27 @@ content.game = (() => {
       else if (r < probs.q + probs.e) div = 2
       else                            div = 4
 
+      if (div === 4 && sixteenthQuadsUsed >= 1) div = 2
+
       const slot = 1 / div
-      for (let k = 0; k < div; k++) {
+
+      // Pick which sub-slot indices actually carry a note. Quarters/eighths
+      // fill every slot; sixteenth quads keep a random 2 of 4.
+      let slots
+      if (div === 4) {
+        const all = [0, 1, 2, 3]
+        for (let i = all.length - 1; i > 0; i--) {
+          const j = (Math.random() * (i + 1)) | 0
+          const tmp = all[i]; all[i] = all[j]; all[j] = tmp
+        }
+        slots = all.slice(0, 2).sort((a, c) => a - c)
+        sixteenthQuadsUsed++
+      } else {
+        slots = []
+        for (let k = 0; k < div; k++) slots.push(k)
+      }
+
+      for (const k of slots) {
         const beat = b + k * slot
         if (beat >= cutoffBeat) continue
         const dir = pickArrow(arrows, prev, prevPrev)
@@ -312,7 +336,10 @@ content.game = (() => {
   // ----------------------------------------------------------------
   function start() {
     state.level = Math.max(1, pendingStartLevel | 0)
-    state.lives = STARTING_LIVES
+    // Starting lives scale with the chosen start level, but never below
+    // STARTING_LIVES — a normal "Start Game" at L1 still gets the default
+    // cushion; jumping into L10 via level-select gets 10 lives.
+    state.lives = Math.max(STARTING_LIVES, state.level)
     state.score = 0
     state.lastReason = ''
     state.patternsCleared = 0
@@ -555,6 +582,7 @@ content.game = (() => {
         announce('ann.mpTurn', {
           name:      state.mp.players[state.mp.activeIndex].name,
           level:     state.level,
+          lives:     formatLives(state.lives),
           prevStats: state.mp.lastTurnStats,
         }, 'assertive')
         state.mp.lastTurnStats = null
@@ -648,9 +676,9 @@ content.game = (() => {
         state.score += bonus
 
         // Bonus life: clean level (zero misses across all rounds) AND
-        // average accuracy ≥ 0.75. Caps at MAX_LIVES so it can't spiral.
+        // average accuracy ≥ 0.75. Uncapped — keep stacking lives.
         const avgAcc = state.levelHits > 0 ? state.levelAccuracy / state.levelHits : 0
-        const earnedLife = state.levelMissesTotal === 0 && avgAcc >= 0.75 && state.lives < MAX_LIVES
+        const earnedLife = state.levelMissesTotal === 0 && avgAcc >= 0.75
         if (earnedLife) state.lives++
 
         // Save percent for the next level's intro announcement.
@@ -680,7 +708,8 @@ content.game = (() => {
         enterRoundContinuation(false)
       }
     } else {
-      state.lives = Math.max(0, state.lives - 1)
+      const cost = livesCostForMisses(state.pattern, state.judged)
+      state.lives = roundLives(state.lives - cost)
       if (state.lives <= 0) {
         // GAME OVER — verdict pause for the gameOver cue.
         state.lastReason = 'verdict.gameOver'
@@ -694,7 +723,8 @@ content.game = (() => {
         // the breather measure and retry the SAME pattern after it.
         A().fail(t0)
         announce('ann.lostLife', {
-          lives: state.lives,
+          lives:  formatLives(state.lives),
+          cost:   formatLives(cost),
           misses: state.levelMisses,
         }, 'assertive')
         enterRoundContinuation(true)
@@ -935,8 +965,9 @@ content.game = (() => {
         enterRoundContinuation(false)
       }
     } else {
-      // MISS — lose a life and pass turn (or eliminate).
-      state.lives = Math.max(0, state.lives - 1)
+      // MISS — lose slot-weighted lives and pass turn (or eliminate).
+      const cost = livesCostForMisses(state.pattern, state.judged)
+      state.lives = roundLives(state.lives - cost)
       const total = state.levelHits + state.levelMissesTotal
       const percent = total > 0 ? Math.round(state.levelHits / total * 100) : 0
       const turnStats = {name: player.name, level: state.level, percent}
@@ -972,7 +1003,8 @@ content.game = (() => {
         A().fail(t0)
         announce('ann.mpMissTurn', {
           name:   player.name,
-          lives:  state.lives,
+          lives:  formatLives(state.lives),
+          cost:   formatLives(cost),
         }, 'assertive')
         passMpTurn(turnStats)
       }
@@ -1160,6 +1192,33 @@ content.game = (() => {
     if (slot >= 1)   return 100
     if (slot >= 0.5) return 150
     return 250
+  }
+
+  // Per-miss life cost = the note's slot duration in beats (1, 0.5, 0.25).
+  // Quarter misses are full-price, sixteenth misses are quarter-price —
+  // so harder rhythmic figures don't punish the player out of proportion.
+  // Capped at 1 life per pattern so a catastrophic round can't wipe most
+  // of the player's bar in one shot.
+  function livesCostForMisses(pattern, judged) {
+    let cost = 0
+    for (let i = 0; i < pattern.length; i++) {
+      if (judged[i] === 'miss') cost += pattern[i].slot
+    }
+    return Math.min(1, cost)
+  }
+
+  // Round to 0.01 to keep float noise out of HUD / announcement strings.
+  function roundLives(n) {
+    return Math.max(0, Math.round(n * 100) / 100)
+  }
+
+  // Display formatter for both the HUD lives counter and announcement
+  // {lives}/{cost} placeholders. Whole values stay clean ("3"); fractions
+  // show up to two decimals with trailing zeros stripped ("0.25", "1.5").
+  function formatLives(n) {
+    const v = roundLives(n)
+    if (v === Math.floor(v)) return String(v)
+    return v.toFixed(2).replace(/0$/, '').replace(/\.$/, '')
   }
 
   function handleArrow(direction, atTime, originPeerId) {
@@ -1432,6 +1491,7 @@ content.game = (() => {
     state,
     start, stop, isActive, frame, handleArrow,
     setStartLevel, getStartLevel, getHighestUnlocked, bpmForLevel,
+    formatLives,
     // Multiplayer
     startMulti, endMulti, handleRemoteArrow, mpAnnounce,
     clientApplyPatternStart, clientApplyRoster, clientApplyJudgement,

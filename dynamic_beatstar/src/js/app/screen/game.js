@@ -52,7 +52,7 @@ app.screen.game = app.screenManager.invent({
 
         case 'F1': app.announce.assertive(app.i18n.t('ann.statusLevel', {level: content.game.state.level})); e.preventDefault(); return
         case 'F2': app.announce.assertive(app.i18n.t('ann.statusScore', {score: content.game.state.score})); e.preventDefault(); return
-        case 'F3': app.announce.assertive(app.i18n.t('ann.statusLives', {lives: content.game.state.lives})); e.preventDefault(); return
+        case 'F3': app.announce.assertive(app.i18n.t('ann.statusLives', {lives: content.game.formatLives(content.game.state.lives)})); e.preventDefault(); return
         case 'F4': app.announce.assertive(app.i18n.t('ann.statusPhase', {phase: app.i18n.t('game.hudPhase.' + content.game.state.phase)})); e.preventDefault(); return
 
         case 'Escape': case 'Backspace':
@@ -191,7 +191,7 @@ app.screen.game = app.screenManager.invent({
       : ''
     setText('.a-game--level', app.i18n.t('game.hudLevel', {level: s.level}) + progress + ctx)
     setText('.a-game--score', app.i18n.t('game.hudScore', {score: s.score}))
-    setText('.a-game--lives', app.i18n.t('game.hudLives', {lives: s.lives}))
+    setText('.a-game--lives', app.i18n.t('game.hudLives', {lives: content.game.formatLives(s.lives)}))
     setText('.a-game--phase', app.i18n.t('game.hudPhase.' + s.phase))
 
     // MP-only roster line.
@@ -202,7 +202,7 @@ app.screen.game = app.screenManager.invent({
       } else {
         const parts = s.mp.players.map((p, i) => {
           const tag = (i === s.mp.activeIndex) ? '▶ ' : ''
-          const elim = p.eliminated ? ' (out)' : ` (${p.lives}♥)`
+          const elim = p.eliminated ? ' (out)' : ` (${content.game.formatLives(p.lives)}♥)`
           return `${tag}${p.name}${elim}`
         })
         rosterEl.textContent = parts.join('  ·  ')

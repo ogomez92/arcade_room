@@ -83,7 +83,7 @@
 {{- $skip := list "template" "electron" "node_modules" -}}
 {{- $items := list -}}
 {{- range $name := (listFiles "/") -}}
-  {{- if and (not (contains "." $name)) (not (has $name $skip)) -}}
+  {{- if and (not (contains "." $name)) (not (has $name $skip)) (not (hasPrefix "!" $name)) -}}
     {{- $items = append $items $name -}}
   {{- end -}}
 {{- end -}}

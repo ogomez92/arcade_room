@@ -108,7 +108,7 @@ app.i18n = (() => {
       'ann.prevStats': 'Previous accuracy {percent} percent.',
       'ann.clear': 'Level {level} clear. Bonus {bonus}.',
       'ann.clearBonus': 'Level {level} clear. Bonus {bonus}. Extra life!',
-      'ann.lostLife': '{misses} missed. {lives} lives remaining.',
+      'ann.lostLife': 'Missed. Lost {cost} life. {lives} left.',
       'ann.gameover': 'Game over. Final score {score}.',
       'ann.paused': 'Paused.',
       'ann.resumed': 'Resumed.',
@@ -200,9 +200,9 @@ app.i18n = (() => {
       'mp.statusClientN': '{count} players in the room. Waiting for the host to start.',
 
       // Multiplayer announcer (in-game)
-      'ann.mpTurn': 'Now playing: {name}, level {level}. {prevStats}',
+      'ann.mpTurn': 'Now playing: {name}, level {level}, {lives} lives. {prevStats}',
       'ann.mpClear': '{name} cleared level {level}. Bonus {bonus}. Accuracy {percent} percent.',
-      'ann.mpMissTurn': '{name} missed. {lives} lives left. Next player.',
+      'ann.mpMissTurn': '{name} missed. Lost {cost} life. {lives} left. Next player.',
       'ann.mpEliminated': '{name} eliminated at level {level}.',
       'ann.mpGameover': 'Game over. Everyone is out.',
       'ann.prevStatsNamed': '{name} reached {percent} percent on level {level}.',
@@ -307,7 +307,7 @@ app.i18n = (() => {
       'ann.prevStats': 'Precisión anterior {percent} por ciento.',
       'ann.clear': 'Nivel {level} superado. Bonificación {bonus}.',
       'ann.clearBonus': 'Nivel {level} superado. Bonificación {bonus}. ¡Vida extra!',
-      'ann.lostLife': '{misses} fallos. Te quedan {lives} vidas.',
+      'ann.lostLife': 'Fallaste. Pierdes {cost} vida. Te quedan {lives}.',
       'ann.gameover': 'Fin de la partida. Puntuación final {score}.',
       'ann.paused': 'En pausa.',
       'ann.resumed': 'Continuamos.',
@@ -398,9 +398,9 @@ app.i18n = (() => {
       'mp.statusClientN': '{count} jugadores en la sala. Esperando a que el anfitrión empiece.',
 
       // Anuncios multijugador (en partida)
-      'ann.mpTurn': 'Juega ahora: {name}, nivel {level}. {prevStats}',
+      'ann.mpTurn': 'Juega ahora: {name}, nivel {level}, {lives} vidas. {prevStats}',
       'ann.mpClear': '{name} ha superado el nivel {level}. Bonificación {bonus}. Precisión {percent} por ciento.',
-      'ann.mpMissTurn': '{name} ha fallado. Le quedan {lives} vidas. Siguiente jugador.',
+      'ann.mpMissTurn': '{name} ha fallado. Pierde {cost} vida. Le quedan {lives}. Siguiente jugador.',
       'ann.mpEliminated': '{name} eliminado en el nivel {level}.',
       'ann.mpGameover': 'Fin de la partida. Todos eliminados.',
       'ann.prevStatsNamed': '{name} llegó al {percent} por ciento en el nivel {level}.',
