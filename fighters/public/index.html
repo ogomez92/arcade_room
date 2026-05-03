@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">BRAWL!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div class="a-announcer" aria-hidden="false">
+        <div id="a-announcer-polite" class="a-sr-only" aria-live="polite" aria-atomic="true"></div>
+        <div id="a-announcer-assertive" class="a-sr-only" aria-live="assertive" aria-atomic="true"></div>
+      </div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">BRAWL!</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">Audio melee. Top-down arena, fists and feet, gendered voices, no weapons.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="fight" data-i18n="menu.fight">Begin Fight</button></li>
+            <li><button class="c-menu--button" data-action="howto" data-i18n="menu.howto">How to Play</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="menu.language">Language</button></li>
+          </ul>
+          <p class="a-menu--hint" data-i18n="menu.hint">Headphones strongly recommended.</p>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--select">
+        <section class="c-screen c-menu a-select" tabindex="-1" data-i18n-attr="aria-label:select.aria">
+          <h1 class="c-menu--title" data-i18n="select.title">Choose your fighter</h1>
+          <p class="c-menu--subtitle" data-i18n="select.subtitle">Each fighter has a distinct voice and a default style.</p>
+          <ul class="c-menu--list a-select--list"></ul>
+          <p class="a-select--desc js-select-desc"></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="fight" data-i18n="select.fight">Fight!</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="select.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--howto">
+        <section class="c-screen c-menu a-howto" tabindex="-1" data-i18n-attr="aria-label:howto.aria">
+          <h1 class="c-menu--title" data-i18n="howto.title">How to Play</h1>
+          <div class="c-menu--prose a-howto--prose">
+            <h2 data-i18n="howto.movementTitle">Movement</h2>
+            <ul>
+              <li data-i18n-html="howto.move"><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> — walk around the arena.</li>
+            </ul>
+            <h2 data-i18n="howto.attackTitle">Attacks</h2>
+            <ul>
+              <li data-i18n-html="howto.highPunch"><kbd>T</kbd> — high punch.</li>
+              <li data-i18n-html="howto.lowPunch"><kbd>G</kbd> — low punch.</li>
+              <li data-i18n-html="howto.highKick"><kbd>U</kbd> — high kick.</li>
+              <li data-i18n-html="howto.lowKick"><kbd>J</kbd> — low sweep kick.</li>
+            </ul>
+            <h2 data-i18n="howto.defenseTitle">Defense and mobility</h2>
+            <ul>
+              <li data-i18n-html="howto.block"><kbd>.</kbd> — block.</li>
+              <li data-i18n-html="howto.duck"><kbd>L</kbd> — duck.</li>
+              <li data-i18n-html="howto.jump"><kbd>O</kbd> — jump.</li>
+            </ul>
+            <h2 data-i18n="howto.knockdownTitle">Knockdowns</h2>
+            <p data-i18n="howto.knockdownIntro">When the opponent is on the ground:</p>
+            <ul>
+              <li data-i18n="howto.knockdown1">High attacks miss completely.</li>
+              <li data-i18n="howto.knockdown2">Low attacks deal a heavy stomp bonus.</li>
+              <li data-i18n="howto.knockdown3">They rise after about a second and a half.</li>
+            </ul>
+            <h2 data-i18n="howto.combosTitle">Combos</h2>
+            <p data-i18n="howto.combosIntro">Land hits in sequence. Some openers:</p>
+            <ul>
+              <li data-i18n-html="howto.combo1"><kbd>T</kbd> <kbd>T</kbd> <kbd>G</kbd> — One-Two-Body.</li>
+              <li data-i18n-html="howto.combo2"><kbd>T</kbd> <kbd>G</kbd> <kbd>U</kbd> — Combination.</li>
+              <li data-i18n-html="howto.combo3"><kbd>G</kbd> <kbd>G</kbd> <kbd>J</kbd> — Liver Crusher.</li>
+              <li data-i18n-html="howto.combo4"><kbd>T</kbd> <kbd>G</kbd> <kbd>U</kbd> <kbd>J</kbd> — Hurricane.</li>
+            </ul>
+            <h2 data-i18n="howto.mountTitle">Mounting and walk-on</h2>
+            <ul>
+              <li data-i18n="howto.mount1">Jump while next to a downed opponent to mount them.</li>
+              <li data-i18n="howto.mount2">While mounted, movement keys step on body parts.</li>
+              <li data-i18n="howto.mount3">Press jump again for a heavier slam.</li>
+              <li data-i18n="howto.mount4">You cannot punch or kick while mounted.</li>
+            </ul>
+            <h2 data-i18n="howto.struggleTitle">When you are knocked down</h2>
+            <ul>
+              <li data-i18n="howto.struggle1">You will not get up automatically while pinned.</li>
+              <li data-i18n="howto.struggle2">Mash movement keys to throw the opponent off.</li>
+            </ul>
+            <h2 data-i18n="howto.statusTitle">Status keys</h2>
+            <ul>
+              <li data-i18n-html="howto.f1"><kbd>F1</kbd> — your health.</li>
+              <li data-i18n-html="howto.f2"><kbd>F2</kbd> — opponent health.</li>
+              <li data-i18n-html="howto.f3"><kbd>F3</kbd> — distance and direction to opponent.</li>
+              <li data-i18n-html="howto.f4"><kbd>F4</kbd> — current combo chain.</li>
+              <li data-i18n-html="howto.f5"><kbd>F5</kbd> — your posture and the opponent’s.</li>
+              <li data-i18n-html="howto.f0"><kbd>0</kbd> — debug heal.</li>
+            </ul>
+          </div>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="howto.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <div class="a-game--hud">
+            <div class="a-game--row">
+              <span class="a-game--label js-player-name" data-i18n="hud.you">You</span>
+              <span class="a-game--bar"><span class="a-game--bar-fill js-player-hp"></span></span>
+              <span class="a-game--num js-player-hp-num">100</span>
+            </div>
+            <div class="a-game--row">
+              <span class="a-game--label js-foe-name" data-i18n="hud.foe">Foe</span>
+              <span class="a-game--bar"><span class="a-game--bar-fill a-game--bar-foe js-foe-hp"></span></span>
+              <span class="a-game--num js-foe-hp-num">100</span>
+            </div>
+            <div class="a-game--row">
+              <span class="a-game--label" data-i18n="hud.round">Round</span>
+              <span class="a-game--num js-round-num">1</span>
+              <span class="a-game--label" data-i18n="hud.combo">Combo</span>
+              <span class="a-game--num js-combo">—</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title js-gameover-title" data-i18n="gameover.lose">Knocked Out</h1>
+          <p class="c-menu--subtitle js-gameover-summary" data-i18n="gameover.summary">You reached round 1.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="rematch" data-i18n="gameover.rematch">Rematch</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="gameover.menu">Main Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--splash">
+        <section class="c-screen a-splash" tabindex="-1">
+          <h1 class="a-splash--logo" data-i18n="splash.logo">BRAWL!</h1>
+          <div class="a-splash--details">
+            <div class="a-splash--version"></div>
+            <div class="a-splash--author" data-i18n="splash.author">audio melee</div>
+          </div>
+          <div class="a-splash--instruction" data-i18n="splash.instruction">Press any key to begin</div>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

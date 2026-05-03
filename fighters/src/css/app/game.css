@@ -1,0 +1,105 @@
+.a-sr-only {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.a-game {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.a-game--hud {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0 auto;
+  padding: 0.7rem 1rem;
+  width: min(40em, 90vw);
+}
+.a-game--row {
+  align-items: center;
+  display: flex;
+  font-family: monospace;
+  gap: 0.6rem;
+  letter-spacing: 0.05em;
+}
+.a-game--label {
+  flex: 0 0 auto;
+  min-width: 4em;
+  opacity: 0.85;
+  text-transform: uppercase;
+}
+.a-game--bar {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0.2rem;
+  flex: 1 1 auto;
+  height: 0.9rem;
+  overflow: hidden;
+}
+.a-game--bar-fill {
+  background: #6cf06c;
+  display: block;
+  height: 100%;
+  transition: width 120ms linear;
+  width: 100%;
+}
+.a-game--bar-foe {
+  background: #f06c6c;
+}
+.a-game--num {
+  flex: 0 0 auto;
+  min-width: 3em;
+  text-align: right;
+}
+
+.a-menu--hint {
+  font-size: 0.9em;
+  margin-top: 1rem;
+  opacity: 0.65;
+}
+
+.a-howto--prose h2 {
+  font-size: 1.2em;
+  margin-top: 1.4em;
+}
+
+.a-select--desc {
+  font-style: italic;
+  margin: 0.6rem 0 1rem;
+  opacity: 0.85;
+  text-align: center;
+}
+
+.a-splash {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+.a-splash--logo {
+  font-size: 4em;
+  letter-spacing: 0.2em;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+.a-splash--details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  opacity: 0.7;
+}
+.a-splash--instruction {
+  margin-top: 2rem;
+  opacity: 0.8;
+}
