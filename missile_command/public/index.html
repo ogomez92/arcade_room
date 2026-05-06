@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Missile Command</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div role="status" aria-live="polite" aria-atomic="true" class="u-screenReader a-app--announce"></div>
+      <div role="status" aria-live="assertive" aria-atomic="true" class="u-screenReader a-app--announce-assertive"></div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <h1 class="u-screenReader" data-i18n="game.headline">Missile Command</h1>
+          <div class="a-game--hud">
+            <div class="a-game--score" data-i18n-attr="aria-label:game.scoreAria"><span data-i18n="game.score">Score:</span> <span class="a-game--score-value">0</span></div>
+            <div class="a-game--wave" data-i18n-attr="aria-label:game.waveAria"><span data-i18n="game.wave">Wave:</span> <span class="a-game--wave-value">1</span></div>
+            <div class="a-game--cities" data-i18n-attr="aria-label:game.citiesAria"><span data-i18n="game.cities">Cities:</span> <span class="a-game--cities-value">6</span></div>
+            <div class="a-game--ammo" data-i18n-attr="aria-label:game.ammoAria"><span data-i18n="game.ammo">Ammo:</span> <span class="a-game--ammo-value">10/10/10</span></div>
+          </div>
+          <p class="a-game--help" data-i18n="game.help">Arrow keys aim. Z X C fire from left, center, right battery. Space fires from nearest with ammo. F1 score. F2 cities. F3 ammo. F4 wave. P pause. Escape pauses.</p>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Missile Command</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">Audio-first arcade defense — protect six Spanish cities.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="play" data-i18n="menu.start">Start Game</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How To Play</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="menu.highscores">High Scores</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Sound Learning</button></li>
+            <li><button class="c-menu--button" data-action="test" data-i18n="menu.test">Spatial Audio Test</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="menu.language">Language</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--pause">
+        <section class="c-screen c-menu a-pause" tabindex="-1" data-i18n-attr="aria-label:pause.aria">
+          <h1 class="c-menu--title" data-i18n="pause.title">Paused</h1>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="resume" data-i18n="pause.resume">Resume</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="pause.menu">Quit to Main Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Game Over</h1>
+          <p><span data-i18n="gameover.finalScore">Final score:</span> <span class="a-gameover--score">0</span></p>
+          <p><span data-i18n="gameover.finalWave">You reached wave</span> <span class="a-gameover--wave">1</span></p>
+          <p class="a-gameover--rank-msg" hidden data-i18n="gameover.rankMsg">You earned a high score! Enter your name:</p>
+          <form class="a-gameover--form">
+            <label for="a-gameover-name" class="u-screenReader" data-i18n="gameover.nameLabel">Your name</label>
+            <input type="text" id="a-gameover-name" class="a-gameover--name" maxlength="16" autocomplete="off" data-i18n-attr="placeholder:gameover.namePlaceholder" />
+            <button type="submit" class="c-menu--button a-gameover--submit" data-i18n="gameover.save">Save Score</button>
+          </form>
+          <button type="button" class="c-menu--button a-gameover--continue" data-action="continue" data-i18n="gameover.continue">Continue</button>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen c-menu a-highscores" tabindex="-1" data-i18n-attr="aria-label:highscores.aria">
+          <h1 class="c-menu--title" data-i18n="highscores.title">High Scores</h1>
+          <ol class="c-menu--list a-highscores--list" data-i18n-attr="aria-label:highscores.listLabel"></ol>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="highscores.back">Back to Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 data-i18n="help.title">How to Play</h1>
+
+          <h2 data-i18n="help.goalHeader">Goal</h2>
+          <p data-i18n="help.goal"></p>
+
+          <h2 data-i18n="help.controlsHeader">Controls</h2>
+          <ul>
+            <li data-i18n-html="help.controlArrows"></li>
+            <li data-i18n-html="help.controlBatteries"></li>
+            <li data-i18n-html="help.controlSpace"></li>
+            <li data-i18n-html="help.controlPause"></li>
+            <li data-i18n-html="help.controlF1"></li>
+            <li data-i18n-html="help.controlF2"></li>
+            <li data-i18n-html="help.controlF3"></li>
+            <li data-i18n-html="help.controlF4"></li>
+          </ul>
+
+          <h2 data-i18n="help.audioHeader">Listening to the sky</h2>
+          <ul>
+            <li data-i18n-html="help.audioPing"></li>
+            <li data-i18n-html="help.audioLock"></li>
+            <li data-i18n-html="help.audioIcbm"></li>
+            <li data-i18n-html="help.audioSplitter"></li>
+            <li data-i18n-html="help.audioBomber"></li>
+            <li data-i18n-html="help.audioCities"></li>
+          </ul>
+
+          <h2 data-i18n="help.tipsHeader">Tips</h2>
+          <ul>
+            <li data-i18n-html="help.tip1"></li>
+            <li data-i18n-html="help.tip2"></li>
+            <li data-i18n-html="help.tip3"></li>
+            <li data-i18n-html="help.tip4"></li>
+          </ul>
+
+          <button type="button" class="c-menu--button a-help--back" data-action="back" data-i18n="help.back">Back to Menu</button>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--test">
+        <section class="c-screen a-test" tabindex="-1" data-i18n-attr="aria-label:test.aria">
+          <h1 data-i18n="test.title">Spatial Audio Test</h1>
+          <p data-i18n="test.subtitle">Listen for ticks at four positions: front, right, behind, left. If you hear them in any other order, the audio coordinate frame is wrong.</p>
+          <button type="button" class="c-menu--button" data-action="replay" data-i18n="test.replay">Replay Test</button>
+          <button type="button" class="c-menu--button" data-action="back" data-i18n="test.back">Back to Menu</button>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 data-i18n="learn.title">Sound Learning</h1>
+          <p data-i18n="learn.subtitle">Press a button to listen to each sound. Each plays once.</p>
+          <ul class="c-menu--list a-learn--nav"></ul>
+          <ul class="c-menu--list">
+            <li><button type="button" class="c-menu--button" data-action="back" data-i18n="learn.back">Back to Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>
