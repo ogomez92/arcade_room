@@ -29,7 +29,7 @@ content.game = (() => {
   const W = () => content.weapons
 
   const REGEN_LOCKOUT = 0.4   // seconds since last shot before regen kicks in
-  const REGEN_RATE    = 10    // energy/sec — full refill from 0 takes 10s
+  const REGEN_RATE    = 13    // energy/sec — full refill from 0 takes ~7.7s
   const LOW_ENERGY_ON  = 30
   const LOW_ENERGY_OFF = 50
 
@@ -284,6 +284,16 @@ content.game = (() => {
     // Update enemies
     E().tick(dt)
 
+    // Target lock — fast beep while the current aim+weapon would connect.
+    // findHit applies the same matchup-agnostic radius test that tryFire
+    // does, so a lock here means firing now lands the shot (incl. bounces,
+    // which still register as a hit even if no damage is dealt).
+    const lockTarget = E().findHit(s.aim, s.weapon)
+    A().setTargetLock(!!lockTarget, lockTarget ? {
+      x: lockTarget.x, kind: lockTarget.kind,
+      chainIndex: lockTarget.chainIndex, z: lockTarget.z,
+    } : null)
+
     // Energy regen — only while not firing for ≥ REGEN_LOCKOUT seconds
     if (t - s.lastFireTime >= REGEN_LOCKOUT && s.energy < s.maxEnergy) {
       s.energy = Math.min(s.maxEnergy, s.energy + REGEN_RATE * dt)
@@ -319,7 +329,7 @@ content.game = (() => {
     // gated on no hostile breakthroughs inside scoring.awardWaveClear.
     if (s.waveTotalSpawns > 0 && s.waveSpawnQueue.length === 0 && s.enemies.length === 0) {
       const clean = Sc().awardWaveClear(s.wave)
-      if (clean) A().enqueue({type: 'waveClear'})
+      A().enqueue({type: clean ? 'waveClear' : 'waveSurvived'})
       _scheduleNextWave(3.0)
     }
 

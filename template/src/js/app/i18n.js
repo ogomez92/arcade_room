@@ -32,9 +32,10 @@ app.i18n = (() => {
       // <head>
       'doc.title': 'syngen-template',
 
-      // Splash
-      'splash.author': 'by shiftBacktick',
-      'splash.instruction': 'Interact to Begin',
+      // Menu
+      'menu.aria': 'Main menu',
+      'menu.title': 'syngen-template',
+      'menu.start': 'Start',
 
       // Language picker
       'language.aria': 'Choose language',
@@ -51,9 +52,10 @@ app.i18n = (() => {
       // <head>
       'doc.title': 'syngen-template',
 
-      // Splash
-      'splash.author': 'por shiftBacktick',
-      'splash.instruction': 'Interactúa para empezar',
+      // Menu
+      'menu.aria': 'Menú principal',
+      'menu.title': 'syngen-template',
+      'menu.start': 'Empezar',
 
       // Language picker
       'language.aria': 'Elegir idioma',

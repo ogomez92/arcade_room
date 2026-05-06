@@ -46,6 +46,10 @@ app.screen.gameover = app.screenManager.invent({
     this.renderStats()
     if (this.state.nameInput) this.state.nameInput.value = ''
     app.announce.assertive(app.i18n.t('ann.gameOver'))
+    // Play the somber sting before endRun's silenceAll. The dispatched
+    // oscillators are already started/stop-scheduled by then, so silenceAll
+    // (which only kills continuous voices) doesn't cut them off.
+    try { content.audio.dispatch({type: 'gameOver'}) } catch (e) {}
     content.game.endRun()
   },
   onExit: function () {

@@ -6,7 +6,7 @@ app.screenManager = (() => {
     transition: {
       none: {
         activate: function () {
-          this.change('splash')
+          this.change('menu')
         },
       },
     },

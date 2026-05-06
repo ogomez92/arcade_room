@@ -27,7 +27,7 @@ app.screen.game = app.screenManager.invent({
     keyupHandler: null,
     statusEls: null,
     aim: 0,
-    aimSpeed: 1.6,        // panning units per second when key held
+    aimSpeed: 3.0,        // panning units per second when key held (full sweep -1→1 in ~0.67s)
   },
   onReady: function () {
     const root = this.rootElement

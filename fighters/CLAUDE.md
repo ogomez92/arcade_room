@@ -109,10 +109,13 @@ which already matches the listener yaw.
 
 | Attack       | range | windup | dmg | knockdown |
 |--------------|-------|--------|-----|-----------|
-| highPunch    | 1.55  | 0.16   |  6  | 0%        |
-| lowPunch     | 1.35  | 0.20   |  9  | 8%        |
+| highPunch    | 1.55  | 0.08   |  6  | 0%        |
+| lowPunch     | 1.35  | 0.10   |  9  | 8%        |
 | highKick     | 1.95  | 0.34   | 16  | 18%       |
 | lowKick      | 1.80  | 0.30   | 12  | 55%       |
+
+Punches are MK-style snappy; kicks are heavy commitments. Stamina (in
+`fighter.js`) is what gates spam — when low, the windows stretch ~1.8×.
 
 Stomp bonus on a downed target: `× 1.75`. High attacks miss a downed
 target entirely.

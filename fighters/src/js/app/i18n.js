@@ -108,6 +108,8 @@ app.i18n = (() => {
       'hud.foe': 'Foe',
       'hud.round': 'Round',
       'hud.combo': 'Combo',
+      'hud.stamina': 'Stamina',
+      'hud.staminaFoe': 'Foe stamina',
 
       'gameover.aria': 'Match result',
       'gameover.win': 'Victory',
@@ -163,6 +165,7 @@ app.i18n = (() => {
       'ann.foeThrowOff': 'They threw you off!',
       'ann.taunt': '{who}: {line}',
       'ann.debugHeal': 'Debug: health set to {hp}.',
+      'ann.debugFoe': 'Debug: foe health set to {hp}.',
       // Round-end strings now include a {taunt} slot.
       'ann.roundWin': 'You knocked out {name}. Round {round} cleared. {taunt}',
       'ann.roundLose': 'You are knocked out. Round {round} reached. {taunt}',
@@ -306,6 +309,8 @@ app.i18n = (() => {
       'hud.foe': 'Rival',
       'hud.round': 'Asalto',
       'hud.combo': 'Combo',
+      'hud.stamina': 'Aliento',
+      'hud.staminaFoe': 'Aliento rival',
 
       'gameover.aria': 'Resultado del combate',
       'gameover.win': 'Victoria',
@@ -362,6 +367,7 @@ app.i18n = (() => {
       'ann.foeThrowOff': '¡Te ha tirado!',
       'ann.taunt': '{who}: {line}',
       'ann.debugHeal': 'Modo prueba: vida puesta a {hp}.',
+      'ann.debugFoe': 'Modo prueba: vida del rival puesta a {hp}.',
       'ann.roundWin': 'Has noqueado a {name}. Asalto {round} superado. {taunt}',
       'ann.roundLose': 'Has sido noqueado. Asalto {round} alcanzado. {taunt}',
       // Pool de bravatas en castellano (independiente del inglés).

@@ -136,19 +136,27 @@ content.ai = (() => {
 
     const intent = {x: 0, y: 0}
 
+    // Stamina-aware aggression. Below the slow threshold the AI deliberately
+    // throttles its attack/jump frequency — otherwise it'd keep mashing slow,
+    // telegraphed attacks the player can read trivially. Below the hard
+    // floor it only walks and recovers.
+    const stamina   = self.stamina != null ? self.stamina : 1
+    const tooTired  = stamina < 0.18
+    const stamMul   = stamina < 0.40 ? 0.20 + stamina * 1.5 : 1.0
+
     // 4a. Player is down — if we're close, jump on top to mount.
     if (target.posture === 'down' && !self.attack) {
       if (gap > 1.0) {
         intent.x = dirX
         intent.y = dirY
-      } else {
+      } else if (!tooTired) {
         // Within close range. From round 2+ we'll try to mount via jump.
         if (ai.mountSkill > 0 && t >= ai.cooldownUntil
-            && Math.random() < 0.35 + ai.aggression * 0.20) {
+            && Math.random() < (0.35 + ai.aggression * 0.20) * stamMul) {
           ai.cooldownUntil = t + ai.cooldown * 0.8
           return {intent, attack: null, action: 'jump'}
         }
-        if (t >= ai.cooldownUntil && Math.random() < ai.aggression + 0.15) {
+        if (t >= ai.cooldownUntil && Math.random() < (ai.aggression + 0.15) * stamMul) {
           const kind = chooseStomp()
           ai.cooldownUntil = t + ai.cooldown * 0.7
           return {intent, attack: kind, action: null}
@@ -183,8 +191,8 @@ content.ai = (() => {
     }
 
     // 3. Attack if cooldown's up and we're inside the longest reach.
-    if (!self.attack && t >= ai.cooldownUntil && gap <= 2.1) {
-      if (Math.random() < ai.aggression) {
+    if (!self.attack && !tooTired && t >= ai.cooldownUntil && gap <= 2.1) {
+      if (Math.random() < ai.aggression * stamMul) {
         const kind = chooseAttack(ai, gap)
         ai.cooldownUntil = t + ai.cooldown + rand(-0.1, 0.15)
         return {intent, attack: kind, action: null}

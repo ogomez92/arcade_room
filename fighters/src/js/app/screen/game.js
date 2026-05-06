@@ -14,6 +14,10 @@ app.screen.game = app.screenManager.invent({
       playerHpNum: root.querySelector('.js-player-hp-num'),
       foeHp: root.querySelector('.js-foe-hp'),
       foeHpNum: root.querySelector('.js-foe-hp-num'),
+      playerStam: root.querySelector('.js-player-stam'),
+      playerStamNum: root.querySelector('.js-player-stam-num'),
+      foeStam: root.querySelector('.js-foe-stam'),
+      foeStamNum: root.querySelector('.js-foe-stam-num'),
       playerName: root.querySelector('.js-player-name'),
       foeName: root.querySelector('.js-foe-name'),
       round: root.querySelector('.js-round-num'),
@@ -26,12 +30,17 @@ app.screen.game = app.screenManager.invent({
         if (!this.isActive) return
         const code = e.code
         if (code === 'F1' || code === 'F2' || code === 'F3'
-            || code === 'F4' || code === 'F5' || code === 'Digit0') {
+            || code === 'F4' || code === 'F5'
+            || code === 'Digit0' || code === 'Digit9') {
           e.preventDefault()
           const g = content.game
           if (!g || !g.player) return
           if (code === 'Digit0') {
             g.debugHealPlayer()
+            return
+          }
+          if (code === 'Digit9') {
+            g.debugCripplFoe()
             return
           }
           if (code === 'F1') {
@@ -111,6 +120,14 @@ app.screen.game = app.screenManager.invent({
     hud.foeHp.style.width = `${(fh / g.foe.maxHp) * 100}%`
     hud.playerHpNum.textContent = ph
     hud.foeHpNum.textContent = fh
+    if (hud.playerStam) {
+      const ps = Math.max(0, Math.min(1, g.player.stamina != null ? g.player.stamina : 1))
+      const fs = Math.max(0, Math.min(1, g.foe.stamina != null ? g.foe.stamina : 1))
+      hud.playerStam.style.width = `${ps * 100}%`
+      hud.foeStam.style.width = `${fs * 100}%`
+      hud.playerStamNum.textContent = Math.round(ps * 100)
+      hud.foeStamNum.textContent = Math.round(fs * 100)
+    }
     hud.round.textContent = g.round
     if (hud.playerName && g.player.character) {
       hud.playerName.textContent = app.i18n.t(g.player.character.nameKey)

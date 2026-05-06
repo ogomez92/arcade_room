@@ -37,16 +37,20 @@
  */
 content.combat = (() => {
   const ATTACKS = {
+    // Punches are deliberately snappy (Mortal-Kombat-style jab cadence) so
+    // a fresh fighter can fire 4–5 in the time a single kick lands. Stamina
+    // (see fighter.js) is what actually punishes spamming — it stretches
+    // these windows when the attacker is gassed.
     highPunch: {
       code: 'p', kind: 'highPunch', height: 'high', family: 'punch',
-      windup: 0.16, active: 0.10, recovery: 0.18,
+      windup: 0.08, active: 0.08, recovery: 0.10,
       range: 1.55, damage: 6,
       knockdownChance: 0,
       labelKey: 'atk.highPunch',
     },
     lowPunch: {
       code: 'q', kind: 'lowPunch', height: 'low', family: 'punch',
-      windup: 0.20, active: 0.10, recovery: 0.22,
+      windup: 0.10, active: 0.08, recovery: 0.12,
       range: 1.35, damage: 9,
       knockdownChance: 0.08,
       labelKey: 'atk.lowPunch',

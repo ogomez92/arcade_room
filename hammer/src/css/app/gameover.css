@@ -1,0 +1,36 @@
+.a-gameover--stats {
+  display: flex;
+  flex-direction: column;
+  font-family: monospace;
+  font-size: 1.05em;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+  text-align: center;
+}
+.a-gameover--save {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+  .a-gameover--name-label {
+    font-size: 0.95em;
+    opacity: 0.85;
+  }
+  .a-gameover--name-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 0.4rem;
+    color: #FFFFFF;
+    font-size: 1.05em;
+    padding: 0.5em 0.8em;
+    text-align: center;
+    width: min(20em, 80vw);
+  }
+  .a-gameover--name-input:focus {
+    border-color: #FFFFFF;
+    outline: none;
+  }

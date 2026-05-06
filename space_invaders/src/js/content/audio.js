@@ -27,6 +27,7 @@ content.audio = (() => {
     enemyBins: new Map(),       // id -> {pan, output, lowpass, drone, droneGain, kind, drift}
     lowEnergy: null,            // {osc, gain} or null
     aimVoice: null,             // {osc, gain, pan} — continuous crosshair locator
+    targetLock: null,           // {timer, panX} — fast beep when aim is on a target
     queue: [],                  // pending audio events
   }
 
@@ -96,6 +97,8 @@ content.audio = (() => {
       case 'extraLife':   return onExtraLife(ev)
       case 'waveStart':   return onWaveStart(ev)
       case 'waveClear':   return onWaveClear(ev)
+      case 'waveSurvived':return onWaveSurvived(ev)
+      case 'gameOver':    return onGameOver(ev)
       case 'urgencyTick': return onUrgencyTick(ev)
     }
   }
@@ -191,7 +194,9 @@ content.audio = (() => {
     const t = now()
     try {
       bin.output.gain.cancelScheduledValues(t)
-      bin.output.gain.setTargetAtTime(0.0001, t, 0.05)
+      // Smooth ~600ms fade-out (time constant 0.12) — kill stinger covers
+      // it during gameplay; tutorial hears it as a graceful tail.
+      bin.output.gain.setTargetAtTime(0.0001, t, 0.12)
     } catch (e) {}
     setTimeout(() => {
       try { bin.drone.stop() } catch (e) {}
@@ -201,7 +206,7 @@ content.audio = (() => {
       try { bin.output.disconnect() } catch (e) {}
       try { bin.lowpass.disconnect() } catch (e) {}
       try { bin.pan.disconnect() } catch (e) {}
-    }, 200)
+    }, 700)
     _state.enemyBins.delete(id)
   }
 
@@ -295,6 +300,23 @@ content.audio = (() => {
     g.gain.setTargetAtTime(0.06, now(), 0.20)
     _state.aimVoice = {osc: o, gain: g, pan}
   }
+  // Park or sweep the aim crosshair tone to a specific pan, bypassing the
+  // state-driven update in frame(). Used by the help-screen tutorial to
+  // demonstrate panning without a running game session.
+  function setAimVoicePan(x, rampSec) {
+    if (!_state.aimVoice) return
+    const t0 = now()
+    const v = Math.max(-1, Math.min(1, x))
+    const dur = rampSec || 0
+    try {
+      const p = _state.aimVoice.pan.pan
+      const cur = p.value
+      p.cancelScheduledValues(t0)
+      p.setValueAtTime(cur, t0)
+      if (dur > 0) p.linearRampToValueAtTime(v, t0 + dur)
+      else p.setValueAtTime(v, t0)
+    } catch (e) {}
+  }
   function stopAimVoice() {
     if (!_state.aimVoice) return
     const v = _state.aimVoice
@@ -306,6 +328,80 @@ content.audio = (() => {
       try { v.gain.disconnect() } catch (e) {}
       try { v.pan.disconnect() } catch (e) {}
     }, 250)
+  }
+
+  // ----------------------------- target-lock beep -----------------------------
+  // Fast continuous beep that fires while the player's aim is on a target —
+  // i.e. firing now would connect. Critical for blind play: without this the
+  // crosshair tone alone doesn't tell you when you've crossed onto an enemy.
+  // Pans live at the target's position so the lock cue carries its own
+  // localisation. The beep mirrors the locked ship's urgency-tick voice
+  // (same waveform + frequency family, including chain note for tagged
+  // ships), but fires at ~30 Hz — far above any ship's own pulse rate
+  // (scout near = 6.5 Hz). The result: the lock sounds like *that* ship
+  // buzzed up into a fast trill, so the player can identify what they're
+  // locked onto without confusing it for the ship itself.
+  function setTargetLock(on, info) {
+    if (on) {
+      const data = info || {}
+      const px = data.x != null ? Math.max(-1, Math.min(1, data.x)) : 0
+      const kind = data.kind || 'scout'
+      const chainIndex = data.chainIndex || 0
+      const z = data.z != null ? data.z : 0.4
+      if (_state.targetLock) {
+        _state.targetLock.panX = px
+        _state.targetLock.kind = kind
+        _state.targetLock.chainIndex = chainIndex
+        _state.targetLock.z = z
+        return
+      }
+      ensureStarted()
+      const c = ctx()
+      // Wrap the trill in a gain bus that ramps in (~120ms) and out (~150ms)
+      // so the lock onset/offset doesn't pop. Each beep routes through this
+      // bus instead of straight to sfxBus.
+      const trillBus = c.createGain()
+      trillBus.gain.value = 0.0001
+      trillBus.connect(_state.sfxBus)
+      trillBus.gain.setTargetAtTime(1.0, now(), 0.04)
+      _state.targetLock = {timer: null, panX: px, kind, chainIndex, z, trillBus}
+      const beep = () => {
+        if (!_state.targetLock) return
+        const t0 = now()
+        const lk = _state.targetLock
+        const def = CLASS_DEFS[lk.kind] || CLASS_DEFS.scout
+        let freq = def.base * (1 + (1 - lk.z) * 0.6)
+        if (lk.chainIndex && CHAIN_NOTES[lk.chainIndex]) freq = CHAIN_NOTES[lk.chainIndex]
+        const o = c.createOscillator()
+        o.type = lk.kind === 'civilian' ? 'triangle' : (lk.kind === 'battleship' ? 'sawtooth' : 'square')
+        o.frequency.value = freq
+        const g = c.createGain()
+        g.gain.value = 0
+        const pan = c.createStereoPanner()
+        pan.pan.value = lk.panX
+        o.connect(g).connect(pan).connect(lk.trillBus)
+        adsr(g.gain, t0, 0.001, 0.008, 0.020, 0.32)
+        o.start(t0)
+        o.stop(t0 + 0.05)
+        setTimeout(() => {
+          try { o.disconnect() } catch (e) {}
+          try { g.disconnect() } catch (e) {}
+          try { pan.disconnect() } catch (e) {}
+        }, 150)
+      }
+      beep()  // fire onset beep immediately so the lock is audible the frame it engages
+      _state.targetLock.timer = setInterval(beep, 33)
+    } else {
+      if (!_state.targetLock) return
+      const tl = _state.targetLock
+      _state.targetLock = null
+      try { clearInterval(tl.timer) } catch (e) {}
+      if (tl.trillBus) {
+        try { tl.trillBus.gain.cancelScheduledValues(now()) } catch (e) {}
+        try { tl.trillBus.gain.setTargetAtTime(0.0001, now(), 0.05) } catch (e) {}
+        setTimeout(() => { try { tl.trillBus.disconnect() } catch (e) {} }, 600)
+      }
+    }
   }
 
   function _findEnemyById(id) {
@@ -326,6 +422,7 @@ content.audio = (() => {
       _state.lowEnergy = null
     }
     stopAimVoice()
+    setTargetLock(false)
     _state.queue = []
   }
 
@@ -681,20 +778,103 @@ content.audio = (() => {
   }
 
   function onWaveClear(ev) {
+    // Brassy fanfare for clean wave clear: ascending C-major arpeggio
+    // played by detuned saw pair, then a sustained C-major triad with an
+    // octave on top to stick the landing.
     const c = ctx()
     const t0 = now()
-    const notes = [523.25, 659.25, 783.99, 1046.50]
-    notes.forEach((f, i) => {
-      const o = c.createOscillator()
-      o.type = 'triangle'
-      o.frequency.value = f
-      const g = c.createGain()
-      g.gain.value = 0
-      o.connect(g).connect(_state.sfxBus)
-      adsr(g.gain, t0 + i * 0.08, 0.005, 0.060, 0.140, 0.35)
-      o.start(t0 + i * 0.08); o.stop(t0 + i * 0.08 + 0.22)
-      setTimeout(() => { try{o.disconnect()}catch(e){} try{g.disconnect()}catch(e){} }, 700)
+    const arp = [523.25, 659.25, 783.99, 1046.50]
+    arp.forEach((f, i) => {
+      const o1 = c.createOscillator(); o1.type = 'sawtooth'; o1.frequency.value = f
+      const o2 = c.createOscillator(); o2.type = 'sawtooth'; o2.frequency.value = f * 1.005
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 4500
+      const g = c.createGain(); g.gain.value = 0
+      o1.connect(lp); o2.connect(lp); lp.connect(g).connect(_state.sfxBus)
+      const t = t0 + i * 0.085
+      adsr(g.gain, t, 0.005, 0.05, 0.14, 0.32)
+      o1.start(t); o1.stop(t + 0.22)
+      o2.start(t); o2.stop(t + 0.22)
+      setTimeout(() => {
+        try{o1.disconnect()}catch(e){} try{o2.disconnect()}catch(e){}
+        try{lp.disconnect()}catch(e){} try{g.disconnect()}catch(e){}
+      }, 700)
     })
+    const chordT = t0 + 0.46
+    const chord = [523.25, 659.25, 783.99, 1046.50]
+    chord.forEach((f) => {
+      const o = c.createOscillator(); o.type = 'triangle'; o.frequency.value = f
+      const g = c.createGain(); g.gain.value = 0
+      o.connect(g).connect(_state.sfxBus)
+      adsr(g.gain, chordT, 0.01, 0.32, 0.50, 0.20)
+      o.start(chordT); o.stop(chordT + 0.90)
+      setTimeout(() => { try{o.disconnect()}catch(e){} try{g.disconnect()}catch(e){} }, 1500)
+    })
+  }
+
+  function onWaveSurvived(ev) {
+    // Subdued "you got through it, but barely" sting. Two-note minor
+    // descent (Bb4 → F4) on soft triangle, with a low F3 sine underline.
+    // Distinct from waveClear: no triumph, no rising arpeggio.
+    const c = ctx()
+    const t0 = now()
+    const notes = [
+      {f: 466.16, t: 0.00, dur: 0.28, peak: 0.28},   // Bb4
+      {f: 349.23, t: 0.20, dur: 0.45, peak: 0.32},   // F4
+    ]
+    notes.forEach(n => {
+      const o = c.createOscillator(); o.type = 'triangle'; o.frequency.value = n.f
+      const g = c.createGain(); g.gain.value = 0
+      o.connect(g).connect(_state.sfxBus)
+      adsr(g.gain, t0 + n.t, 0.015, 0.10, n.dur - 0.10, n.peak)
+      o.start(t0 + n.t); o.stop(t0 + n.t + n.dur + 0.05)
+      setTimeout(() => { try{o.disconnect()}catch(e){} try{g.disconnect()}catch(e){} }, 900)
+    })
+    const sub = c.createOscillator(); sub.type = 'sine'; sub.frequency.value = 174.61   // F3
+    const subG = c.createGain(); subG.gain.value = 0
+    sub.connect(subG).connect(_state.sfxBus)
+    adsr(subG.gain, t0 + 0.05, 0.05, 0.30, 0.45, 0.18)
+    sub.start(t0 + 0.05); sub.stop(t0 + 0.90)
+    setTimeout(() => { try{sub.disconnect()}catch(e){} try{subG.disconnect()}catch(e){} }, 1200)
+  }
+
+  function onGameOver(ev) {
+    // Slow descending Bb-minor figure (D4 → Bb3 → F3), each note
+    // overlapping with long releases. Triangle voiced with a sub-octave
+    // sine for warmth + weight, lowpass filtered for a fade-to-black
+    // feel. A short low-noise rumble underlines the "punch" of the loss.
+    const c = ctx()
+    const t0 = now()
+    const notes = [
+      {f: 293.66, t: 0.00, dur: 0.85, peak: 0.32},   // D4
+      {f: 233.08, t: 0.55, dur: 0.95, peak: 0.34},   // Bb3
+      {f: 174.61, t: 1.15, dur: 1.50, peak: 0.36},   // F3
+    ]
+    notes.forEach(n => {
+      const o1 = c.createOscillator(); o1.type = 'triangle'; o1.frequency.value = n.f
+      const o2 = c.createOscillator(); o2.type = 'sine';     o2.frequency.value = n.f / 2
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1600
+      const g = c.createGain(); g.gain.value = 0
+      o1.connect(lp); o2.connect(lp); lp.connect(g).connect(_state.sfxBus)
+      const tStart = t0 + n.t
+      adsr(g.gain, tStart, 0.05, n.dur * 0.35, n.dur * 0.65, n.peak)
+      o1.start(tStart); o1.stop(tStart + n.dur + 0.10)
+      o2.start(tStart); o2.stop(tStart + n.dur + 0.10)
+      setTimeout(() => {
+        try{o1.disconnect()}catch(e){} try{o2.disconnect()}catch(e){}
+        try{lp.disconnect()}catch(e){} try{g.disconnect()}catch(e){}
+      }, (n.t + n.dur + 0.4) * 1000)
+    })
+    const noiseBuf = c.createBuffer(1, c.sampleRate * 0.9, c.sampleRate)
+    const ch = noiseBuf.getChannelData(0)
+    for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / ch.length, 1.4)
+    const src = c.createBufferSource()
+    src.buffer = noiseBuf
+    const lpN = c.createBiquadFilter(); lpN.type = 'lowpass'; lpN.frequency.value = 220
+    const gN = c.createGain(); gN.gain.value = 0
+    src.connect(lpN).connect(gN).connect(_state.sfxBus)
+    adsr(gN.gain, t0, 0.01, 0.15, 0.70, 0.55)
+    src.start(t0)
+    setTimeout(() => { try{src.disconnect()}catch(e){} try{lpN.disconnect()}catch(e){} try{gN.disconnect()}catch(e){} }, 1200)
   }
 
   // ----------------------------- low-energy siren -----------------------------
@@ -769,10 +949,12 @@ content.audio = (() => {
     const fakeId = -1 - Math.floor(Math.random() * 1e6)
     const fakeEnemy = {id: fakeId, kind, x: lateral || 0, z: 0.4, dxPerSec: 0, hp: 1, chainIndex: 0, pulsePhase: 0}
     const bin = makeEnemyBin(fakeEnemy)
-    // Manually pin gain/lowpass (we won't be in the frame loop)
+    // Manually pin gain/lowpass (we won't be in the frame loop). Slower
+    // time-constant on gain (~500ms) so the drone fades in gracefully —
+    // matches the destroyEnemyBin fade-out for symmetric tutorial flow.
     const t = now()
     try {
-      bin.output.gain.setTargetAtTime(0.6, t, 0.05)
+      bin.output.gain.setTargetAtTime(0.6, t, 0.10)
       bin.lowpass.frequency.setTargetAtTime(4500, t, 0.05)
     } catch (e) {}
     // Also fire a couple of urgency ticks so the player hears the pulse cue
@@ -802,6 +984,8 @@ content.audio = (() => {
   function previewExtraLife() { onExtraLife({}); return () => {} }
   function previewWaveStart() { onWaveStart({}); return () => {} }
   function previewWaveClear() { onWaveClear({}); return () => {} }
+  function previewWaveSurvived() { onWaveSurvived({}); return () => {} }
+  function previewGameOver() { onGameOver({}); return () => {} }
   function previewAimTone() {
     startAimVoice()
     // Pan it left → centre → right so the player can hear how the locator
@@ -815,6 +999,12 @@ content.audio = (() => {
     }
     setTimeout(() => stopAimVoice(), 2400)
     return () => stopAimVoice()
+  }
+  function previewTargetLock() {
+    setTargetLock(true, {x: 0, kind: 'scout', chainIndex: 0, z: 0.4})
+    const stop = () => setTargetLock(false)
+    setTimeout(stop, 1800)
+    return stop
   }
   function previewChainTag(idx) {
     onUrgencyTick({x: 0, kind: 'scout', chainIndex: idx, z: 0.5})
@@ -846,6 +1036,8 @@ content.audio = (() => {
     setLowEnergy,
     startAimVoice,
     stopAimVoice,
+    setAimVoicePan,
+    setTargetLock,
     // diagnostics
     emitTickAt,
     // learn
@@ -862,7 +1054,10 @@ content.audio = (() => {
     previewExtraLife,
     previewWaveStart,
     previewWaveClear,
+    previewWaveSurvived,
+    previewGameOver,
     previewAimTone,
+    previewTargetLock,
     previewChainTag,
     previewUrgency,
     // constants exposed for chain rendering

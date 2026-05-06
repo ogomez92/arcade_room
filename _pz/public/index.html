@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Pizza!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <!-- aria-live regions for screen-reader and TTS announcements -->
+      <div class="a-app--announce">
+        <div class="a-live a-live--polite" aria-live="polite" aria-atomic="true"></div>
+        <div class="a-live a-live--assertive" aria-live="assertive" aria-atomic="true"></div>
+      </div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <h1 class="a-game--title" data-i18n="menu.title">Pizza!</h1>
+          <p class="a-game--status a-game--status-job" data-i18n="game.hudJob">Job 1</p>
+          <p class="a-game--status a-game--status-time" data-i18n="game.hudTime">Time 0s</p>
+          <p class="a-game--status a-game--status-tips" data-i18n="game.hudTips">Tips: $0</p>
+          <p class="a-game--status a-game--status-held" data-i18n="game.hudHeldEmpty">Out of pizzas</p>
+          <p class="a-game--status a-game--status-gps" data-i18n="game.hudGpsIdle">GPS: idle</p>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Pizza!</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">Deliver pizzas across the city. Don't lose your tip.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="start" data-i18n="menu.start">Start a New Run</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn Sounds</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to Play</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="menu.highscores">High Scores</button></li>
+            <li><button class="c-menu--button" data-action="settings" data-i18n="menu.settings">Settings</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--settings">
+        <section class="c-screen c-menu a-settings" tabindex="-1" data-i18n-attr="aria-label:settings.aria">
+          <h1 class="c-menu--title" data-i18n="settings.title">Settings</h1>
+          <p class="c-menu--subtitle" data-i18n="settings.subtitle">Toggle player-facing options.</p>
+          <ul class="c-menu--list a-settings--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="settings.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--briefing">
+        <section class="c-screen c-menu a-briefing" tabindex="-1" data-i18n-attr="aria-label:briefing.aria">
+          <h1 class="c-menu--title" data-i18n="briefing.title">At the pizza shop</h1>
+          <p class="c-menu--subtitle a-briefing--subtitle" data-i18n="briefing.subtitleOne">Job 1: 1 pizza to deliver</p>
+          <p class="a-briefing--intro" data-i18n="briefing.intro">You are at 36 Pizza Street, on the corner of Pizza Street and Avocado Street.</p>
+          <ol class="a-briefing--list"></ol>
+          <p class="a-briefing--hint" data-i18n="briefing.numberHint">Press 1–9 to re-read a pizza. Space to start driving.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="start" data-i18n="briefing.start">Start driving</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="briefing.back">Back to menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to Play</h1>
+          <h2 class="c-menu--subtitle" data-i18n="help.controls">Controls</h2>
+          <ul class="a-help--list">
+            <li data-i18n-html="help.controlMove"><kbd>Up</kbd> / <kbd>Down</kbd> — accelerate / brake.</li>
+            <li data-i18n-html="help.controlTurn"><kbd>Left</kbd> / <kbd>Right</kbd> — steer.</li>
+            <li data-i18n-html="help.controlSelect"><kbd>1</kbd>…<kbd>9</kbd> — select a held pizza.</li>
+            <li data-i18n-html="help.controlThrow"><kbd>Space</kbd> — flick the selected pizza.</li>
+            <li data-i18n-html="help.controlRecenter"><kbd>Enter</kbd> — auto-recenter the bike on the road.</li>
+            <li data-i18n-html="help.controlPause"><kbd>Esc</kbd> — pause.</li>
+          </ul>
+          <h2 class="c-menu--subtitle" data-i18n="help.statusHotkeys">Status Hotkeys</h2>
+          <ul class="a-help--list">
+            <li data-i18n-html="help.statusF1"><kbd>F1</kbd> — repeat last GPS instruction.</li>
+            <li data-i18n-html="help.statusF2"><kbd>F2</kbd> — held pizza details.</li>
+            <li data-i18n-html="help.statusF3"><kbd>F3</kbd> — distance to the restaurant.</li>
+            <li data-i18n-html="help.statusF4"><kbd>F4</kbd> — time and tip total.</li>
+            <li data-i18n-html="help.statusF5"><kbd>F5</kbd> — your current street address.</li>
+          </ul>
+          <h2 class="c-menu--subtitle" data-i18n="help.objective">Objective</h2>
+          <p class="a-help--objective" data-i18n="help.objectiveBody">Pick up pizzas at the shop, deliver each one to its address, and head back for the next job. The longer you take, the smaller the tip — and a $0 delivery ends the run. Mind traffic lights and pedestrians.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen c-menu a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 class="c-menu--title" data-i18n="learn.title">Learn Sounds</h1>
+          <p class="c-menu--subtitle" data-i18n="learn.subtitle">Tap each cue to hear it on its own.</p>
+          <ul class="c-menu--list a-learn--nav"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="learn.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--test">
+        <section class="c-screen c-menu a-test" tabindex="-1" data-i18n-attr="aria-label:test.aria">
+          <h1 class="c-menu--title" data-i18n="test.title">Audio Test</h1>
+          <p class="c-menu--subtitle" data-i18n="test.subtitle">A tick plays from the front, then left, then behind, then right.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="run" data-i18n="test.run">Run sequence</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="test.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen c-menu a-highscores" tabindex="-1" data-i18n-attr="aria-label:highscores.aria">
+          <h1 class="c-menu--title" data-i18n="highscores.title">High Scores</h1>
+          <ol class="c-menu--list a-highscores--list"></ol>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="highscores.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Shift's over.</h1>
+          <p class="a-gameover--reason" data-i18n="gameover.subtitle">A delivery yielded no tip.</p>
+          <p class="a-gameover--tips" data-i18n="gameover.totalTips">Total tips: $0</p>
+          <p class="a-gameover--deliveries" data-i18n="gameover.deliveries">Deliveries completed: 0</p>
+          <p class="a-gameover--jobs" data-i18n="gameover.jobs">Jobs completed: 0</p>
+          <div class="a-gameover--name">
+            <label class="c-menu--subtitle" for="a-gameover--name-input" data-i18n="gameover.namePrompt">Enter a name for the high-score table:</label>
+            <input id="a-gameover--name-input" class="a-gameover--name-input" type="text" maxlength="16" autocomplete="off" />
+          </div>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="save" data-i18n="gameover.save">Save</button></li>
+            <li><button class="c-menu--button" data-action="restart" data-i18n="gameover.restart">Try again</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="gameover.menu">Main menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

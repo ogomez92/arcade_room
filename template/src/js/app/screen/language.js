@@ -11,7 +11,7 @@ app.screen.language = app.screenManager.invent({
   parentSelector: '.a-app--language',
   rootSelector: '.a-language',
   transitions: {
-    back: function () { this.change('splash') },
+    back: function () { this.change('menu') },
   },
   state: {
     entryFrames: 0,

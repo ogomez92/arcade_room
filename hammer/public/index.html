@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">HAMMER OF GLORY!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div class="a-app--live">
+        <div class="a-live a-live--polite" aria-live="polite" aria-atomic="true"></div>
+        <div class="a-live a-live--assertive" aria-live="assertive" aria-atomic="true"></div>
+      </div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <h1 class="c-menu--title a-game--title" data-i18n="game.title">HAMMER OF GLORY!</h1>
+          <ul class="a-game--status">
+            <li class="a-game--status-level"></li>
+            <li class="a-game--status-score"></li>
+            <li class="a-game--status-phase"></li>
+          </ul>
+          <p class="a-game--instruction" data-i18n="game.instruction">Press <kbd>Space</kbd> or <kbd>Enter</kbd> to swing the hammer when the slide matches the target pitch.</p>
+          <ul class="c-menu--list a-game--actions">
+            <li><button class="c-menu--button a-game--smash" data-action="smash" data-i18n="game.smash">SWING!</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">HAMMER OF GLORY!</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">Step right up — ring the bell at the top!</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="start" data-i18n="menu.start">Start Game</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn the Sounds</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to Play</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="menu.highscores">Hall of Fame</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="menu.language">Language</button></li>
+          </ul>
+          <p class="a-menu--version"></p>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Game Over</h1>
+          <p class="c-menu--subtitle" data-i18n="gameover.subtitle">The crowd disperses…</p>
+          <ul class="a-gameover--stats">
+            <li class="a-gameover--score"></li>
+            <li class="a-gameover--level"></li>
+            <li class="a-gameover--lastscore"></li>
+          </ul>
+          <div class="a-gameover--save">
+            <label class="a-gameover--name-label" for="a-gameover--name-input" data-i18n="gameover.nameLabel">Name for the Hall of Fame</label>
+            <input id="a-gameover--name-input" class="a-gameover--name-input" type="text" maxlength="16" autocomplete="off" />
+          </div>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="save" data-i18n="gameover.save">Save Score</button></li>
+            <li><button class="c-menu--button" data-action="restart" data-i18n="gameover.restart">Play Again</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="gameover.menu">Main Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen c-menu a-highscores" tabindex="-1" data-i18n-attr="aria-label:highscores.aria">
+          <h1 class="c-menu--title" data-i18n="highscores.title">Hall of Fame</h1>
+          <ol class="a-highscores--list"></ol>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="highscores.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to Play</h1>
+          <ul class="a-help--list">
+            <li data-i18n-html="help.line1"><strong>Listen</strong> to the target pitch — a steady tone.</li>
+            <li data-i18n-html="help.line2">Then a <strong>slide</strong> sweeps from a low pitch up to a high pitch.</li>
+            <li data-i18n-html="help.line3">Press <kbd>Space</kbd> or <kbd>Enter</kbd> to <strong>SWING</strong> the hammer when the slide matches the target.</li>
+            <li data-i18n-html="help.line4">Score 100 to ring the <strong>bell</strong>! 50–99 the crowd cheers and you continue. Below 50 the run ends.</li>
+            <li data-i18n-html="help.line5">Each round the slide gets <strong>faster</strong>. Levels 1–2 use musical notes; level 3+ uses any pitch.</li>
+            <li data-i18n-html="help.line6"><kbd>F1</kbd> read score · <kbd>F2</kbd> level.</li>
+          </ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen c-menu a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 class="c-menu--title" data-i18n="learn.title">Learn the Sounds</h1>
+          <p class="c-menu--subtitle" data-i18n="learn.subtitle">Audition every sound the game uses.</p>
+          <ul class="c-menu--list a-learn--nav"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="learn.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

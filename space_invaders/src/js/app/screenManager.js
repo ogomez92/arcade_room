@@ -15,7 +15,7 @@ app.screenManager = (() => {
             this.change(hash)
             return
           }
-          this.change('splash')
+          this.change('menu')
         },
       },
     },

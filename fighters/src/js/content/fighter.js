@@ -41,6 +41,55 @@ content.fighter = (() => {
   const STRUGGLE_THROW   = 1.0   // threshold to throw off the rider
   const TAUNT_COOLDOWN   = 4.0
 
+  // -------------------------------------------------------- stamina
+  // stamina ∈ [0, 1]. Drains on actions (cheap punches, expensive kicks /
+  // jumps); regens fast when idle, slower while walking, fastest while
+  // knocked down (the body is forced to rest). Below STAMINA_SLOW_THRESHOLD
+  // both walk speed and attack windows slow proportionally — the player
+  // hears their fighter gas out in the breath track and feels the
+  // sluggishness in the controls. This is what stops naive button-mashing
+  // from being optimal.
+  const STAMINA_MAX                = 1.0
+  const STAMINA_REGEN_IDLE         = 0.22  // per-second; standing still
+  const STAMINA_REGEN_MOVING       = 0.06  // per-second; walking sustains
+  const STAMINA_REGEN_DOWN         = 0.45  // per-second; floored = catch breath
+  const STAMINA_SLOW_THRESHOLD     = 0.40  // below this, slowdowns kick in
+  const STAMINA_MIN_SPEED          = 0.50  // walk speed at zero stamina
+  const STAMINA_MAX_SLOW           = 1.80  // attack-duration multiplier at zero
+  const STAMINA_DRAIN = {
+    highPunch: 0.07,
+    lowPunch:  0.09,
+    highKick:  0.18,
+    lowKick:   0.15,
+    block:     0.04,
+    duck:      0.03,
+    jump:      0.22,
+  }
+
+  // Maps current stamina → multiplier on attack windup/active/recovery
+  // durations. 1× when fresh, up to STAMINA_MAX_SLOW× when empty. Linear
+  // ramp inside the threshold so the slowdown is felt early.
+  function staminaSlowFactor(f) {
+    const s = f.stamina != null ? f.stamina : STAMINA_MAX
+    if (s >= STAMINA_SLOW_THRESHOLD) return 1
+    const t = 1 - s / STAMINA_SLOW_THRESHOLD
+    return 1 + (STAMINA_MAX_SLOW - 1) * t
+  }
+
+  // Maps current stamina → walk-speed multiplier. STAMINA_MIN_SPEED at
+  // zero, full speed once we're back above the threshold.
+  function staminaSpeedFactor(f) {
+    const s = f.stamina != null ? f.stamina : STAMINA_MAX
+    if (s >= STAMINA_SLOW_THRESHOLD) return 1
+    const t = s / STAMINA_SLOW_THRESHOLD
+    return STAMINA_MIN_SPEED + (1 - STAMINA_MIN_SPEED) * t
+  }
+
+  function drainStamina(f, key) {
+    const cost = STAMINA_DRAIN[key] || 0
+    f.stamina = Math.max(0, f.stamina - cost)
+  }
+
   function create(opts) {
     const f = {
       id: opts.id,                       // 'player' | 'foe'
@@ -71,6 +120,7 @@ content.fighter = (() => {
       struggle: 0,
       _struggleLastBeat: 0,
       tauntUntil: 0,         tauntCdUntil: 0,
+      stamina: STAMINA_MAX,
     }
     return f
   }
@@ -123,6 +173,9 @@ content.fighter = (() => {
         f.postureUntil = t + GETUP_SECONDS
         A().getupRustle(f.x, f.y)
       }
+      // Knocked-down fighters catch their breath fast — gives a
+      // floored fighter a chance to come back up swinging.
+      f.stamina = Math.min(STAMINA_MAX, f.stamina + STAMINA_REGEN_DOWN * (1/60))
     } else if (f.posture === 'getup' && t >= f.postureUntil) {
       f.posture = 'stand'
       f.struggle = 0
@@ -153,16 +206,26 @@ content.fighter = (() => {
     }
     const ax = intent.x || 0
     const ay = intent.y || 0
-    if (Math.abs(ax) < 0.1 && Math.abs(ay) < 0.1) return
+    const idle = Math.abs(ax) < 0.1 && Math.abs(ay) < 0.1
+    if (idle) {
+      // Recover stamina aggressively when standing still.
+      f.stamina = Math.min(STAMINA_MAX, f.stamina + STAMINA_REGEN_IDLE * dt)
+      return
+    }
 
     // Normalize so diagonal isn't faster than cardinal.
     const mag = Math.sqrt(ax * ax + ay * ay) || 1
     const nx = ax / mag
     const ny = ay / mag
 
+    const speed = WALK_SPEED * staminaSpeedFactor(f)
     const oldX = f.x, oldY = f.y
-    f.x = engine.fn.clamp(f.x + nx * WALK_SPEED * dt, -STAGE_HALF, STAGE_HALF)
-    f.y = engine.fn.clamp(f.y + ny * WALK_SPEED * dt, -STAGE_HALF, STAGE_HALF)
+    f.x = engine.fn.clamp(f.x + nx * speed * dt, -STAGE_HALF, STAGE_HALF)
+    f.y = engine.fn.clamp(f.y + ny * speed * dt, -STAGE_HALF, STAGE_HALF)
+
+    // Walking is sustainable: small net regen, but slower than standing
+    // still. Lets you reposition without going broke on stamina.
+    f.stamina = Math.min(STAMINA_MAX, f.stamina + STAMINA_REGEN_MOVING * dt)
 
     const moved = Math.hypot(f.x - oldX, f.y - oldY)
     f.footstepAccum += moved
@@ -176,13 +239,20 @@ content.fighter = (() => {
     if (isBusy(f)) return false
     const def = ATKS()[kindKey]
     if (!def) return false
+    // Spend the stamina cost up front, then read the slowdown from the
+    // post-drain value so the very swing that empties your gauge already
+    // feels heavier on the recovery side.
+    drainStamina(f, kindKey)
+    const slow = staminaSlowFactor(f)
+    const t = engine.time()
     f.attack = {
       def,
       phase: 'windup',
-      until: engine.time() + def.windup,
-      activeUntil: engine.time() + def.windup + def.active,
-      doneAt: engine.time() + def.windup + def.active + def.recovery,
+      until: t + def.windup * slow,
+      activeUntil: t + (def.windup + def.active) * slow,
+      doneAt: t + (def.windup + def.active + def.recovery) * slow,
       hit: false,
+      slow,
     }
     A().tell(def.kind, f.x, f.y)
     if (f.character) V().effort(f.x, f.y, def.kind, f.character.voice)
@@ -241,6 +311,7 @@ content.fighter = (() => {
     if (f.posture !== 'stand' || isBusy(f) || t < f.blockCdUntil) return false
     f.blockUntil  = t + BLOCK_DURATION
     f.blockCdUntil = t + BLOCK_DURATION + BLOCK_COOLDOWN
+    drainStamina(f, 'block')
     A().blockUp(f.x, f.y)
     return true
   }
@@ -250,6 +321,7 @@ content.fighter = (() => {
     if (f.posture !== 'stand' || isBusy(f) || t < f.duckCdUntil) return false
     f.duckUntil   = t + DUCK_DURATION
     f.duckCdUntil = t + DUCK_DURATION + DUCK_COOLDOWN
+    drainStamina(f, 'duck')
     A().duckRustle(f.x, f.y)
     return true
   }
@@ -262,6 +334,7 @@ content.fighter = (() => {
     f.jumpDirY = mag > 0.05 ? (dirY / mag) : 0
     f.jumpUntil   = t + JUMP_DURATION
     f.jumpCdUntil = t + JUMP_DURATION + JUMP_COOLDOWN
+    drainStamina(f, 'jump')
     A().jumpWhoosh(f.x, f.y)
     if (f.character) V().effort(f.x, f.y, 'highKick', f.character.voice)
     return true
@@ -337,6 +410,7 @@ content.fighter = (() => {
     f.struggle = 0
     f._struggleLastBeat = 0
     f.tauntUntil = f.tauntCdUntil = 0
+    f.stamina = STAMINA_MAX
   }
 
   return {
@@ -348,5 +422,7 @@ content.fighter = (() => {
     WALK_SPEED, STAGE_HALF, DOWN_SECONDS, GETUP_SECONDS,
     BLOCK_DURATION, DUCK_DURATION, JUMP_DURATION,
     MOUNT_STEP_MIN, STRUGGLE_THROW, TAUNT_COOLDOWN,
+    STAMINA_MAX, STAMINA_SLOW_THRESHOLD,
+    staminaSlowFactor, staminaSpeedFactor,
   }
 })()

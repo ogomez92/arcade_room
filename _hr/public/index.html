@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Horse Race!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <!-- Always-on aria-live regions for announcer output. -->
+      <div class="u-screenReader js-announcer" aria-live="polite" aria-atomic="true"></div>
+      <div class="u-screenReader js-announcer-assertive" aria-live="assertive" aria-atomic="true"></div>
+      <div class="u-screenReader js-lobby-announcer" aria-live="polite" aria-atomic="true"></div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <h1 class="c-menu--title" data-i18n="game.aria">Race in progress</h1>
+          <p class="c-menu--subtitle" data-i18n="help.intro">You ride a horse against rivals on a 1-kilometre track.</p>
+          <p data-i18n-html="help.whip"><kbd>Space</kbd> — whip your horse to push it faster. Each whip costs stamina.</p>
+          <p data-i18n-html="help.jump"><kbd>Up Arrow</kbd> — jump.</p>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Race Over</h1>
+          <p class="c-menu--subtitle a-gameover--summary"></p>
+          <h2 data-i18n="gameover.results">Final standings</h2>
+          <ol class="a-gameover--list"></ol>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="again" data-i18n="gameover.again">Race Again</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="gameover.menu">Main Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--lobby">
+        <section class="c-screen c-menu a-lobby" tabindex="-1" data-i18n-attr="aria-label:lobby.aria">
+          <h1 class="c-menu--title" data-i18n="lobby.title">Multiplayer</h1>
+          <p class="c-menu--subtitle" data-i18n="lobby.subtitle">Create a room or join one with a code.</p>
+
+          <div class="a-lobby--connect">
+            <ul class="c-menu--list">
+              <li>
+                <label>
+                  <span data-i18n="ann.you">Name</span>:
+                  <input type="text" class="a-lobby--name-input" maxlength="16" />
+                </label>
+              </li>
+              <li><button class="c-menu--button a-lobby--create-btn" data-i18n="lobby.create">Create Room</button></li>
+              <li>
+                <label>
+                  <span data-i18n="lobby.codeLabel">Room code</span>:
+                  <input type="text" class="a-lobby--code-input" maxlength="8" />
+                </label>
+              </li>
+              <li><button class="c-menu--button a-lobby--join-btn" data-i18n="lobby.join">Join Room</button></li>
+              <li><button class="c-menu--button" data-action="back" data-i18n="lobby.back">Back</button></li>
+            </ul>
+          </div>
+
+          <div class="a-lobby--room" hidden>
+            <p class="a-lobby--room-code"></p>
+            <p class="a-lobby--players-text"></p>
+            <ul class="c-menu--list">
+              <li>
+                <label>
+                  <input type="checkbox" class="a-lobby--fillai-input" checked />
+                  <span data-i18n="lobby.fillAi">Fill empty slots with AI horses</span>
+                </label>
+              </li>
+              <li><button class="c-menu--button a-lobby--start-btn" data-i18n="lobby.start">Start Race</button></li>
+              <li><button class="c-menu--button a-lobby--leave-btn" data-i18n="lobby.leave">Leave Room</button></li>
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen c-menu a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 class="c-menu--title" data-i18n="learn.title">Learn the Sounds</h1>
+          <p class="c-menu--subtitle" data-i18n="learn.subtitle">Press a button to hear each sound by itself.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-sound="front" data-i18n="learn.front">Tick from the front</button></li>
+            <li><button class="c-menu--button" data-sound="right" data-i18n="learn.right">Tick from the right</button></li>
+            <li><button class="c-menu--button" data-sound="behind" data-i18n="learn.behind">Tick from behind</button></li>
+            <li><button class="c-menu--button" data-sound="left" data-i18n="learn.left">Tick from the left</button></li>
+            <li><button class="c-menu--button" data-sound="hooves" data-i18n="learn.hooves">A galloping horse beside you</button></li>
+            <li><button class="c-menu--button" data-sound="hoovesAhead" data-i18n="learn.hoovesAhead">A horse ahead of you</button></li>
+            <li><button class="c-menu--button" data-sound="hoovesBehind" data-i18n="learn.hoovesBehind">A horse behind you (muffled)</button></li>
+            <li><button class="c-menu--button" data-sound="whip" data-i18n="learn.whip">Whip crack</button></li>
+            <li><button class="c-menu--button" data-sound="jump" data-i18n="learn.jump">Jump whoosh</button></li>
+            <li><button class="c-menu--button" data-sound="crash" data-i18n="learn.crash">Crash thud</button></li>
+            <li><button class="c-menu--button" data-sound="fence" data-i18n="learn.fence">Approaching fence beacon</button></li>
+            <li><button class="c-menu--button" data-sound="bell" data-i18n="learn.bell">Finish bell</button></li>
+            <li><button class="c-menu--button" data-sound="gun" data-i18n="learn.gun">Start gun</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="learn.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to Play</h1>
+          <ul class="c-menu--list a-help--list">
+            <li data-i18n="help.intro">You ride a horse against rivals on a 1-kilometre track.</li>
+            <li data-i18n-html="help.whip"><kbd>Space</kbd> — whip your horse to push it faster. Each whip costs stamina.</li>
+            <li data-i18n-html="help.jump"><kbd>Up Arrow</kbd> — jump.</li>
+            <li data-i18n="help.stamina">Whip too much and stamina drops; the horse slows. Stop whipping to recover.</li>
+            <li data-i18n="help.spatial">Other horses are heard around you.</li>
+            <li data-i18n-html="help.f1"><kbd>F1</kbd> — current position.</li>
+            <li data-i18n-html="help.f2"><kbd>F2</kbd> — your stamina and speed.</li>
+            <li data-i18n-html="help.f3"><kbd>F3</kbd> — distance to the next jump.</li>
+            <li data-i18n-html="help.f4"><kbd>F4</kbd> — distance remaining and elapsed time.</li>
+            <li data-i18n="help.score">Score is built from finishing position, clean and perfect jumps, average stamina kept, average speed, and finish time. Crashes lose points.</li>
+          </ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Horse Race</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">Choose a mode</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="single" data-i18n="menu.single">Single Player</button></li>
+            <li><button class="c-menu--button" data-action="multi" data-i18n="menu.multi">Multiplayer</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to Play</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn the Sounds</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

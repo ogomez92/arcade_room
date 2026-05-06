@@ -26,6 +26,7 @@ app.screen.learn = app.screenManager.invent({
 
     const items = [
       {key: 'aim',           fn: () => content.audio.previewAimTone()},
+      {key: 'targetLock',    fn: () => content.audio.previewTargetLock()},
       {key: 'scout',         fn: () => content.audio.previewClassDrone('scout', -0.4)},
       {key: 'bomber',        fn: () => content.audio.previewClassDrone('bomber', 0)},
       {key: 'battleship',    fn: () => content.audio.previewClassDrone('battleship', 0.4)},
@@ -45,6 +46,8 @@ app.screen.learn = app.screenManager.invent({
       {key: 'extraLife',     fn: () => content.audio.previewExtraLife()},
       {key: 'waveStart',     fn: () => content.audio.previewWaveStart()},
       {key: 'waveClear',     fn: () => content.audio.previewWaveClear()},
+      {key: 'waveSurvived',  fn: () => content.audio.previewWaveSurvived()},
+      {key: 'gameOver',      fn: () => content.audio.previewGameOver()},
       {key: 'chain1',        fn: () => content.audio.previewChainTag(1)},
       {key: 'chain2',        fn: () => content.audio.previewChainTag(2)},
       {key: 'chain3',        fn: () => content.audio.previewChainTag(3)},

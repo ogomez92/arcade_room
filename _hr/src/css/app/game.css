@@ -1,0 +1,67 @@
+.a-help--list {
+  list-style: disc inside !important;
+  text-align: left;
+  max-width: 48em;
+  margin: 0 auto;
+}
+  .a-help--list li {
+    margin-bottom: 0.5em;
+    width: auto !important;
+  }
+  .a-help--list kbd {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 0.25em;
+    font-family: monospace;
+    padding: 0 0.4em;
+  }
+
+.a-gameover--list {
+  list-style: decimal inside !important;
+  text-align: left;
+  max-width: 40em;
+  margin: 1em auto !important;
+  padding: 0;
+}
+  .a-gameover--list li {
+    margin-bottom: 0.3em;
+    width: auto !important;
+  }
+.a-gameover--summary {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.a-lobby input[type="text"] {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0.4rem;
+  color: #FFFFFF;
+  font-size: 1.05em;
+  padding: 0.4em 0.6em;
+  width: 12em;
+}
+.a-lobby input[type="text"]:focus {
+  border-color: #FFFFFF;
+  outline: none;
+}
+.a-lobby--room-code {
+  font-family: monospace;
+  font-size: 1.4em;
+  text-align: center;
+}
+
+.a-game {
+  text-align: center;
+  align-items: center;
+}
+  .a-game p {
+    max-width: 40em;
+  }
+  .a-game kbd {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 0.25em;
+    font-family: monospace;
+    padding: 0 0.4em;
+  }

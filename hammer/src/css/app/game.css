@@ -1,0 +1,43 @@
+.a-game {
+  align-items: center;
+  text-align: center;
+}
+  .a-game--title {
+    font-size: 2.4em;
+    line-height: 1.1;
+  }
+  .a-game--status {
+    display: flex;
+    flex-wrap: wrap;
+    font-family: monospace;
+    font-size: 1.05em;
+    gap: 0.5rem 1.6rem;
+    justify-content: center;
+    list-style: none;
+    margin: 1rem 0;
+    padding: 0;
+  }
+    .a-game--status li {
+      letter-spacing: 0.06em;
+      min-width: 8em;
+    }
+  .a-game--instruction {
+    line-height: 1.6;
+    margin-top: 1rem;
+    max-width: 36em;
+  }
+    .a-game--instruction kbd {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 0.25em;
+      font-family: monospace;
+      padding: 0 0.4em;
+    }
+  .a-game--actions {
+    margin-top: 1.5rem;
+    width: min(20em, 80vw);
+  }
+  .a-game--smash {
+    font-size: 1.25em;
+    letter-spacing: 0.18em;
+  }

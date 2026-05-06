@@ -121,7 +121,9 @@ app.screen.foo = app.screenManager.invent({
 
 `invent` extends `app.screen.base` (in `src/js/app/screen/base.js`), which handles aria-hidden toggling, animation classes, focus trapping (`app.utility.focus.trap`), and dispatches the `on*` hooks. `engine.loop.on('frame', ...)` calls `onFrame` on the current screen each frame; `engine.state.on('import' | 'reset')` fans out to all screens so they can hydrate from a save.
 
-The starting state is `none`; dispatching `activate` transitions to `splash`, which dispatches `interact` to enter `game`. To add a screen, drop a file in `src/js/app/screen/` and add the matching `.a-app--screen .a-app--<id>` markup in `public/index.html`.
+The starting state is `none`; dispatching `activate` transitions directly to `menu` (or to a `#hash` route like `#test` / `#learn`). To add a screen, drop a file in `src/js/app/screen/` and add the matching `.a-app--screen .a-app--<id>` markup in `public/index.html`.
+
+**Don't add a splash screen.** "Press any key to begin" gates are vestigial — the menu is the entry point. The first menu button click satisfies the WebAudio user-gesture requirement (any pointer/key event resumes the audio context, see `main.js`). If you find yourself wanting a title display, that's what the menu's `<h1 class="c-menu--title">` is for. The Language picker lives on the menu, not a separate splash.
 
 ### Storage, versioning, and updates
 
@@ -165,7 +167,7 @@ Every game in this collection shares the same accessible UI scaffolding so playe
 - **`.c-menu` + `.c-menu--title` + `.c-menu--subtitle` + `.c-menu--list` + `.c-menu--button`** are the building blocks for menus, language pickers, gameover, help, etc. The CSS lives in `src/css/component/menu.css`. Press states are denoted with `aria-pressed="true"` (the language picker uses this for the active locale).
 - Sections have `tabindex="-1"` and a translated `aria-label` via `data-i18n-attr="aria-label:..."`.
 - An always-present `aria-live="polite"` region (and usually a separate `assertive` one) sits directly under `<main>` for announcer output. The exact element / class varies by game (`.a-app--announce`, `.js-announcer`, `.a-live`) — pick one and route every runtime announcement through it.
-- The main menu always exposes a `Language` button that transitions to the `language` screen. If the game has no main menu (`roadsplat`, `template`), the splash carries the button instead.
+- The main menu always exposes a `Language` button that transitions to the `language` screen. Every game ships a `menu` screen — there is no splash, no "press any key to begin" gate.
 - Help / How-to-play screens are linear prose using `data-i18n-html` for items containing `<kbd>` / `<strong>` so the markup stays inline-translatable.
 
 ### Localization (English / Spanish, extensible)
@@ -175,7 +177,7 @@ Every game in this collection ships with the same lightweight i18n module so men
 **Files (per game):**
 
 - `src/js/app/i18n.js` — the i18n module itself. Exposes `app.i18n` with `t(key, params?)`, `applyDom(scope?)`, `setLocale(id)`, `locale()`, `available()`, `localeName(id)`, and `onChange(fn)`. The module body is identical across games; only the `STORAGE_KEY` constant (e.g. `'pacman.lang'`) and the `dictionaries` object change. Resolution order on boot: `localStorage[STORAGE_KEY]` → `navigator.language` 2-letter prefix → `'en'`.
-- `src/js/app/screen/language.js` — the language picker screen. Same logic in every game; only the `back` transition target differs (it should return to whichever screen reaches it — usually `menu`, or `splash` for menu-less games like `roadsplat` and `template`).
+- `src/js/app/screen/language.js` — the language picker screen. Same logic in every game; the `back` transition returns to `menu` (the only entry-point screen).
 - `src/css/component/menu.css` — provides `.c-menu`, `.c-menu--list`, `.c-menu--button`, `.c-menu--button[aria-pressed="true"]`. The language screen relies on these.
 - `public/index.html` — the language section uses class `a-language` inside `a-app--language`, with an empty `ul.c-menu--list.a-language--list` that the screen's `renderList()` populates from `app.i18n.available()`.
 - `src/js/main.js` — calls `app.i18n.applyDom()` between `app.settings.load()` and `app.screenManager.ready()` so static DOM is translated before any screen's `onReady` reads it.
@@ -202,7 +204,7 @@ Templates use `{name}` placeholders. Missing keys return the key itself (`'menu.
 
 **Adding the language screen to a new game:**
 
-1. Add a `language` button to the main menu (or splash, for menu-less games) and wire its `data-action="language"` to a transition that runs `this.change('language')`.
+1. Add a `language` button to the main menu and wire its `data-action="language"` to a transition that runs `this.change('language')`.
 2. Make sure the language screen's `back` transition returns to the originating screen.
 3. Add the HTML language section: `<div class="a-app--screen a-app--language"><section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">…</section></div>`.
 4. Add an entry like `'menu.language': 'Language'` (and the matching `'language.*'` keys) to both the `en` and `es` dictionaries.
@@ -536,7 +538,7 @@ If both paths call the same action, you'll dispatch twice. Usually the second di
 
 ### Audio context is suspended until first user gesture
 
-Browser autoplay policy means the WebAudio context starts in `suspended` state. `main.js` registers `pointerdown`/`keydown`/`touchstart` listeners that call `ctx.resume()`. If you skip the splash screen and route straight to a screen that announces or plays SFX on `onEnter`, those calls happen before any user gesture and will be silent. The `aria-live` announce still works (it's not WebAudio), but synthesized SFX will start at the first interaction. Don't chase silent SFX as a bug if no user gesture has happened yet.
+Browser autoplay policy means the WebAudio context starts in `suspended` state. `main.js` registers `pointerdown`/`keydown`/`touchstart` listeners that call `ctx.resume()`. The menu is the entry screen, so any SFX scheduled in `menu.onEnter` (before the user's first click on a menu button) will be silent. The `aria-live` announce still works (it's not WebAudio). Don't chase silent SFX as a bug before the first user gesture has happened.
 
 ### Hash routing in screenManager
 

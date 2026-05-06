@@ -1,0 +1,12 @@
+.a-highscores--list {
+  font-family: monospace;
+  font-size: 1.05em;
+  list-style: decimal inside;
+  margin: 0 auto;
+  max-width: 32em;
+  padding: 0;
+  text-align: left;
+}
+  .a-highscores--list li {
+    padding: 0.2rem 0;
+  }

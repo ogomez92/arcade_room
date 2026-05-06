@@ -56,6 +56,12 @@
 .a-game--bar-foe {
   background: #f06c6c;
 }
+.a-game--bar-stam {
+  background: #f0c86c;
+}
+.a-game--bar-stam-foe {
+  background: #d8966c;
+}
 .a-game--num {
   flex: 0 0 auto;
   min-width: 3em;
@@ -78,28 +84,4 @@
   margin: 0.6rem 0 1rem;
   opacity: 0.85;
   text-align: center;
-}
-
-.a-splash {
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-.a-splash--logo {
-  font-size: 4em;
-  letter-spacing: 0.2em;
-  line-height: 1;
-  margin-bottom: 0.5rem;
-}
-.a-splash--details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  opacity: 0.7;
-}
-.a-splash--instruction {
-  margin-top: 2rem;
-  opacity: 0.8;
 }

@@ -18,6 +18,7 @@
  *   - startMatch(playerCharacterId), stopMatch(), update(input, uiDelta)
  *   - getters: player, foe, round, phase, lastWonRounds
  *   - debugHealPlayer() — bound to the `0` hotkey.
+ *   - debugCripplFoe()  — bound to the `9` hotkey; drops foe HP to 10.
  */
 content.game = (() => {
   const F = () => content.fighter
@@ -426,14 +427,21 @@ content.game = (() => {
     if (foe.mountedOn    && foe.mountedOn.posture    !== 'down') F().dismount(foe)
 
     // ---- audio listener + breathing tracking
+    // Combined fatigue: HP wear AND stamina drain both push the breath
+    // toward "gassed" — whichever is higher dominates. This is what lets
+    // a blind listener hear an opponent who's been spamming attacks.
     A().setListener(player.x, player.y)
+    const pHpFat = 1 - player.hp / player.maxHp
+    const pStFat = 1 - (player.stamina != null ? player.stamina : 1)
+    const fHpFat = 1 - foe.hp / foe.maxHp
+    const fStFat = 1 - (foe.stamina != null ? foe.stamina : 1)
     A().updateBreath('player', player.x, player.y, {
       down: F().isDown(player),
-      fatigue: 1 - player.hp / player.maxHp,
+      fatigue: Math.max(pHpFat, pStFat),
     })
     A().updateBreath('foe', foe.x, foe.y, {
       down: F().isDown(foe),
-      fatigue: 1 - foe.hp / foe.maxHp,
+      fatigue: Math.max(fHpFat, fStFat),
     })
 
     // Foe windup tells: announce once per windup so SR users get text too.
@@ -468,9 +476,19 @@ content.game = (() => {
     N().say(app.i18n.t('ann.debugHeal', {hp: player.hp}), 'assertive')
   }
 
+  // Bound to the `9` hotkey from screen/game.js. Drops the foe to almost-
+  // dead so the round-end / KO path can be exercised quickly.
+  function debugCripplFoe() {
+    if (!foe) return
+    foe.hp = 10
+    foe.lowHpCalled = true
+    N().say(app.i18n.t('ann.debugFoe', {hp: foe.hp}), 'assertive')
+  }
+
   return {
     startMatch, stopMatch, update,
     debugHealPlayer,
+    debugCripplFoe,
     setPlayerCharacter: (id) => { playerCharacterId = id },
     get playerCharacterId() { return playerCharacterId },
     get player() { return player },
