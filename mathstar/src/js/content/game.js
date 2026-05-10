@@ -445,7 +445,10 @@ content.game = (() => {
     state.totalFailed++
     state.levelMissesTotal++
     A().fail(t0)
-    announce(reason === 'timeout' ? 'ann.fail.timeout' : 'ann.fail.wrongDigit', {
+    const failKey = reason === 'timeout'  ? 'ann.fail.timeout'
+                  : reason === 'blur'     ? 'ann.fail.blur'
+                  : 'ann.fail.wrongDigit'
+    announce(failKey, {
       answer: state.op.answerStr,
       lives:  state.lives,
     }, 'assertive')
@@ -564,7 +567,7 @@ content.game = (() => {
         enterNextOp(false, T0)
         return
       }
-      if (state.lastReason === 'wrongDigit' || state.lastReason === 'timeout') {
+      if (state.lastReason === 'wrongDigit' || state.lastReason === 'timeout' || state.lastReason === 'blur') {
         // Re-arm the music bus in case the duck ramp is still
         // settling (no-op if already at BUS_GAIN).
         M().unduck()
@@ -603,6 +606,14 @@ content.game = (() => {
     }
   }
 
+  // Fails the active op when the window/tab loses focus. No-op outside
+  // the prep/solve window so blur during intro/verdict/game-over doesn't
+  // double-charge a life.
+  function failBlur() {
+    if (state.phase !== 'prep' && state.phase !== 'solve') return
+    enterVerdict('blur')
+  }
+
   // ----------------------------------------------------------------
   // Public introspection (for HUD / announcer / status hotkeys)
   // ----------------------------------------------------------------
@@ -613,7 +624,7 @@ content.game = (() => {
   function getHighestUnlocked() { return readHighestUnlocked() }
 
   return {
-    start, stop, isActive, frame, handleDigit,
+    start, stop, isActive, frame, handleDigit, failBlur,
     setStartLevel, getStartLevel, getHighestUnlocked,
     onAnnounce: (fn) => { onAnnounce.push(fn) },
     onPhaseChange: (fn) => { onPhaseChange.push(fn) },

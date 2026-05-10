@@ -57,6 +57,19 @@ app.screen.gameover = app.screenManager.invent({
     const r = s % 60
     return `${m}:${String(r).padStart(2, '0')}`
   },
+  formatTimeMeta: function (seconds) {
+    const s = Math.max(0, Math.floor(seconds))
+    const m = Math.floor(s / 60)
+    const r = s % 60
+    return `${m} m ${r} s`
+  },
+  computeScore: function (car) {
+    const time = Math.max(0, car.timeAlive || 0)
+    const cones = Math.max(0, car.conesCollected || 0)
+    const maxKmh = Math.max(0, Math.round((car.topSpeed || 0) * 3.6))
+    const powerups = (content.items && content.items.totalCollected) ? content.items.totalCollected() : 0
+    return Math.max(0, Math.round(time * 10 + cones * 25 + maxKmh + powerups * 50))
+  },
   onEnter: function () {
     this.state.entryFrames = 8
     this.state.saved = false
@@ -73,7 +86,11 @@ app.screen.gameover = app.screenManager.invent({
       if (cells.crashes) cells.crashes.textContent = String(car.crashes ?? 0)
       if (cells.time) cells.time.textContent = this.formatTime(car.timeAlive)
     }
-    this.state.snapshot = car ? {distance: Math.max(0, Math.round(car.distance))} : null
+    this.state.snapshot = car ? {
+      score: this.computeScore(car),
+      timeStr: this.formatTimeMeta(car.timeAlive || 0),
+      maxSpeedKmh: Math.max(0, Math.round((car.topSpeed || 0) * 3.6)),
+    } : null
     if (this.state.nameInput) this.state.nameInput.value = ''
     if (this.state.statusEl) { this.state.statusEl.hidden = true; this.state.statusEl.textContent = '' }
     if (this.state.linkEl) { this.state.linkEl.hidden = true }
@@ -116,8 +133,8 @@ app.screen.gameover = app.screenManager.invent({
     app.announce.polite(app.i18n.t('ann.savedScore'))
     Promise.resolve(app.onlineSubmit.run({
       name: name,
-      score: s.distance,
-      meta: {distance: s.distance},
+      score: s.score,
+      meta: {time: s.timeStr, maxSpeed: s.maxSpeedKmh},
       statusEl: this.state.statusEl,
       linkEl: this.state.linkEl,
     })).then(() => {

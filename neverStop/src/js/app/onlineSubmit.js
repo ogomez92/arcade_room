@@ -19,7 +19,7 @@ app.onlineSubmit = (() => {
         linkEl.textContent = app.i18n.t('online.viewBoard')
         linkEl.hidden = false
       }
-      try { if (app.announce && app.announce.polite) app.announce.polite(app.i18n.t('ann.onlineRank', {rank: res.rank})) } catch (e) {}
+      app.announce.polite(app.i18n.t('ann.onlineRank', {rank: res.rank}))
       return res
     } catch (e) {
       if (statusEl) {
@@ -32,7 +32,7 @@ app.onlineSubmit = (() => {
         linkEl.textContent = app.i18n.t('online.viewBoard')
         linkEl.hidden = false
       }
-      try { if (app.announce && app.announce.polite) app.announce.polite(app.i18n.t('ann.onlineError')) } catch (e) {}
+      app.announce.polite(app.i18n.t('ann.onlineError'))
       return null
     }
   }

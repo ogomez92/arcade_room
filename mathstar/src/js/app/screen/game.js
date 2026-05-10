@@ -22,6 +22,8 @@ app.screen.game = app.screenManager.invent({
     keysDown: null,    // Set of currently-held key codes
     keyHandler: null,  // bound listener for cleanup
     blockHandler: null,
+    blurHandler: null,
+    visibilityHandler: null,
     subscribed: false,
     el: null,
   },
@@ -71,6 +73,16 @@ app.screen.game = app.screenManager.invent({
     window.addEventListener('keyup', this.state.upHandler)
     window.addEventListener('keydown', this.state.blockHandler, true)
 
+    // Lose focus = lose the pattern. Both events fire in different
+    // scenarios (window-switch vs tab-switch); content.game.failBlur()
+    // is a no-op outside prep/solve so the second event is harmless.
+    this.state.blurHandler = () => { try { content.game.failBlur() } catch (_) {} }
+    this.state.visibilityHandler = () => {
+      if (document.hidden) { try { content.game.failBlur() } catch (_) {} }
+    }
+    window.addEventListener('blur', this.state.blurHandler)
+    document.addEventListener('visibilitychange', this.state.visibilityHandler)
+
     // Reset HUD and start the game.
     if (this.state.el.timebar) this.state.el.timebar.style.width = '100%'
     this.renderHud()
@@ -85,8 +97,16 @@ app.screen.game = app.screenManager.invent({
       window.removeEventListener('keyup', this.state.upHandler)
       window.removeEventListener('keydown', this.state.blockHandler, true)
     }
+    if (this.state.blurHandler) {
+      window.removeEventListener('blur', this.state.blurHandler)
+    }
+    if (this.state.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.state.visibilityHandler)
+    }
     this.state.keyHandler = null
     this.state.blockHandler = null
+    this.state.blurHandler = null
+    this.state.visibilityHandler = null
     if (content.game.isActive()) content.game.stop()
   },
   onFrame: function () {
