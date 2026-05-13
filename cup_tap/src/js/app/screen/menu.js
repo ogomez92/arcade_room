@@ -3,12 +3,12 @@ app.screen.menu = app.screenManager.invent({
   parentSelector: '.a-app--menu',
   rootSelector: '.a-menu',
   transitions: {
-    start: function () { this.change('game') },
-    language: function () { this.change('language') },
+    start:       function () { this.change('game') },
+    help:        function () { this.change('help') },
+    highscores:  function () { this.change('highscores') },
+    language:    function () { this.change('language') },
   },
-  state: {
-    entryFrames: 0,
-  },
+  state: {entryFrames: 0},
   onReady: function () {
     const root = this.rootElement
     root.addEventListener('click', (e) => {
@@ -18,6 +18,8 @@ app.screen.menu = app.screenManager.invent({
   },
   onEnter: function () {
     this.state.entryFrames = 6
+    if (content.audio && content.audio.silenceAll) content.audio.silenceAll()
+    if (engine.loop && !engine.loop.isPaused()) engine.loop.pause()
     app.utility.focus.setWithin(this.rootElement)
   },
   onFrame: function () {

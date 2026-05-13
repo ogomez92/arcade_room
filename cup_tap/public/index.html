@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">TAPPER!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div class="a-live a-live--polite" aria-live="polite" aria-atomic="true"></div>
+      <div class="a-live a-live--assertive" aria-live="assertive" aria-atomic="true"></div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <div class="a-game--hud">
+            <p class="a-game--statusLine">
+              <span class="a-game--theme"></span>
+              <span class="a-game--level"></span>
+              <span class="a-game--score"></span>
+              <span class="a-game--lives"></span>
+            </p>
+            <pre class="a-game--lanes" aria-hidden="true"></pre>
+            <p class="a-game--hint c-menu--prose" data-i18n-html="game.hudHint">
+              <kbd>↑</kbd>/<kbd>↓</kbd> change bar &nbsp; <kbd>←</kbd>/<kbd>→</kbd> walk &nbsp;
+              <kbd>Space</kbd> hold to fill, release to sling. <kbd>F1</kbd>–<kbd>F4</kbd> status. <kbd>Esc</kbd> pause.
+            </p>
+          </div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="doc.title">TAPPER!</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">Bartender lane management. Use your ears.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="start" data-i18n="menu.start">Open the Bar</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to Play</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="menu.highscores">High Scores</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+          </ul>
+          <p class="c-menu--footer">v<span class="a-menu--version"></span></p>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to Play</h1>
+          <div class="c-menu--prose">
+            <h2 data-i18n="help.controlsTitle">Controls</h2>
+            <ul>
+              <li data-i18n-html="help.controlLane"><kbd>Up</kbd>/<kbd>Down</kbd> — switch bar (1–4).</li>
+              <li data-i18n-html="help.controlWalk"><kbd>Left</kbd>/<kbd>Right</kbd> — walk along the bar.</li>
+              <li data-i18n-html="help.controlPour"><kbd>Space</kbd> at the kegs — hold to fill a mug, release to sling it right.</li>
+              <li data-i18n-html="help.controlPause"><kbd>Esc</kbd> — pause / quit.</li>
+              <li data-i18n-html="help.controlStatus"><kbd>F1</kbd> position, <kbd>F2</kbd> score &amp; lives, <kbd>F3</kbd> nearest customer, <kbd>F4</kbd> empty mugs.</li>
+            </ul>
+            <h2 data-i18n="help.howTitle">Tending the Bar</h2>
+            <ul>
+              <li data-i18n="help.howRule1">Customers enter from the right of every bar and walk slowly toward the kegs on the left. Stop them by sliding full mugs at them.</li>
+              <li data-i18n="help.howRule2">Stand at the kegs (far left of any bar). Hold Space to fill, release to sling. The mug rides the bar to the right until a customer drinks it.</li>
+              <li data-i18n="help.howRule3">Each bar has its own pitch — bar 1 (top) is highest, bar 4 (bottom) is lowest. Stereo tells you how far along the bar a sound is.</li>
+              <li data-i18n="help.howRule4">Customers fling their empty mugs back when they finish. Walk right to catch the empty before it shatters on the floor at the kegs.</li>
+              <li data-i18n="help.howRule5">Tips appear sometimes. Run over a tip for a bonus and a brief floor show — customers freeze while the music plays.</li>
+            </ul>
+            <h2 data-i18n="help.lossTitle">Three Ways to Lose a Life</h2>
+            <ul>
+              <li data-i18n="help.lossBreach">A customer reaches the kegs.</li>
+              <li data-i18n="help.lossShatter">An empty mug slides past the kegs and shatters.</li>
+              <li data-i18n="help.lossWaste">A full mug reaches the door with no customer to catch it.</li>
+            </ul>
+            <p data-i18n="help.lossOutro">Three lives. Empty the bar to clear the level. Each cycle of four bars (saloon, disco, stadium, yacht club) raises the difficulty.</p>
+          </div>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Bar's Closed</h1>
+          <p class="c-menu--subtitle a-gameover--summary"></p>
+          <div class="a-gameover--save">
+            <label class="a-gameover--name-label" for="a-gameover--name" data-i18n="gameover.nameLabel">Your name</label>
+            <input id="a-gameover--name" class="a-gameover--name" type="text" autocomplete="off" maxlength="16" />
+          </div>
+          <p class="a-gameover--saved-msg" role="status" aria-live="polite" hidden></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="save" data-i18n="gameover.save">Save Score</button></li>
+            <li><button class="c-menu--button" data-action="restart" data-i18n="gameover.restart">Open Again</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="gameover.menu">Back to Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen c-menu a-highscores" tabindex="-1" data-i18n-attr="aria-label:highscores.aria">
+          <h1 class="c-menu--title" data-i18n="highscores.title">High Scores</h1>
+          <p class="a-highscores--source" role="status" aria-live="polite"></p>
+          <ol class="a-highscores--list"></ol>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="highscores.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

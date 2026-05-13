@@ -1,7 +1,7 @@
 {
-  "name": "syngen-template",
-  "version": "0.0.0",
-  "description": "",
+  "name": "tapper",
+  "version": "0.1.0",
+  "description": "TAPPER! — audio-first bartender lane-management arcade.",
   "license": "Unlicense",
   "private": true,
   "devDependencies": {

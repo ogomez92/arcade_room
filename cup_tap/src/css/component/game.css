@@ -1,0 +1,95 @@
+.a-game {
+  align-items: center;
+  font-family: monospace;
+  text-align: center;
+}
+.a-game--hud {
+  font-size: 1.05em;
+}
+.a-game--statusLine {
+  font-size: 1.2em;
+  letter-spacing: 0.04em;
+}
+.a-game--statusLine span + span {
+  margin-left: 1.4em;
+}
+.a-game--theme { color: #FFE08A; }
+.a-game--level { color: #C0C0FF; }
+.a-game--score { color: #A0E8FF; }
+.a-game--lives { color: #FFA0A0; }
+
+.a-game--lanes {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.4rem;
+  color: #CFE9FF;
+  display: inline-block;
+  font-family: ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+  font-size: 1.0em;
+  letter-spacing: 0.10em;
+  line-height: 1.35;
+  margin-top: 1rem;
+  padding: 0.6rem 1.0rem;
+  text-align: left;
+  white-space: pre;
+}
+
+.a-game--hint {
+  font-size: 0.85em;
+  margin-top: 1.5em;
+  opacity: 0.75;
+  max-width: 50em;
+  text-align: center;
+}
+.a-game--hint kbd {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 0.25em;
+  font-family: monospace;
+  padding: 0 0.4em;
+}
+
+/* Visually-hidden aria-live regions */
+.a-live {
+  height: 1px;
+  left: -10000px;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+}
+
+/* Game over name input */
+.a-gameover--name {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 0.4rem;
+  color: #FFFFFF;
+  font-size: 1.2em;
+  margin-top: 0.5em;
+  padding: 0.4em 0.8em;
+  text-align: center;
+  width: 12em;
+}
+.a-gameover--saved-msg {
+  margin-top: 0.5rem;
+  opacity: 0.85;
+}
+
+/* High scores list */
+.a-highscores--list {
+  font-family: monospace;
+  font-size: 1.05em;
+  list-style: none;
+  margin: 1rem auto;
+  max-width: 40em;
+  padding: 0;
+  text-align: left;
+}
+.a-highscores--list li {
+  padding: 0.25em 0;
+}
+.a-highscores--source {
+  font-size: 0.9em;
+  opacity: 0.7;
+  margin: 0.5rem 0;
+}
