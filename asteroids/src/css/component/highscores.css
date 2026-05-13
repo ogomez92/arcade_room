@@ -1,0 +1,47 @@
+/* High-score list rows. */
+.a-highscores--list {
+  font-family: monospace;
+  font-size: 1.05em;
+  margin: 1.5rem 0;
+}
+  .a-highscores--row {
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+    padding: 0.35em 0.4em;
+  }
+  .a-highscores--empty {
+    font-style: italic;
+    opacity: 0.7;
+    padding: 0.7em 0;
+  }
+
+.a-gameover--scoreEntry {
+  margin: 1rem 0;
+}
+  .a-gameover--name {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 0.4rem;
+    color: #FFFFFF;
+    font-size: 1.05em;
+    margin-top: 0.5rem;
+    padding: 0.5em 0.8em;
+    text-align: center;
+    width: 80%;
+  }
+  .a-gameover--name:focus {
+    border-color: #FFFFFF;
+    outline: none;
+  }
+
+.a-app--announce,
+.a-app--announce-assertive {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}

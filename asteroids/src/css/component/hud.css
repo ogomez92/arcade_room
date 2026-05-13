@@ -1,0 +1,19 @@
+/* Minimal in-game HUD — audio is primary, the visual readout is a nicety. */
+.a-game--hud {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  font-family: monospace;
+  font-size: 1.2em;
+  gap: 0.3rem;
+  left: 1.5rem;
+  pointer-events: none;
+  position: absolute;
+  top: 1.5rem;
+  opacity: 0.85;
+}
+  .a-game--hud > span {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 0.25rem;
+    padding: 0.1em 0.5em;
+  }
