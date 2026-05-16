@@ -11,6 +11,8 @@ content.ufo = (() => {
     nextSpawnAt: 0,
   }
 
+  let nextBulletId = 1      // stable id per UFO bullet — keys its in-flight voice
+
   function _nextGap() {
     return K().UFO_MIN_GAP + Math.random() * (K().UFO_MAX_GAP - K().UFO_MIN_GAP)
   }
@@ -109,6 +111,7 @@ content.ufo = (() => {
       angle = Math.random() * Math.PI * 2
     }
     const b = {
+      id: nextBulletId++,
       x: u.x, y: u.y,
       vx: Math.cos(angle) * K().UFO_BULLET_SPEED,
       vy: Math.sin(angle) * K().UFO_BULLET_SPEED,
@@ -116,6 +119,7 @@ content.ufo = (() => {
       life: K().UFO_BULLET_LIFE,
     }
     ufoState.bullets.push(b)
+    try { content.audio.emitUfoBulletFire(b.x, b.y) } catch (e) {}
     content.events.emit('ufo-fired', {pos: {x: b.x, y: b.y}})
   }
 

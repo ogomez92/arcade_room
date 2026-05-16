@@ -3,7 +3,11 @@ app.screen.gameover = app.screenManager.invent({
   parentSelector: '.a-app--gameover',
   rootSelector: '.a-gameover',
   transitions: {
-    again: function () { this.change('game') },
+    again: function () {
+      // Keep the mode the player just played — they hit "again", not
+      // "switch mode."
+      this.change('game')
+    },
     menu: function () { this.change('menu') },
     highscores: function () { this.change('highscores') },
   },

@@ -55,6 +55,17 @@ content.asteroids = (() => {
     return rock
   }
 
+  // Drop N rocks of the given size at random positions, anywhere on the
+  // field. Used by the rockSpawn powerup — placement is fully random
+  // (not edge-biased like spawnWave) so they appear "everywhere" rather
+  // than drifting in from the perimeter.
+  function spawnExtra(size, n) {
+    const w = K().FIELD_W, h = K().FIELD_H
+    for (let i = 0; i < n; i++) {
+      _makeAt(Math.random() * w, Math.random() * h, size)
+    }
+  }
+
   function spawnWave(n) {
     list.length = 0
     const ship = content.ship.getPosition()
@@ -112,6 +123,7 @@ content.asteroids = (() => {
   return {
     list,
     spawnWave,
+    spawnExtra,
     split,
     remove,
     frame,

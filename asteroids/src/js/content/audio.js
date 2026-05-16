@@ -25,10 +25,13 @@ content.audio = (() => {
     sfxBus: null,
     droneBus: null,
     asteroidVoices: new Map(),   // id -> {chain refs, baseHz, output, muffle, binaural}
+    ufoBulletVoices: new Map(),  // bullet id -> continuous spatial voice
     ufoVoice: null,              // {kind, panRef, scheduler}
     thrustVoice: null,           // {gain, lp, osc, noise, ...}
     brakeVoice: null,            // retro-brake voice (see startBrakeVoice)
     targetLock: null,            // {timer, bus, panX, kind} or null
+    powerupVoice: null,          // {id, voice, oscRefs, ...} for the current world pickup
+    activeBuffIds: new Set(),    // ids of currently-active timed buffs (for start/end stings)
     _lastYaw: 0,
     pendingScheduled: [],        // for UFO pulse cleanup
   }
@@ -277,6 +280,75 @@ content.audio = (() => {
     const v = _state.asteroidVoices.get(id)
     if (!v) return
     _state.asteroidVoices.delete(id)
+    try { v.destroy() } catch (e) {}
+  }
+
+  // -------------- UFO bullet voice --------------
+  // A continuous spatial tone per UFO bullet so the player can locate
+  // incoming fire, mirroring the asteroid voices. An earlier per-bullet
+  // loop was killed for flooding the field with a buzzy 60 Hz tremolo
+  // (see CLAUDE.md) — this one is deliberately different: a clean pitched
+  // tone (triangle fundamental + a quiet shimmer partial, a gentle ~7 Hz
+  // AM), modest gain so it sits under the rocks, and naturally few voices
+  // (one UFO, ~1.5 s fire period, 1.4 s bullet life → 1–2 in flight).
+  function buildUfoBullet(out) {
+    const c = ctxFn()
+    // ±4% per-bullet pitch jitter so two in flight stay distinguishable.
+    const base = 312 * (1 + (Math.random() - 0.5) * 0.08)
+
+    const o1 = c.createOscillator()
+    o1.type = 'triangle'
+    o1.frequency.value = base
+
+    // Shimmer partial — a quiet sine high above for "alien energy."
+    const o2 = c.createOscillator()
+    o2.type = 'sine'
+    o2.frequency.value = base * 2.5
+    o2.detune.value = 7
+    const g2 = c.createGain(); g2.gain.value = 0.30
+
+    const sum = c.createGain(); sum.gain.value = 1
+    o1.connect(sum)
+    o2.connect(g2).connect(sum)
+
+    const lp = c.createBiquadFilter()
+    lp.type = 'lowpass'
+    lp.frequency.value = 2600
+    lp.Q.value = 0.7
+
+    // Gentle AM shimmer — clean, ~7 Hz, shallow. NOT the old 60 Hz buzz.
+    const am = c.createOscillator()
+    am.type = 'sine'
+    am.frequency.value = 7.5
+    const amDepth = c.createGain(); amDepth.gain.value = 0.22
+    const trem = c.createGain(); trem.gain.value = 1
+    am.connect(amDepth).connect(trem.gain)
+
+    // Modest inner gain — between a small (0.22) and medium (0.36) rock.
+    const innerGain = c.createGain(); innerGain.gain.value = 0.30
+
+    sum.connect(lp).connect(trem).connect(innerGain).connect(out)
+
+    o1.start(); o2.start(); am.start()
+    return () => {
+      try { o1.stop() } catch (e) {}
+      try { o2.stop() } catch (e) {}
+      try { am.stop() } catch (e) {}
+    }
+  }
+
+  function ensureUfoBulletVoice(b) {
+    let voice = _state.ufoBulletVoices.get(b.id)
+    if (voice) return voice
+    voice = makeSpatialVoice((out) => buildUfoBullet(out), {gain: 0})
+    _state.ufoBulletVoices.set(b.id, voice)
+    return voice
+  }
+
+  function dropUfoBulletVoice(id) {
+    const v = _state.ufoBulletVoices.get(id)
+    if (!v) return
+    _state.ufoBulletVoices.delete(id)
     try { v.destroy() } catch (e) {}
   }
 
@@ -625,123 +697,262 @@ content.audio = (() => {
     try { v.g.gain.setTargetAtTime(0.07 + 0.10 * sn, t, 0.06) } catch (e) {}
   }
 
-  // -------------- target lock --------------
-  // Continuous ~25 Hz beep that runs while a bullet from the current heading
-  // would actually connect within bullet range. Pans by the target's
-  // listener-relative position (so as you rotate, the lock pan tracks), and
-  // pitch family identifies what's locked: small UFO highest, large rock
-  // lowest. (Modeled on space_invaders setTargetLock.)
-  function setTargetLock(on, info) {
-    if (on) {
-      const data = info || {}
-      // Convert world position to listener-relative for stereo pan.
-      let panX = 0
-      let kind = data.kind || 'large'
-      if (data.target) {
-        try {
-          const rel = relativeVector(data.target.x, data.target.y)
-          panX = Math.max(-1, Math.min(1, -rel.y / 6))
-        } catch (e) {}
-      }
-      if (_state.targetLock) {
-        _state.targetLock.panX = panX
-        _state.targetLock.kind = kind
-        return
-      }
-      ensureStarted()
-      const c = ctxFn()
+  // -------------- proximity beep --------------
+  // Was: a single-target lock-on beep tied to "if I fired now I'd hit
+  // something." Now: a multi-source proximity warning. Each source in
+  // the list gets its own pulse train; pitch family identifies WHAT it
+  // is (rocks, UFO, UFO bullet, powerup) and pan tracks WHERE.
+  //
+  // sources: [{kind, x, y, tti?, positive?}, ...]
+  //   - kind: pitch-family key (see freqFor)
+  //   - tti:  time-to-impact in seconds (lower = more urgent). The pulse
+  //           rate scales inversely with tti so an immediate threat sounds
+  //           like an alarm and a 2 s threat sounds like a slow ping.
+  //   - positive: true for powerups — flips waveform to triangle and
+  //               adds a 1.5 s gap between pings (less urgent).
+  //
+  // The caller is expected to call this every frame with the current
+  // source list; we diff by identity so an entering source spins up its
+  // beep immediately and a leaving one shuts down cleanly.
+  function setProximityBeep(sources) {
+    sources = Array.isArray(sources) ? sources : []
+    ensureStarted()
+    const c = ctxFn()
+    if (!_state.proximityVoices) _state.proximityVoices = new Map() // key string → {kind, x, y, tti, positive, timer, bus}
+
+    // Compute a stable key per source. We don't have ids on every
+    // candidate (rocks have ids, UFO bullets don't), so the key is
+    // {kind, x snapshot, y snapshot, positive} — every frame we update
+    // EXISTING entries by index (kind-positive pairs that already had
+    // a voice) and only spawn / drop on count changes.
+    //
+    // Simpler approach: tear down + rebuild keyed by kind+index. That
+    // would re-create voices every frame though, and SetInterval doesn't
+    // like that. Instead: maintain up to MAX_PROXIMITY_SOURCES voices,
+    // assign by position (the i-th source uses the i-th voice). Each
+    // voice's persistent bus/timer survives across frames; only its
+    // {x, y, tti, kind, positive} update.
+    const MAX = 4
+    sources = sources.slice(0, MAX)
+
+    // Ensure exactly sources.length voices exist.
+    while (_state.proximityVoices.size < sources.length) {
+      const slotKey = 'pv-' + _state.proximityVoices.size
       const bus = c.createGain()
       bus.gain.value = 0.0001
       bus.connect(_state.sfxBus)
       bus.gain.setTargetAtTime(1.0, now(), 0.04)
-      _state.targetLock = {timer: null, panX, kind, bus}
-      const beep = () => {
-        if (!_state.targetLock) return
-        const lk = _state.targetLock
-        const t0 = now()
-        // Pitch family: rocks descend large→medium→small (low→high), UFO
-        // small higher than UFO big. Distinct enough to tell what's locked.
-        const freq =
-          lk.kind === 'small'      ?  990 :
-          lk.kind === 'medium'     ?  740 :
-          lk.kind === 'large'      ?  520 :
-          lk.kind === 'ufo-small'  ? 1320 :
-          lk.kind === 'ufo-big'    ?  660 :
-                                      620
-        const o = c.createOscillator()
-        o.type = lk.kind && lk.kind.startsWith('ufo') ? 'sawtooth' : 'square'
-        o.frequency.value = freq
-        const g = c.createGain(); g.gain.value = 0
-        const pan = c.createStereoPanner()
-        pan.pan.value = lk.panX
-        o.connect(g).connect(pan).connect(lk.bus)
-        adsr(g.gain, t0, 0.001, 0.008, 0.018, 0.30)
-        o.start(t0); o.stop(t0 + 0.04)
-        setTimeout(() => {
-          try { o.disconnect() } catch (e) {}
-          try { g.disconnect() } catch (e) {}
-          try { pan.disconnect() } catch (e) {}
-        }, 120)
-      }
-      beep()
-      _state.targetLock.timer = setInterval(beep, 40)   // ~25 Hz
-    } else {
-      if (!_state.targetLock) return
-      const tl = _state.targetLock
-      _state.targetLock = null
-      try { clearInterval(tl.timer) } catch (e) {}
-      if (tl.bus) {
-        try { tl.bus.gain.cancelScheduledValues(now()) } catch (e) {}
-        try { tl.bus.gain.setTargetAtTime(0.0001, now(), 0.05) } catch (e) {}
-        setTimeout(() => { try { tl.bus.disconnect() } catch (e) {} }, 500)
+      const slot = {key: slotKey, bus, timer: null, kind: 'large', x: 0, y: 0, tti: 2, positive: false, lastPingAt: 0}
+      slot.timer = setInterval(() => _proximityBeepTick(slot), 30)
+      _state.proximityVoices.set(slotKey, slot)
+    }
+    while (_state.proximityVoices.size > sources.length) {
+      // Drop the highest-numbered slot.
+      const keys = Array.from(_state.proximityVoices.keys())
+      const k = keys[keys.length - 1]
+      const slot = _state.proximityVoices.get(k)
+      _state.proximityVoices.delete(k)
+      try { clearInterval(slot.timer) } catch (e) {}
+      if (slot.bus) {
+        try { slot.bus.gain.cancelScheduledValues(now()) } catch (e) {}
+        try { slot.bus.gain.setTargetAtTime(0.0001, now(), 0.05) } catch (e) {}
+        const b = slot.bus
+        setTimeout(() => { try { b.disconnect() } catch (e) {} }, 500)
       }
     }
+    // Update each slot from its corresponding source.
+    let i = 0
+    for (const slot of _state.proximityVoices.values()) {
+      const s = sources[i++]
+      slot.kind = s.kind || 'large'
+      slot.x = s.x; slot.y = s.y
+      slot.tti = (s.tti != null) ? s.tti : 2
+      slot.positive = !!s.positive
+    }
+  }
+
+  // Maintained for back-compat — the old "lock-on" signature collapses
+  // to a one-source proximity beep with tti=0 (urgent).
+  function setTargetLock(on, info) {
+    if (!on) { setProximityBeep([]); return }
+    const data = info || {}
+    if (!data.target) { setProximityBeep([]); return }
+    setProximityBeep([{
+      kind: data.kind || 'large',
+      x: data.target.x, y: data.target.y,
+      tti: 0.2,
+    }])
+  }
+
+  function _proximityFreqFor(kind, positive) {
+    if (positive) {
+      // Powerup pitch family — all higher than threat pitches so the
+      // player can tell positive from negative at a glance. Per-kind
+      // sub-family for further disambiguation.
+      const f =
+        kind === 'powerup-rapidFire'  ? 1760 :
+        kind === 'powerup-bigShots'   ? 1175 :
+        kind === 'powerup-scoreBonus' ? 1976 :
+        kind === 'powerup-rockSpawn'  ? 880  :
+                                        1320
+      return f
+    }
+    return (
+      kind === 'small'      ?  990 :
+      kind === 'medium'     ?  740 :
+      kind === 'large'      ?  520 :
+      kind === 'ufo-small'  ? 1320 :
+      kind === 'ufo-big'    ?  660 :
+      kind === 'ufo-bullet' ?  300 :   // distinct from rocks AND UFOs
+                                620
+    )
+  }
+
+  function _proximityBeepTick(slot) {
+    const t = now()
+    // Pulse interval scales with tti: urgent (tti<0.3s) ≈ 60ms,
+    // moderate (tti~1s) ≈ 130ms, slow (tti~2.5s) ≈ 280ms. Powerups get
+    // a softer rate (≈ 320ms) regardless of tti so they don't feel like
+    // alarms.
+    const tti = Math.max(0, slot.tti)
+    const interval = slot.positive ? 0.32 : Math.min(0.32, 0.05 + tti * 0.10)
+    if (t - slot.lastPingAt < interval) return
+    slot.lastPingAt = t
+
+    const c = ctxFn()
+    const f = _proximityFreqFor(slot.kind, slot.positive)
+    const o = c.createOscillator()
+    o.type = slot.positive ? 'triangle'
+           : slot.kind && slot.kind.startsWith('ufo') ? 'sawtooth'
+           : 'square'
+    o.frequency.value = f
+    const g = c.createGain(); g.gain.value = 0
+    const pan = c.createStereoPanner()
+    try {
+      const rel = relativeVector(slot.x, slot.y)
+      pan.pan.value = Math.max(-1, Math.min(1, -rel.y / 6))
+    } catch (e) {}
+    o.connect(g).connect(pan).connect(slot.bus)
+    const peak = slot.positive ? 0.22 : 0.30
+    adsr(g.gain, t, 0.001, 0.010, 0.022, peak)
+    o.start(t); o.stop(t + 0.05)
+    setTimeout(() => {
+      try { o.disconnect() } catch (e) {}
+      try { g.disconnect() } catch (e) {}
+      try { pan.disconnect() } catch (e) {}
+    }, 150)
   }
 
   // -------------- one-shot SFX (bullet, hyperspace, stings) --------------
 
   // Stereo + binaural dual path for bullet — gives clear stereo placement
-  // plus a touch of HRTF colour.
-  function emitBullet(x, y) {
+  // plus a touch of HRTF colour. `side` is 'left' | 'center' | 'right'
+  // for the directional A / S / D fire keys; it biases the pan so the
+  // ear-side matches the player's chosen muzzle, separately from the
+  // small perpendicular offset the bullet spawned with. Defaults to
+  // center for callers that don't care. `big` is the bigShots flag.
+  //
+  // The shot is built from three layers so it reads as a "bullet" and
+  // not a thin beep: a buzzy sawtooth sweep through a tracking lowpass
+  // (the harmonics carry the laser character), a sine sub for body
+  // weight, and a short filtered-noise transient for the percussive
+  // snap. bigShots drops the fundamental, lengthens the tail, deepens
+  // the sub an extra octave and pushes the gain — a heavy cannon next
+  // to the light pew of a normal shot.
+  function emitBullet(x, y, _heading, side, big) {
     ensureStarted()
     const c = ctxFn()
     const t0 = now()
-    // Stereo path
-    const osc = c.createOscillator()
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(900, t0)
-    osc.frequency.exponentialRampToValueAtTime(200, t0 + 0.08)
-    const g = c.createGain(); g.gain.value = 0
-    const pan = c.createStereoPanner()
-    // Pan from listener angle — relative-x in audio space, normalized.
     const rel = relativeVector(x, y)
-    const px = Math.max(-1, Math.min(1, rel.x / 8))
+    // Pan from listener-relative SIDEWAYS axis. Audio +y is the listener's
+    // LEFT ear (per CLAUDE.md), so pan = -rel.y / N maps left-of-listener
+    // to negative pan and right-of-listener to positive pan. The side
+    // parameter biases the pan further so a deliberate L / R muzzle
+    // reads as L / R even when the perpendicular spawn offset is tiny.
+    const sidePan = side === 'left' ? -0.8 : side === 'right' ? 0.8 : 0
+    const positional = Math.max(-1, Math.min(1, -rel.y / 8))
+    const px = Math.max(-1, Math.min(1, positional + sidePan))
+
+    const startHz = big ? 560 : 1050
+    const endHz   = big ? 95  : 235
+    const dur     = big ? 0.22 : 0.13
+    const sweepT  = big ? 0.15 : 0.085
+
+    const pan = c.createStereoPanner()
     pan.pan.value = px
-    osc.connect(g).connect(pan).connect(_state.sfxBus)
-    adsr(g.gain, t0, 0.002, 0.012, 0.060, 0.35)
-    osc.start(t0); osc.stop(t0 + 0.12)
-    // Binaural path (quieter)
+    pan.connect(_state.sfxBus)
+
+    // Main buzzy sweep — sawtooth through a lowpass that tracks the pitch.
+    const osc = c.createOscillator()
+    osc.type = 'sawtooth'
+    osc.frequency.setValueAtTime(startHz, t0)
+    osc.frequency.exponentialRampToValueAtTime(endHz, t0 + sweepT)
+    const lp = c.createBiquadFilter()
+    lp.type = 'lowpass'
+    lp.frequency.setValueAtTime(big ? 2600 : 4400, t0)
+    lp.frequency.exponentialRampToValueAtTime(big ? 380 : 850, t0 + sweepT)
+    lp.Q.value = 4
+    const g = c.createGain(); g.gain.value = 0
+    osc.connect(lp).connect(g).connect(pan)
+    adsr(g.gain, t0, 0.002, 0.012, dur - 0.014, big ? 0.46 : 0.36)
+    osc.start(t0); osc.stop(t0 + dur + 0.05)
+
+    // Sub thump — sine well below the sweep for body weight.
+    const sub = c.createOscillator()
+    sub.type = 'sine'
+    sub.frequency.setValueAtTime(startHz * (big ? 0.5 : 0.62), t0)
+    sub.frequency.exponentialRampToValueAtTime(endHz * 0.7, t0 + sweepT)
+    const gsub = c.createGain(); gsub.gain.value = 0
+    sub.connect(gsub).connect(pan)
+    adsr(gsub.gain, t0, 0.002, 0.01, dur * 0.7, big ? 0.42 : 0.22)
+    sub.start(t0); sub.stop(t0 + dur + 0.05)
+
+    // Attack transient — short filtered noise burst so each shot snaps.
+    const nlen = Math.max(1, Math.floor(c.sampleRate * (big ? 0.05 : 0.028)))
+    const nbuf = c.createBuffer(1, nlen, c.sampleRate)
+    const nch = nbuf.getChannelData(0)
+    for (let i = 0; i < nch.length; i++) {
+      nch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / nch.length, 2)
+    }
+    const nsrc = c.createBufferSource(); nsrc.buffer = nbuf
+    const nbp = c.createBiquadFilter()
+    nbp.type = 'bandpass'
+    nbp.frequency.value = big ? 750 : 1900
+    nbp.Q.value = 0.8
+    const gn = c.createGain(); gn.gain.value = 0
+    nsrc.connect(nbp).connect(gn).connect(pan)
+    adsr(gn.gain, t0, 0.001, 0.004, big ? 0.05 : 0.028, big ? 0.34 : 0.26)
+    nsrc.start(t0)
+
+    // Binaural path (quieter) — triangle sweep for HRTF colour.
     const o2 = c.createOscillator()
     o2.type = 'triangle'
-    o2.frequency.setValueAtTime(1400, t0)
-    o2.frequency.exponentialRampToValueAtTime(380, t0 + 0.08)
+    o2.frequency.setValueAtTime(startHz * 1.4, t0)
+    o2.frequency.exponentialRampToValueAtTime(endHz * 1.6, t0 + sweepT)
     const g2 = c.createGain(); g2.gain.value = 0
     const binaural = engine.ear.binaural.create({
       gainModel: engine.ear.gainModel.exponential.instantiate(),
       filterModel: engine.ear.filterModel.head.instantiate(),
     }).from(g2).to(_state.sfxBus)
     o2.connect(g2)
-    adsr(g2.gain, t0, 0.002, 0.010, 0.050, 0.18)
-    o2.start(t0); o2.stop(t0 + 0.12)
+    adsr(g2.gain, t0, 0.002, 0.010, dur * 0.5, big ? 0.20 : 0.15)
+    o2.start(t0); o2.stop(t0 + dur + 0.05)
     try { binaural.update(rel) } catch (e) {}
+
     setTimeout(() => {
       try { osc.disconnect() } catch (e) {}
+      try { lp.disconnect() } catch (e) {}
       try { g.disconnect() } catch (e) {}
-      try { pan.disconnect() } catch (e) {}
+      try { sub.disconnect() } catch (e) {}
+      try { gsub.disconnect() } catch (e) {}
+      try { nsrc.disconnect() } catch (e) {}
+      try { nbp.disconnect() } catch (e) {}
+      try { gn.disconnect() } catch (e) {}
       try { o2.disconnect() } catch (e) {}
       try { g2.disconnect() } catch (e) {}
+      try { pan.disconnect() } catch (e) {}
       try { binaural.destroy() } catch (e) {}
-    }, 250)
+    }, (dur + 0.35) * 1000)
   }
 
   // Explosion sting at a world position — per-event binaural ear.
@@ -873,6 +1084,417 @@ content.audio = (() => {
     })
   }
 
+  // -------------- powerup voices (arcade mode) --------------
+  // Each powerup kind has a distinct LOOPING world voice (so the player can
+  // localize it the same way they localize a rock) and a one-shot pickup
+  // sting. Stored timbres per kind, keyed by `voice` on the def. Adding a
+  // new kind: register a build() here and a preview helper at the bottom.
+  //
+  // We intentionally do NOT fade GAIN as the lifetime expires (gain reads
+  // identical to "moving farther away" with our distance attenuation, so
+  // it'd confuse the player). Instead the expiry hint is a steady pitch
+  // drop + a faster wobble in the last ~3 s.
+
+  // Per-kind timbre table — fundamental, partials, wobble (Hz, depth).
+  // Each timbre is built on top of the standard spatial-voice pipeline,
+  // so distance attenuation + behind-listener muffle apply automatically.
+  function _powerupTimbres() {
+    // Space-themed: avoid low square waves through narrow filters (that's
+    // the "fart" zone). Sine/triangle bases keep things clean; FM vibrato
+    // (fmHz/fmDepth) on the carriers adds sci-fi laser/energy character
+    // that pure AM tremolo can't deliver.
+    return {
+      // Crystalline shimmer — high triangle+sine pair, fast FM vibrato.
+      // "Buy me, I'm going to make you faster."
+      rapidFire: {
+        kind: 'osc',
+        types: ['triangle', 'sine'],
+        freqs: [880, 1320],            // octave-fifth, well above mud
+        detuneC: [-7, 9],
+        wobbleHz: 9,
+        wobbleDepth: 0.30,
+        fmHz: 6.5, fmDepth: 22,        // shimmery laser vibrato
+        lp: 6500,
+      },
+      // Charged plasma — mid sine+triangle pair with slow heaving FM.
+      // "Buy me, I'm a cannon." Raised an octave off bass to escape farts.
+      bigShots: {
+        kind: 'osc',
+        types: ['sine', 'triangle'],
+        freqs: [220, 330],
+        detuneC: [0, -7],
+        wobbleHz: 4.5,
+        wobbleDepth: 0.45,
+        fmHz: 0.7, fmDepth: 9,         // slow plasma heave
+        lp: 2600,
+      },
+      // Bell-shimmer — twin sines with light vibrato. Coin-up vibe.
+      scoreBonus: {
+        kind: 'osc',
+        types: ['sine', 'sine'],
+        freqs: [1320, 1976],
+        detuneC: [0, 0],
+        wobbleHz: 7,
+        wobbleDepth: 0.30,
+        fmHz: 4.5, fmDepth: 7,
+        lp: 8500,
+      },
+      // Tactical alarm — detuned saw+triangle fifth, slow menacing FM.
+      // "Buy me and the field gets WORSE." Pushed up out of throb range.
+      rockSpawn: {
+        kind: 'osc',
+        types: ['sawtooth', 'triangle'],
+        freqs: [330, 495],
+        detuneC: [-12, 14],
+        wobbleHz: 3.8,
+        wobbleDepth: 0.40,
+        fmHz: 0.55, fmDepth: 14,       // slow ominous sweep
+        lp: 3000,
+      },
+    }
+  }
+
+  function buildPowerup(out, def) {
+    const c = ctxFn()
+    const T = _powerupTimbres()[def.voice] || _powerupTimbres().rapidFire
+
+    // Two oscillators stacked through a shared lowpass — gives each kind a
+    // recognisable colour without a per-kind synth tree. AM tremolo (wob)
+    // plus optional FM vibrato (fmLfo) deliver the sci-fi character that
+    // pure AM alone can't.
+    const o1 = c.createOscillator()
+    o1.type = T.types[0]
+    o1.frequency.value = T.freqs[0]
+    if (T.detuneC[0]) o1.detune.value = T.detuneC[0]
+    const o2 = c.createOscillator()
+    o2.type = T.types[1]
+    o2.frequency.value = T.freqs[1]
+    if (T.detuneC[1]) o2.detune.value = T.detuneC[1]
+
+    const sum = c.createGain()
+    sum.gain.value = 0.5
+
+    const lp = c.createBiquadFilter()
+    lp.type = 'lowpass'
+    lp.frequency.value = T.lp
+    lp.Q.value = 0.8
+
+    // AM tremolo via LFO into a gain. Doubles as the expiry hint (rate
+    // doubles in the last few seconds).
+    const lfo = c.createOscillator()
+    lfo.type = 'sine'
+    lfo.frequency.value = T.wobbleHz
+    const lfoDepth = c.createGain()
+    lfoDepth.gain.value = T.wobbleDepth
+    const wob = c.createGain()
+    wob.gain.value = 1
+    lfo.connect(lfoDepth).connect(wob.gain)
+
+    // FM vibrato — modulates each oscillator's frequency. Optional; if
+    // fmHz/fmDepth are omitted, no FM osc is created.
+    let fmLfo = null, fmDepth1 = null, fmDepth2 = null
+    if (T.fmHz && T.fmDepth) {
+      fmLfo = c.createOscillator()
+      fmLfo.type = 'sine'
+      fmLfo.frequency.value = T.fmHz
+      fmDepth1 = c.createGain(); fmDepth1.gain.value = T.fmDepth
+      fmDepth2 = c.createGain(); fmDepth2.gain.value = T.fmDepth * (T.freqs[1] / T.freqs[0])
+      fmLfo.connect(fmDepth1).connect(o1.frequency)
+      fmLfo.connect(fmDepth2).connect(o2.frequency)
+    }
+
+    // Lower inner gain than rocks' large (0.55) and roughly matched to
+    // medium (0.36) — pickups are guidance, they shouldn't drown the field.
+    const inner = c.createGain()
+    inner.gain.value = 0.26
+
+    o1.connect(sum)
+    o2.connect(sum)
+    sum.connect(lp).connect(wob).connect(inner).connect(out)
+
+    o1.start(); o2.start(); lfo.start()
+    if (fmLfo) fmLfo.start()
+    const refs = {o1, o2, lfo, baseFreq1: T.freqs[0], baseFreq2: T.freqs[1], baseWobble: T.wobbleHz}
+    return {refs, stop: () => {
+      try { o1.stop() } catch (e) {}
+      try { o2.stop() } catch (e) {}
+      try { lfo.stop() } catch (e) {}
+      if (fmLfo) { try { fmLfo.stop() } catch (e) {} }
+    }}
+  }
+
+  // Per-frame voice for the on-field powerup. Reads its position +
+  // expiresAt off content.powerups.current().
+  function startPowerupVoice(pw) {
+    stopPowerupVoice()
+    ensureStarted()
+    // Capture buildPowerup's oscillator refs through a closure variable so
+    // we can shape pitch + wobble per frame (makeSpatialVoice's `build`
+    // callback only returns a stop fn).
+    let captured = null
+    const voice = makeSpatialVoice((out) => {
+      const built = buildPowerup(out, pw.def)
+      captured = built.refs
+      return built.stop
+    }, {gain: 0})
+    _state.powerupVoice = {id: pw._id, defId: pw.def.id, voice, refs: captured, pw}
+  }
+
+  function stopPowerupVoice() {
+    if (!_state.powerupVoice) return
+    const pv = _state.powerupVoice
+    _state.powerupVoice = null
+    try { pv.voice.destroy() } catch (e) {}
+  }
+
+  function updatePowerupVoice(pw) {
+    if (!_state.powerupVoice) return
+    const pv = _state.powerupVoice
+    pv.pw = pw
+    pv.voice.setPosition(pw.x, pw.y)
+    const ship = content.ship.getPosition()
+    const d = P().dist(pw, ship)
+    // Match rocks' attenuation envelope (near=4, pow=0.7, floor=0.08) — the
+    // pickup is guidance, not a foreground stem.
+    pv.voice.setGain(distanceGain(d))
+    pv.voice.update()
+    // Expiry hint: in the last ~3 s, pitch slides down ~20% and wobble
+    // rate doubles. No gain change (would clash with distance attenuation).
+    const t = now()
+    const remaining = pw.expiresAt - engine.time()
+    const fadeT = 3.0
+    const expK = remaining < fadeT ? (1 - Math.max(0, remaining) / fadeT) : 0
+    const r = pv.refs
+    if (r) {
+      const pitchMul = 1 - 0.20 * expK
+      try { r.o1.frequency.setTargetAtTime(r.baseFreq1 * pitchMul, t, 0.10) } catch (e) {}
+      try { r.o2.frequency.setTargetAtTime(r.baseFreq2 * pitchMul, t, 0.10) } catch (e) {}
+      try { r.lfo.frequency.setTargetAtTime(r.baseWobble * (1 + 1.3 * expK), t, 0.05) } catch (e) {}
+    }
+  }
+
+  // One-shot stings on buff start / end. We deliberately do NOT keep a
+  // looping "you have the buff" voice — it dominates the field and masks
+  // rocks. The player gets a clear sci-fi power-up sweep when the buff
+  // turns on and a mirror power-down sweep when it ends; in between the
+  // gameplay change (rapidFire pace, bigger bullets) is itself the cue.
+  //
+  // Both stings ride the sfx bus, played at the listener centre (the buff
+  // is "yours", not a world object), so they don't fight with rock voices.
+  function _buffStingProfile(id) {
+    // Each profile: ascending pair of oscs; mirror it for the end sting.
+    return id === 'bigShots' ? {
+      types: ['sine', 'triangle'],
+      f0: [165, 247], f1: [330, 495],   // up an octave — "charging up"
+      dur: 0.32, peak: 0.30, lp: 2800,
+      fmHz: 1.0, fmDepth: 8,
+    } : /* rapidFire / default */ {
+      types: ['triangle', 'sine'],
+      f0: [880, 1320], f1: [1760, 2640],
+      dur: 0.26, peak: 0.26, lp: 6000,
+      fmHz: 7, fmDepth: 18,
+    }
+  }
+
+  function _emitBuffSting(id, reverse) {
+    ensureStarted()
+    const c = ctxFn()
+    const t0 = now()
+    const P = _buffStingProfile(id)
+    const dur = P.dur
+    // reverse=true flips the sweep direction and dims the gain a touch.
+    const fromA = reverse ? P.f1[0] : P.f0[0]
+    const toA   = reverse ? P.f0[0] : P.f1[0]
+    const fromB = reverse ? P.f1[1] : P.f0[1]
+    const toB   = reverse ? P.f0[1] : P.f1[1]
+    const peak = reverse ? P.peak * 0.7 : P.peak
+
+    const o1 = c.createOscillator(); o1.type = P.types[0]
+    o1.frequency.setValueAtTime(fromA, t0)
+    o1.frequency.exponentialRampToValueAtTime(toA, t0 + dur)
+    const o2 = c.createOscillator(); o2.type = P.types[1]
+    o2.frequency.setValueAtTime(fromB, t0)
+    o2.frequency.exponentialRampToValueAtTime(toB, t0 + dur)
+
+    const sum = c.createGain(); sum.gain.value = 0.5
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'
+    lp.frequency.value = P.lp; lp.Q.value = 0.7
+    const g = c.createGain(); g.gain.value = 0
+
+    // Optional FM vibrato for sci-fi shimmer.
+    let fmLfo = null, fmDepth1 = null, fmDepth2 = null
+    if (P.fmHz && P.fmDepth) {
+      fmLfo = c.createOscillator(); fmLfo.type = 'sine'
+      fmLfo.frequency.value = P.fmHz
+      fmDepth1 = c.createGain(); fmDepth1.gain.value = P.fmDepth
+      fmDepth2 = c.createGain(); fmDepth2.gain.value = P.fmDepth * 1.5
+      fmLfo.connect(fmDepth1).connect(o1.frequency)
+      fmLfo.connect(fmDepth2).connect(o2.frequency)
+      fmLfo.start(t0)
+    }
+
+    o1.connect(sum); o2.connect(sum)
+    sum.connect(lp).connect(g).connect(_state.sfxBus)
+    adsr(g.gain, t0, 0.012, 0.08, dur - 0.08, peak)
+    o1.start(t0); o2.start(t0)
+    const stopAt = t0 + dur + 0.1
+    o1.stop(stopAt); o2.stop(stopAt)
+    if (fmLfo) fmLfo.stop(stopAt)
+
+    setTimeout(() => {
+      try { o1.disconnect() } catch (e) {}
+      try { o2.disconnect() } catch (e) {}
+      try { sum.disconnect() } catch (e) {}
+      try { lp.disconnect() } catch (e) {}
+      try { g.disconnect() } catch (e) {}
+      if (fmLfo) {
+        try { fmLfo.disconnect() } catch (e) {}
+        try { fmDepth1.disconnect() } catch (e) {}
+        try { fmDepth2.disconnect() } catch (e) {}
+      }
+    }, (dur + 0.3) * 1000)
+  }
+  function emitBuffStart(id) { _emitBuffSting(id, false) }
+  function emitBuffEnd(id)   { _emitBuffSting(id, true) }
+
+  // One-shot pickup sting — per-kind musical motif so the pickup feels
+  // identified, not generic.
+  function emitPowerupPickup(x, y, def) {
+    ensureStarted()
+    const c = ctxFn()
+    const t0 = now()
+    const id = def && def.id
+    // Motif per kind: ascending sparkle for rapidFire, deep ka-CHUNK for
+    // bigShots, coin-rise for scoreBonus, ominous descent for rockSpawn.
+    const motifs = {
+      // Sine/triangle instead of square — keeps it sci-fi shimmer, not buzzy.
+      rapidFire:  {notes: [660, 880, 1320, 1760], step: 0.045, type: 'triangle', peak: 0.30},
+      // Lifted out of bass mud (was 73-147 Hz, pure fart). Mid-range
+      // triangle now reads as "energy weapon arming" instead.
+      bigShots:   {notes: [220, 330, 440],         step: 0.085, type: 'triangle', peak: 0.36},
+      scoreBonus: {notes: [1046.5, 1318.5, 1567.98, 2093], step: 0.060, type: 'sine', peak: 0.32},
+      rockSpawn:  {notes: [440, 330, 247, 196],    step: 0.075, type: 'sawtooth', peak: 0.32},
+    }
+    const m = motifs[id] || motifs.rapidFire
+    m.notes.forEach((f, i) => {
+      const o = c.createOscillator(); o.type = m.type; o.frequency.value = f
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 6000; lp.Q.value = 0.7
+      const g = c.createGain(); g.gain.value = 0
+      const pan = c.createStereoPanner()
+      try {
+        const rel = relativeVector(x, y)
+        pan.pan.value = Math.max(-1, Math.min(1, -rel.y / 6))
+      } catch (e) {}
+      o.connect(lp).connect(g).connect(pan).connect(_state.sfxBus)
+      const t = t0 + i * m.step
+      adsr(g.gain, t, 0.006, 0.045, 0.10, m.peak)
+      o.start(t); o.stop(t + 0.18)
+      setTimeout(() => {
+        try { o.disconnect() } catch (e) {}
+        try { lp.disconnect() } catch (e) {}
+        try { g.disconnect() } catch (e) {}
+        try { pan.disconnect() } catch (e) {}
+      }, (i * m.step + 0.4) * 1000)
+    })
+  }
+
+  // UFO bullet — distinctive from the player bullet so the player can
+  // tell incoming fire from their own. Two paths: a sharp metallic "ping"
+  // on fire (one-shot at the muzzle), and a per-frame continuous
+  // crackling voice in flight (driven from audio.frame() like the
+  // asteroid voices). The crackle is a low square + high pulse with a
+  // distinctive 60 Hz buzz so the player hears "alien bullet incoming"
+  // not "echo of my own shot".
+  function emitUfoBulletFire(x, y) {
+    ensureStarted()
+    const c = ctxFn()
+    const t0 = now()
+    // Sci-fi "pew" — high → low frequency sweep with sine carriers (no
+    // squares, no narrow bandpass → no farts) plus a brief noise zap for
+    // the energy edge. Distinct from the player's bullet (which sweeps
+    // 900 → 200 Hz on sine) because this one starts much higher (1600 Hz)
+    // and gets the second triangle harmonic shimmer for "alien tech."
+    const dur = 0.14
+    const osc = c.createOscillator()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(1600, t0)
+    osc.frequency.exponentialRampToValueAtTime(500, t0 + dur)
+    const o2 = c.createOscillator()
+    o2.type = 'triangle'
+    o2.frequency.setValueAtTime(2400, t0)
+    o2.frequency.exponentialRampToValueAtTime(750, t0 + dur)
+    const sum = c.createGain(); sum.gain.value = 0.5
+    osc.connect(sum); o2.connect(sum)
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'
+    lp.frequency.value = 5500; lp.Q.value = 0.7
+    const g = c.createGain(); g.gain.value = 0
+    const pan = c.createStereoPanner()
+    try {
+      const rel = relativeVector(x, y)
+      pan.pan.value = Math.max(-1, Math.min(1, -rel.y / 7))
+    } catch (e) {}
+    sum.connect(lp).connect(g).connect(pan).connect(_state.sfxBus)
+    adsr(g.gain, t0, 0.003, 0.025, dur - 0.025, 0.42)
+    osc.start(t0); o2.start(t0)
+    osc.stop(t0 + dur + 0.04); o2.stop(t0 + dur + 0.04)
+    // Binaural copy for HRTF colour (quieter, same shape).
+    const o3 = c.createOscillator(); o3.type = 'sine'
+    o3.frequency.setValueAtTime(2000, t0)
+    o3.frequency.exponentialRampToValueAtTime(620, t0 + dur)
+    const g3 = c.createGain(); g3.gain.value = 0
+    const binaural = engine.ear.binaural.create({
+      gainModel: engine.ear.gainModel.exponential.instantiate(),
+      filterModel: engine.ear.filterModel.head.instantiate(),
+    }).from(g3).to(_state.sfxBus)
+    o3.connect(g3)
+    adsr(g3.gain, t0, 0.003, 0.020, dur - 0.020, 0.18)
+    o3.start(t0); o3.stop(t0 + dur + 0.04)
+    try { binaural.update(relativeVector(x, y)) } catch (e) {}
+    setTimeout(() => {
+      try { osc.disconnect() } catch (e) {}
+      try { o2.disconnect() } catch (e) {}
+      try { sum.disconnect() } catch (e) {}
+      try { lp.disconnect() } catch (e) {}
+      try { g.disconnect() } catch (e) {}
+      try { pan.disconnect() } catch (e) {}
+      try { o3.disconnect() } catch (e) {}
+      try { g3.disconnect() } catch (e) {}
+      try { binaural.destroy() } catch (e) {}
+    }, 300)
+  }
+
+  // One-shot when rockSpawn fires — a quick low rumble at random pan to
+  // sell "10 rocks just appeared."
+  function emitRockSpawn() {
+    ensureStarted()
+    const c = ctxFn()
+    const t0 = now()
+    const buf = c.createBuffer(1, Math.floor(c.sampleRate * 0.9), c.sampleRate)
+    const ch = buf.getChannelData(0)
+    for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / ch.length, 1.2)
+    const src = c.createBufferSource(); src.buffer = buf
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400; lp.Q.value = 0.7
+    const g = c.createGain(); g.gain.value = 0
+    src.connect(lp).connect(g).connect(_state.sfxBus)
+    adsr(g.gain, t0, 0.01, 0.18, 0.75, 0.50)
+    src.start(t0)
+    // Glissando down for "the field just got worse" feel.
+    const o = c.createOscillator(); o.type = 'sawtooth'
+    o.frequency.setValueAtTime(220, t0)
+    o.frequency.exponentialRampToValueAtTime(82, t0 + 0.9)
+    const og = c.createGain(); og.gain.value = 0
+    o.connect(og).connect(_state.sfxBus)
+    adsr(og.gain, t0, 0.02, 0.30, 0.50, 0.28)
+    o.start(t0); o.stop(t0 + 1.0)
+    setTimeout(() => {
+      try { src.disconnect() } catch (e) {}
+      try { lp.disconnect() } catch (e) {}
+      try { g.disconnect() } catch (e) {}
+      try { o.disconnect() } catch (e) {}
+      try { og.disconnect() } catch (e) {}
+    }, 1300)
+  }
+
   // -------------- frame --------------
   function frame() {
     if (!_state.started) return
@@ -920,15 +1542,65 @@ content.audio = (() => {
     if (s.alive && s.reversing && !_state.brakeVoice) startBrakeVoice()
     else if ((!s.alive || !s.reversing) && _state.brakeVoice) stopBrakeVoice()
     updateBrakeVoice()
+
+    // UFO bullet voices — a continuous spatial tone per bullet so the
+    // player can locate incoming fire, just like the asteroid voices.
+    // The muzzle ping and proximity beep stay on top (the proximity beep
+    // still adds the collision-course urgency alarm).
+    const bulletPresent = new Set()
+    if (worldAudible) {
+      const shipPos = content.ship.getPosition()
+      for (const b of content.ufo.bullets()) {
+        if (b.id == null) continue
+        bulletPresent.add(b.id)
+        const v = ensureUfoBulletVoice(b)
+        v.setPosition(b.x, b.y)
+        v.setGain(distanceGain(P().dist(b, shipPos)))
+        v.update()
+      }
+    }
+    for (const id of Array.from(_state.ufoBulletVoices.keys())) {
+      if (!bulletPresent.has(id)) dropUfoBulletVoice(id)
+    }
+
+    // Powerup pickup voice — silenced if ship is dead.
+    const pw = content.powerups && content.powerups.current && content.powerups.current()
+    if (pw && worldAudible) {
+      if (!_state.powerupVoice || _state.powerupVoice.id !== pw._id) startPowerupVoice(pw)
+      else updatePowerupVoice(pw)
+    } else if (_state.powerupVoice) {
+      stopPowerupVoice()
+    }
+
+    // Active timed buffs — diff against the previous frame's set and fire
+    // a one-shot sting on each transition. No looping voice (it dominated
+    // the field and masked rocks). The buff's gameplay change (rapid pace,
+    // bigger bullets) is the in-between cue.
+    if (content.powerups && content.powerups.activeList) {
+      const list = content.powerups.activeList()
+      const presentIds = new Set(list.map(b => b.id))
+      const prevIds = _state.activeBuffIds || new Set()
+      if (worldAudible) {
+        for (const id of presentIds) if (!prevIds.has(id)) emitBuffStart(id)
+      }
+      // End sting fires regardless of worldAudible — the player just died
+      // with a buff active would still benefit from hearing the wind-down.
+      for (const id of prevIds) if (!presentIds.has(id)) emitBuffEnd(id)
+      _state.activeBuffIds = presentIds
+    }
   }
 
   function silenceAll() {
     if (!_state.started) return
     for (const id of Array.from(_state.asteroidVoices.keys())) dropAsteroidVoice(id)
+    for (const id of Array.from(_state.ufoBulletVoices.keys())) dropUfoBulletVoice(id)
     stopUfoVoice()
     stopThrustVoice()
     stopBrakeVoice()
     setTargetLock(false)
+    stopPowerupVoice()
+    _state.activeBuffIds = new Set()
+    setProximityBeep([])
   }
 
   function setStaticListener(yaw) {
@@ -957,7 +1629,9 @@ content.audio = (() => {
   }
   function previewBullet() {
     ensureStarted(); setStaticListener(0)
-    emitBullet(6, 0, 0)
+    // Demo both so the player learns the normal-vs-bigShots contrast.
+    emitBullet(6, 0, 0, 'center', false)
+    setTimeout(() => emitBullet(6, 0, 0, 'center', true), 420)
   }
   function previewUfo(kind) {
     ensureStarted(); setStaticListener(0)
@@ -968,6 +1642,52 @@ content.audio = (() => {
   function previewDeath()      { ensureStarted(); setStaticListener(0); emitDeath() }
   function previewWaveClear()  { ensureStarted(); setStaticListener(0); emitWaveClear() }
   function previewBonusLife()  { ensureStarted(); setStaticListener(0); emitBonusLife() }
+  function previewUfoBullet() {
+    ensureStarted(); setStaticListener(0); silenceAll()
+    // Muzzle ping, then the continuous in-flight voice for ~2.4 s so the
+    // player learns the tone they'll be tracking.
+    emitUfoBulletFire(6, 2)
+    const fake = {id: 'preview-ufo-bullet'}
+    const v = ensureUfoBulletVoice(fake)
+    v.setPosition(6, 2)
+    v.setGain(distanceGain(P().dist({x: 6, y: 2}, {x: 0, y: 0})))
+    v.update()
+    setTimeout(() => dropUfoBulletVoice(fake.id), 2400)
+  }
+
+  // Powerup previews — audition both the looping world voice and the
+  // pickup sting for each kind. Auto-stops after a few seconds.
+  function previewPowerup(id) {
+    ensureStarted(); setStaticListener(0); silenceAll()
+    const def = content.powerups && content.powerups.defOf && content.powerups.defOf(id)
+    if (!def) return
+    const fake = {_id: 'preview-' + id, def, x: 6, y: 0}
+    startPowerupVoice(fake)
+    // Per-frame shaping for previews — we don't have a real per-frame
+    // loop here, so push 12 updates over ~2.4 s to evolve the voice and
+    // then play the pickup sting.
+    let step = 0
+    const total = 24
+    const stepMs = 100
+    const timer = setInterval(() => {
+      step++
+      // After ~1 s, schedule the pickup motif so the player hears both.
+      if (step === 10) emitPowerupPickup(fake.x, fake.y, def)
+      if (id === 'rockSpawn' && step === 14) emitRockSpawn()
+      updatePowerupVoice({...fake, expiresAt: engine.time() + 30})
+      if (step >= total) {
+        clearInterval(timer)
+        stopPowerupVoice()
+      }
+    }, stepMs)
+  }
+
+  function previewBuff(id) {
+    ensureStarted(); setStaticListener(0); silenceAll()
+    // Audition both stings — start sweep, brief pause, end sweep.
+    emitBuffStart(id)
+    setTimeout(() => emitBuffEnd(id), 900)
+  }
 
   // -------------- diagnostic tick for the test screen --------------
   // Pure binaural HRTF gives weak L/R nulls in headphones — fine for in-game
@@ -1047,6 +1767,7 @@ content.audio = (() => {
     silenceAll,
     setStaticListener,
     setTargetLock,
+    setProximityBeep,
     isStarted: () => _state.started,
     // One-shots
     emitBullet,
@@ -1056,6 +1777,9 @@ content.audio = (() => {
     emitWaveClear,
     emitBonusLife,
     emitTick,
+    emitPowerupPickup,
+    emitRockSpawn,
+    emitUfoBulletFire,
     // Learn previews
     previewAsteroid,
     previewBullet,
@@ -1064,6 +1788,9 @@ content.audio = (() => {
     previewDeath,
     previewWaveClear,
     previewBonusLife,
+    previewUfoBullet,
+    previewPowerup,
+    previewBuff,
     _state,
   }
 })()

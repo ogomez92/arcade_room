@@ -6,6 +6,7 @@ content.game = (() => {
 
   const state = {
     phase: 'idle',          // 'idle' | 'playing' | 'dying' | 'gameover'
+    mode: 'classic',        // 'classic' | 'arcade' — arcade adds powerups
     score: 0,
     lives: 0,
     wave: 0,
@@ -16,9 +17,15 @@ content.game = (() => {
     pendingGameOverAt: 0,
     _handledDeath: false,   // guards the death sting against per-frame re-fires
     _fireRequested: false,
+    _fireRequestSide: 'center',  // 'left' | 'center' | 'right' — set by requestFire()
+    _fireHeld: false,            // set by the game screen while a fire key is held (arcade rapid-fire)
+    _fireHeldSide: 'center',     // 'left' | 'center' | 'right' — which key is held
     _hyperspaceRequested: false,
     fireCooldownUntil: 0,
   }
+
+  function setMode(mode) { state.mode = (mode === 'arcade' ? 'arcade' : 'classic') }
+  function isArcade()    { return state.mode === 'arcade' }
 
   // --- lifecycle ---
   function startRun() {
@@ -26,9 +33,11 @@ content.game = (() => {
     state.score = 0
     state.lives = K().START_LIVES
     state.wave = 0
-    state.nextExtendAt = K().EXTEND_INTERVAL
+    state.nextExtendAt = K().EXTEND_FIRST
     state._handledDeath = false
     state._fireRequested = false
+    state._fireHeld = false
+    state._fireHeldSide = 'center'
     state._hyperspaceRequested = false
     state.fireCooldownUntil = 0
     content.audio.start()
@@ -36,6 +45,10 @@ content.game = (() => {
     content.asteroids.clear()
     content.bullets.clear()
     content.ufo.reset(engine.time())
+    if (content.powerups) {
+      content.powerups.setEnabled(isArcade())
+      content.powerups.reset(engine.time())
+    }
     content.ship.spawn()
     _startNextWave()
   }
@@ -56,8 +69,22 @@ content.game = (() => {
     content.events.emit('wave-start', {wave: state.wave, count: n})
   }
 
-  function requestFire() { state._fireRequested = true }
+  // side = 'left' | 'center' | 'right' — sets the perpendicular offset
+  // from the ship's heading where the bullet spawns AND the audio pan
+  // side for the muzzle one-shot. Defaults to center.
+  function requestFire(side) {
+    state._fireRequested = true
+    state._fireRequestSide = side || 'center'
+  }
+  function setFireHeld(on, side) {
+    state._fireHeld = !!on
+    if (on) state._fireHeldSide = side || 'center'
+  }
   function requestHyperspace() { state._hyperspaceRequested = true }
+
+  // Public: power-up code awards score through this so the extra-life
+  // pickup still fires.
+  function awardPoints(points) { _award(points) }
 
   // --- per-frame sim ---
   function tick(dt) {
@@ -66,19 +93,38 @@ content.game = (() => {
 
     // Inputs first — resolve fire / hyperspace requests.
     if (state.phase === 'playing' && content.ship.state.alive) {
-      if (state._fireRequested && t >= state.fireCooldownUntil) {
+      // Arcade rapidFire auto-re-fires while Space is held; bullets.fire()
+      // ignores the MAX_BULLETS cap during that time, so the held-fire
+      // loop is gated only by the cooldown.
+      const rapid = isArcade() && content.powerups && content.powerups.isActive('rapidFire')
+      const tap = state._fireRequested
+      const held = rapid && state._fireHeld
+      const side = tap ? state._fireRequestSide : (held ? state._fireHeldSide : null)
+      if (side && t >= state.fireCooldownUntil) {
         state._fireRequested = false
         const ship = content.ship
         const heading = ship.getHeading()
         const pos = ship.getPosition()
-        // Spawn just outside the ship's nose so the bullet doesn't immediately
-        // overlap the player.
-        const off = ship.state.radius + K().BULLET_RADIUS + 0.1
-        const bp = {x: pos.x + Math.cos(heading) * off, y: pos.y + Math.sin(heading) * off}
-        const b = content.bullets.fire(bp, heading, ship.getVelocity())
+        // Spawn AT the ship's centre. Perpendicular offsets are added for
+        // A / D side-shots — A spawns slightly left of the ship's centre
+        // (in screen coords), D slightly right. The audio pan derives
+        // from the same offset, so the ear-side matches the spawn side.
+        // The bullet's velocity vector always uses the ship's heading.
+        let bx = pos.x, by = pos.y
+        if (side === 'left' || side === 'right') {
+          // Perpendicular to heading. Screen-coord "left" of a ship
+          // facing `heading` is heading - π/2. We negate for the right
+          // side. SIDE_SHOT_OFFSET is small — just enough to give an
+          // audible pan.
+          const off = K().SIDE_SHOT_OFFSET
+          const perp = heading + (side === 'left' ? -Math.PI / 2 : Math.PI / 2)
+          bx = pos.x + Math.cos(perp) * off
+          by = pos.y + Math.sin(perp) * off
+        }
+        const b = content.bullets.fire({x: bx, y: by}, heading, ship.getVelocity())
         if (b) {
-          content.audio.emitBullet(b.x, b.y, heading)
-          state.fireCooldownUntil = t + 0.08   // very short re-fire gate
+          content.audio.emitBullet(b.x, b.y, heading, side, b.big)
+          state.fireCooldownUntil = t + (rapid ? K().RAPID_FIRE_COOLDOWN : 0.08)
         }
       } else {
         state._fireRequested = false
@@ -102,13 +148,14 @@ content.game = (() => {
     content.asteroids.frame(dt)
     content.bullets.frame(dt)
     content.ufo.frame(dt)
+    if (content.powerups && content.powerups.isEnabled()) content.powerups.frame(dt)
 
     // Bullet ↔ asteroid hits
     for (let i = content.bullets.list.length - 1; i >= 0; i--) {
       const b = content.bullets.list[i]
       let hitRock = null
       for (const r of content.asteroids.list) {
-        if (P().circleHit(b, r)) { hitRock = r; break }
+        if (P().circleHit(b, r, _bulletSlack(b, K().AIM_SLACK[r.size]))) { hitRock = r; break }
       }
       if (hitRock) {
         content.bullets.list.splice(i, 1)
@@ -121,7 +168,7 @@ content.game = (() => {
     if (u) {
       for (let i = content.bullets.list.length - 1; i >= 0; i--) {
         const b = content.bullets.list[i]
-        if (P().circleHit(b, u)) {
+        if (P().circleHit(b, u, _bulletSlack(b, K().UFO_AIM_SLACK[u.kind]))) {
           content.bullets.list.splice(i, 1)
           const kind = u.kind
           content.audio.emitExplosion(u.x, u.y, kind === 'big' ? 'medium' : 'small')
@@ -189,11 +236,14 @@ content.game = (() => {
       state.waveStartedAt = Infinity
     }
 
-    // Target-lock: fast continuous beep whenever a bullet from the current
-    // heading would actually connect within range. setTargetLock is a no-op
-    // when state doesn't change, so calling every frame is fine.
-    const lock = findShotTarget()
-    content.audio.setTargetLock(!!lock, lock || null)
+    // Proximity beep: per-frame list of "things relevant to the player".
+    // Negative sources (rocks, UFOs, UFO bullets) are anything with a
+    // collision course onto the ship within IMPACT_TTI_MAX seconds.
+    // Positive sources (powerups in arcade mode) are anything close
+    // enough to chase. Each entry rides a separate beep voice with its
+    // own pitch family + pan, so multiple imminent threats can be heard
+    // simultaneously.
+    content.audio.setProximityBeep(findProximitySources())
 
     // Drive the audio frame (listener + per-voice update + UFO scheduler tick).
     content.audio.frame()
@@ -209,6 +259,12 @@ content.game = (() => {
       state.pendingGameOverAt = state.diedAt + 2.0  // let the dirge finish
     }
     content.events.emit('life-lost', {lives: state.lives, reason})
+  }
+
+  // Aim-assist slack for a bullet-vs-target hit test: a per-size base
+  // (AIM_SLACK / UFO_AIM_SLACK) plus a flat bonus while bigShots is active.
+  function _bulletSlack(b, base) {
+    return (base || 0) + (b.big ? K().BIG_SHOT_HIT_BONUS : 0)
   }
 
   function _destroyAsteroid(rock, cause) {
@@ -232,41 +288,56 @@ content.game = (() => {
 
   function isPlaying() { return state.phase === 'playing' || state.phase === 'dying' }
 
-  // Would a bullet fired right now hit something within range?
-  // Walks every asteroid + the active UFO; for each, projects its toroidal
-  // relative position onto the ship's forward axis and keeps the closest
-  // hit candidate whose perpendicular offset is within (target.radius +
-  // bullet.radius). Returns {target, distance} or null. Uses MAX_RANGE that
-  // matches bullet kinematics (BULLET_SPEED * BULLET_LIFE), so the lock
-  // armed exactly when firing now would connect.
-  function findShotTarget() {
-    if (state.phase !== 'playing') return null
+  // Per-frame list of {kind, x, y, tti, positive} sources for the
+  // proximity-beep audio path. A target is "imminent" if its current
+  // relative velocity will close to within (ship.r + target.r + slack)
+  // in at most IMPACT_TTI_MAX seconds. Powerups are always included as
+  // positive sources (regardless of trajectory) when a pickup exists
+  // in arcade mode — the player should always know one is available.
+  function findProximitySources() {
     const ship = content.ship.state
-    if (!ship.alive) return null
-    const h = ship.heading
-    const dx = Math.cos(h)
-    const dy = Math.sin(h)
-    const maxRange = K().BULLET_SPEED * K().BULLET_LIFE
-    const slackBase = K().BULLET_RADIUS
-    let best = null
-    let bestT = Infinity
-    function consider(r, kind) {
-      const wd = P().wrapDelta(r.x, r.y, ship.x, ship.y)
-      const t = wd.dx * dx + wd.dy * dy
-      if (t < 0 || t > maxRange) return
-      const perpX = wd.dx - dx * t
-      const perpY = wd.dy - dy * t
-      const perp = Math.sqrt(perpX * perpX + perpY * perpY)
-      const slack = r.radius + slackBase
-      if (perp <= slack && t < bestT) {
-        bestT = t
-        best = {target: r, distance: t, kind, x: r.x, y: r.y}
+    if (state.phase !== 'playing' || !ship.alive) return []
+    const IMPACT_TTI_MAX = 2.5
+    const SLACK = 1.5
+    const out = []
+    function timeToImpact(t) {
+      const wd = P().wrapDelta(t.x, t.y, ship.x, ship.y)
+      const dist = Math.sqrt(wd.dx * wd.dx + wd.dy * wd.dy)
+      const radii = (t.radius || 0) + ship.radius + SLACK
+      const effDist = Math.max(0, dist - radii)
+      const rvx = (t.vx || 0) - ship.vx
+      const rvy = (t.vy || 0) - ship.vy
+      // Velocity component pointing AT the ship (target → ship dir).
+      const ux = -wd.dx / Math.max(0.001, dist)
+      const uy = -wd.dy / Math.max(0.001, dist)
+      const closing = rvx * ux + rvy * uy
+      if (closing <= 0.05) return Infinity
+      return effDist / closing
+    }
+    function pushIfImminent(t, kind) {
+      const tti = timeToImpact(t)
+      if (tti <= IMPACT_TTI_MAX) out.push({kind, x: t.x, y: t.y, tti})
+    }
+
+    for (const r of content.asteroids.list) pushIfImminent(r, r.size)
+    const u = content.ufo.active()
+    if (u) pushIfImminent(u, 'ufo-' + u.kind)
+    for (const bb of content.ufo.bullets()) pushIfImminent(bb, 'ufo-bullet')
+
+    // Always include the current powerup as a positive source (no
+    // collision-course gating — the player should always be able to
+    // hear where it is).
+    if (isArcade() && content.powerups) {
+      const pw = content.powerups.current()
+      if (pw) {
+        out.push({kind: pw.kind, x: pw.x, y: pw.y, positive: true, tti: 1.5})
       }
     }
-    for (const r of content.asteroids.list) consider(r, r.size)
-    const u = content.ufo.active()
-    if (u) consider(u, 'ufo-' + u.kind)
-    return best
+
+    // Sort by urgency (lowest tti first) so the highest-priority
+    // threats get the early voice slots and survive the MAX cap.
+    out.sort((a, b) => (a.tti || 0) - (b.tti || 0))
+    return out
   }
 
   // Tab-aim assist: snap the ship's heading toward whichever threat is the
@@ -285,6 +356,19 @@ content.game = (() => {
     if (state.phase !== 'playing') return null
     const ship = content.ship.state
     if (!ship.alive) return null
+
+    // Arcade override: if a powerup is on the field, Tab snaps to it
+    // instead of the threat list. Powerups are good — chasing them is what
+    // Tab is for in arcade mode.
+    if (isArcade() && content.powerups) {
+      const pw = content.powerups.current()
+      if (pw) {
+        const wd = P().wrapDelta(pw.x, pw.y, ship.x, ship.y)
+        const dist = Math.sqrt(wd.dx * wd.dx + wd.dy * wd.dy)
+        ship.heading = Math.atan2(wd.dy, wd.dx)
+        return {target: pw, distance: dist, kind: pw.kind}
+      }
+    }
 
     function score(target, kind) {
       const wd = P().wrapDelta(target.x, target.y, ship.x, ship.y)
@@ -345,8 +429,12 @@ content.game = (() => {
     endRun,
     tick,
     requestFire,
+    setFireHeld,
     requestHyperspace,
     isPlaying,
     aimAtMostDangerous,
+    setMode,
+    isArcade,
+    awardPoints,
   }
 })()

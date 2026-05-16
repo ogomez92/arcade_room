@@ -11,20 +11,28 @@ content.bullets = (() => {
   function all()   { return list.slice() }
 
   function fire(originPos, heading, ownerVel) {
-    if (list.length >= K().MAX_BULLETS) return null
+    // Arcade powerups: rapidFire lifts the MAX_BULLETS cap; bigShots scales
+    // the bullet radius (and keeps the visual/audio in sync via the
+    // `big` flag).
+    const pw = content.powerups
+    const rapid = pw && pw.isActive && pw.isActive('rapidFire')
+    const big = pw && pw.isActive && pw.isActive('bigShots')
+    if (!rapid && list.length >= K().MAX_BULLETS) return null
     const v = ownerVel || {x: 0, y: 0}
+    const radius = big ? K().BULLET_RADIUS * K().BIG_SHOT_RADIUS_MUL : K().BULLET_RADIUS
     const b = {
       id: nextId++,
       x: originPos.x,
       y: originPos.y,
       vx: v.x + Math.cos(heading) * K().BULLET_SPEED,
       vy: v.y + Math.sin(heading) * K().BULLET_SPEED,
-      radius: K().BULLET_RADIUS,
+      radius,
       life: K().BULLET_LIFE,
       heading,
+      big: !!big,
     }
     list.push(b)
-    content.events.emit('bullet-fired', {pos: {x: b.x, y: b.y}, heading})
+    content.events.emit('bullet-fired', {pos: {x: b.x, y: b.y}, heading, big: !!big})
     return b
   }
 

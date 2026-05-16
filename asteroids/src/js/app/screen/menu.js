@@ -3,7 +3,14 @@ app.screen.menu = app.screenManager.invent({
   parentSelector: '.a-app--menu',
   rootSelector: '.a-menu',
   transitions: {
-    start: function () { this.change('game') },
+    start: function () {
+      if (content.game && content.game.setMode) content.game.setMode('classic')
+      this.change('game')
+    },
+    arcade: function () {
+      if (content.game && content.game.setMode) content.game.setMode('arcade')
+      this.change('game')
+    },
     language: function () { this.change('language') },
     highscores: function () { this.change('highscores') },
     help: function () { this.change('help') },

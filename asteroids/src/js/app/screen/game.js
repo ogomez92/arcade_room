@@ -12,7 +12,8 @@ app.screen.game = app.screenManager.invent({
     entryFrames: 0,
     keydownHandler: null,
     keyupHandler: null,
-    fireDown: false,
+    fireDown: false,           // legacy single Space-held flag
+    fireDownSides: {left: false, center: false, right: false},
     hyperDown: false,
     lastTickAt: 0,
     wiredEvents: false,
@@ -57,6 +58,27 @@ app.screen.game = app.screenManager.invent({
       try { app.announce.assertive(app.i18n.t('ann.gameOver')) } catch (err) {}
       app.screenManager.dispatch('gameover')
     })
+    // Powerup announcements — arcade mode only, but emit guards on the
+    // module side so classic mode is silent regardless.
+    content.events.on('powerup-spawn', (e) => {
+      const key = 'ann.pwrSpawn' + (e.id[0].toUpperCase() + e.id.slice(1))
+      try { app.announce.polite(app.i18n.t(key)) } catch (err) {}
+    })
+    content.events.on('powerup-despawn', () => {
+      try { app.announce.polite(app.i18n.t('ann.pwrGone')) } catch (err) {}
+    })
+    content.events.on('powerup-pickup', (e) => {
+      const def = content.powerups.defOf(e.id)
+      if (!def) return
+      const params = (e.ctx && e.ctx.bonusPoints) ? {points: e.ctx.bonusPoints} : {}
+      try { app.announce.assertive(app.i18n.t(def.announceKey, params)) } catch (err) {}
+    })
+    content.events.on('powerup-expire', (e) => {
+      const def = content.powerups.defOf(e.id)
+      if (def && def.announceEndKey) {
+        try { app.announce.polite(app.i18n.t(def.announceEndKey)) } catch (err) {}
+      }
+    })
   },
   onEnter: function () {
     this.state.entryFrames = 6
@@ -67,7 +89,12 @@ app.screen.game = app.screenManager.invent({
     // Open the leaderboard session right when the run starts. Fire-and-
     // forget: a failure (network down, server 5xx, CORS blocked, etc.)
     // just leaves us with local scoring — the run is still playable.
-    try { app.onlineScores.openSession().catch(() => {}) } catch (e) {}
+    // Switch the online-scores backend to match the active mode (classic
+    // vs arcade have separate leaderboards on scores.oriolgomez.com).
+    try {
+      app.onlineScores.setMode(content.game.isArcade() ? 'arcade' : 'classic')
+      app.onlineScores.openSession().catch(() => {})
+    } catch (e) {}
     content.hud.refresh()
     try {
       app.announce.polite(app.i18n.t('ann.score', {
@@ -113,13 +140,29 @@ app.screen.game = app.screenManager.invent({
       if (e.code === 'F3') { e.preventDefault(); this.announceHeading(); return }
       if (e.code === 'F4') {                       this.announceNearest(); return }
       if (e.repeat) return
-      if (e.code === 'Space') {
+      // Fire keys: Space + S = centre, A = left, D = right. All four routes
+      // call requestFire(side) and arm the matching side-held flag so
+      // arcade rapidFire continues to auto-re-fire on the correct side.
+      const fireSide =
+        e.code === 'Space' ? 'center'
+      : e.code === 'KeyS'  ? 'center'
+      : e.code === 'KeyA'  ? 'left'
+      : e.code === 'KeyD'  ? 'right'
+      : null
+      if (fireSide) {
         e.preventDefault()
-        if (!this.state.fireDown) {
-          this.state.fireDown = true
-          content.game.requestFire()
+        if (!this.state.fireDownSides[fireSide]) {
+          this.state.fireDownSides[fireSide] = true
+          content.game.requestFire(fireSide)
+          // Held flag: tracks the most recently pressed side. If the
+          // player holds multiple keys, the newest one drives rapid-fire
+          // until released.
+          content.game.setFireHeld(true, fireSide)
         }
-      } else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        if (fireSide === 'center') this.state.fireDown = true
+        return
+      }
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
         if (!this.state.hyperDown) {
           this.state.hyperDown = true
           content.game.requestHyperspace()
@@ -132,11 +175,17 @@ app.screen.game = app.screenManager.invent({
         const lock = content.game.aimAtMostDangerous()
         if (lock) {
           const k = lock.kind
-          const kindKey =
-            k === 'ufo-big'    ? 'ann.kindUfoBig'
-          : k === 'ufo-small'  ? 'ann.kindUfoSmall'
-          : k === 'ufo-bullet' ? 'ann.kindUfoBullet'
-          : 'ann.kind' + (k[0].toUpperCase() + k.slice(1))
+          let kindKey
+          if (k && k.indexOf('powerup-') === 0) {
+            const pid = k.slice('powerup-'.length)
+            kindKey = 'ann.kindPwr' + (pid[0].toUpperCase() + pid.slice(1))
+          } else {
+            kindKey =
+              k === 'ufo-big'    ? 'ann.kindUfoBig'
+            : k === 'ufo-small'  ? 'ann.kindUfoSmall'
+            : k === 'ufo-bullet' ? 'ann.kindUfoBullet'
+            : 'ann.kind' + (k[0].toUpperCase() + k.slice(1))
+          }
           try {
             app.announce.polite(app.i18n.t('ann.lockedOn', {
               kind: app.i18n.t(kindKey),
@@ -149,8 +198,34 @@ app.screen.game = app.screenManager.invent({
       }
     }
     const onUp = (e) => {
-      if (e.code === 'Space') this.state.fireDown = false
-      else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.state.hyperDown = false
+      const fireSide =
+        e.code === 'Space' ? 'center'
+      : e.code === 'KeyS'  ? 'center'
+      : e.code === 'KeyA'  ? 'left'
+      : e.code === 'KeyD'  ? 'right'
+      : null
+      if (fireSide) {
+        this.state.fireDownSides[fireSide] = false
+        if (fireSide === 'center') this.state.fireDown = false
+        // Stop rapid-fire only when ALL fire keys are released.
+        const anyDown =
+          this.state.fireDownSides.left ||
+          this.state.fireDownSides.center ||
+          this.state.fireDownSides.right
+        if (!anyDown) content.game.setFireHeld(false)
+        else {
+          // Pick a remaining held side so rapid-fire continues from it.
+          const nextSide =
+            this.state.fireDownSides.left ? 'left'
+          : this.state.fireDownSides.right ? 'right'
+          : 'center'
+          content.game.setFireHeld(true, nextSide)
+        }
+        return
+      }
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        this.state.hyperDown = false
+      }
     }
     this.state.keydownHandler = onDown
     this.state.keyupHandler = onUp
@@ -163,7 +238,9 @@ app.screen.game = app.screenManager.invent({
     this.state.keydownHandler = null
     this.state.keyupHandler = null
     this.state.fireDown = false
+    this.state.fireDownSides = {left: false, center: false, right: false}
     this.state.hyperDown = false
+    try { content.game.setFireHeld(false) } catch (e) {}
   },
 
   // ----- F-key announcements -----

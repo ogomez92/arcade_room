@@ -94,7 +94,21 @@ content.ship = (() => {
       state.reversing = true
     }
 
-    P().integrate(state, dt)
+    // Hard speed cap — classic Asteroids clamped the ship's velocity vector
+    // so a pinned thrust key wouldn't run away forever. Without it, terminal
+    // velocity sits north of 80 u/s on a 200-unit field (you cross the field
+    // in ~2.5 s), which doesn't read as Asteroids.
+    const maxV = K().SHIP_MAX_SPEED
+    if (maxV) {
+      const sp = Math.sqrt(state.vx * state.vx + state.vy * state.vy)
+      if (sp > maxV) {
+        const k = maxV / sp
+        state.vx *= k
+        state.vy *= k
+      }
+    }
+
+    P().integrate(state, dt, true)
   }
 
   function getPosition() { return {x: state.x, y: state.y} }

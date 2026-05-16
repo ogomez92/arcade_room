@@ -4,74 +4,135 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-`syngen-template` — a template for accessible audio experiences built on top of the [syngen](https://github.com/nicross/syngen) Web Audio engine. Ships as both an HTML5 app (served from `public/`) and an Electron desktop app (`electron/main.js`).
+`asteroids` — audio-first port of the 1979 arcade game built on the syngen-template. Newtonian flight (rotate / thrust / soft brake), toroidal wraparound field, splitting rocks, UFOs, hyperspace. Listener mode is **player-locked** (audio +x = whatever the ship is facing). Two play modes:
 
-There is no test suite, no linter, and no `npm` scripts. All tasks run through Gulp.
+- **Classic** — vanilla Asteroids; online leaderboard id `asteroids`.
+- **Arcade** — Classic plus powerups that spawn near the player and drift across the field; online leaderboard id `asteroids-arcade`. Both boards live on scores.oriolgomez.com.
 
-## Starting a new game from this template
+Ships as both an HTML5 app (served from `public/`) and an Electron desktop app (`electron/main.js`). There is no test suite, no linter, and no `npm` scripts. All tasks run through Gulp.
 
-**This is a BLOCKING requirement.** Whenever the user describes a brand-new game to build on top of this template — i.e. `src/js/content/` is empty or contains only stub/example code, and the project does not yet have a game-specific `CLAUDE.md` of its own — you MUST ask the foundational design questions below before writing any `content/` code or making any architectural commitments. Picking wrong and refactoring later is expensive (especially #2 — audio listener mode is hard to retrofit). Skip questions the user has already answered explicitly in their first prompt; batch the remaining questions into a single message so the user answers them all at once.
+## Arcade mode — powerup system
 
-Once you have an existing game-specific `CLAUDE.md` in the project root, ongoing work is no longer "starting a new game" and these questions do not need to be re-asked.
+Arcade mode is opt-in via the **Arcade Mode** menu entry, which calls `content.game.setMode('arcade')` before transitioning to the game screen. The mode flag rides in `content.game.state.mode` ('classic' | 'arcade'). Re-running via the gameover screen's **Play Again** preserves the mode — the mode is only changed by the menu's mode buttons.
 
-### Required questions
+### Scalable registry (add a powerup in three steps)
 
-1. **Perspective and movement model.** Top-down 2D tile-based (Pac-Man, Zelda 1)? Top-down 2D continuous? Side-scrolling 2D? First-person 3D? Third-person 3D? Static / turn-based / menu-driven? This determines the coordinate system, collision model, and how `app.controls.game()` is consumed.
+The registry pattern lives in `src/js/content/powerups.js`. Each kind is a single entry in `DEFS`. To add a new powerup:
 
-2. **Audio listener behavior** — *the single most important question, ask it explicitly even if the user gave hints.*
-   - **Screen-locked (Pac-Man style)** — listener yaw is **fixed**; sounds always come from their actual screen position. A ghost south of the player always sounds behind, no matter which way the player last moved. Best for fixed-camera 2D games where the player views the world from above and the camera never turns.
-   - **Player-locked (FPS-style)** — listener yaw tracks the player's facing direction; "front" is whatever the player is facing. Best for first-person 3D and games where the avatar's heading IS the camera.
-   - **Camera-locked (third-person)** — listener yaw tracks the camera, not the avatar. Useful when camera and avatar can rotate independently.
-   - **Stereo / non-spatial** — skip 3D positioning entirely; use `StereoPannerNode` per source, or mono cues. Best for menu-driven, turn-based, or purely musical games.
+1. **Define it in `DEFS`** with shape:
 
-3. **Audio's role.** Audio-first / blind-accessible (sighted UI minimal, must be playable purely by ear)? Equal (visuals and audio both first-class)? Audio supportive (visuals primary, audio feedback only)? This affects how much effort goes into spatial cues, screen-reader announcements, and visual UI.
+    ```js
+    myKind: {
+      id: 'myKind', kind: 'myKind',
+      weight: 2,                  // weighted roll across the registry
+      durationS: 12, timed: true, // optional — set for timed buffs
+      voice: 'myKind',            // ties to a timbre entry in audio.js _powerupTimbres()
+      announceKey: 'ann.pwrMyKind',
+      announceEndKey: 'ann.pwrMyKindEnd', // timed only
+      pickupSoundKey: 'pwrPickMyKind',
+      onPickup(state, ctx) { /* instant effect or state.activate(id, durationS) */ },
+    },
+    ```
 
-4. **Input devices.** Keyboard only? Keyboard + gamepad? Keyboard + mouse? All three? The template ships with all three adapters wired; the answer determines which mappings to define and which adapters to disable.
+2. **Add a timbre** in `content/audio.js` → `_powerupTimbres()` (osc `types`, `freqs`, `detuneC`, AM `wobbleHz`/`wobbleDepth`, optional FM `fmHz`/`fmDepth`, `lp` cutoff). The shared `buildPowerup()` reads this — you don't write a per-kind synth tree. FM vibrato is what gives the looping pickup voice its sci-fi shimmer; omit `fmHz`/`fmDepth` for AM-only timbres.
 
-5. **Persistence.** Continuous autosave of full game state? Discrete saves (manual / per level)? High scores only? No persistence? This determines whether `app.autosave` stays enabled and what `engine.state.export()` should serialize.
+3. **Wire i18n + UI**:
+   - Add `ann.pwrSpawnMyKind`, `ann.pwrMyKind`, `ann.kindPwrMyKind` keys to both `en` and `es` in `i18n.js`.
+   - Add a `learn.pwrMyKind` button to `public/index.html` and route it through `app/screen/learn.js` → `previewPowerup('myKind')`.
+   - Add a `help.arcadeMyKind` line to the help screen's `<ul class="a-help--arcade">`.
 
-6. **Progression structure.** Endless / score chase? Levels with discrete progression? Branching / non-linear? Single fixed scenario? Drives the screen FSM (need a level-clear screen? a game-over screen? a high-scores screen?).
+No other file needs touching — `content.bullets`, `content.game`, the spawn loop and the Tab override read the registry generically.
 
-7. **Synth aesthetic.** Chiptune / retro (raw squares and saws)? Modern synth (filtered triangles, soft pads, sub-bass)? Procedural / generative? The template is synth-only — sampled audio needs additional wiring.
+### How the running powerup state works
 
-### Implementation pointers per answer
+- At most one **world pickup** exists at a time: `content.powerups.current()` returns `{x, y, vx, vy, radius, def, _id, expiresAt}` or `null`. It drifts at `DRIFT_SPEED = 1.5 u/s`, self-despawns after `LIFETIME = 22 s`, and the next spawn is scheduled `SPAWN_GAP_MIN..MAX` (8–14 s) later.
+- A **timed buff** lives in `state.active` as `id → expiresAt`. `content.powerups.isActive(id)` is the only thing the rest of the codebase reads — e.g. `bullets.fire()` checks `isActive('rapidFire')` to skip `MAX_BULLETS`, and `isActive('bigShots')` to scale `BULLET_RADIUS` by `BIG_SHOT_RADIUS_MUL`.
+- Pickup detection: `circleHit(ship, pickup, 0.6)` per frame. The ship must be alive but can be invulnerable — pickups should never punish mid-respawn.
+- The pickup despawn warning is **pitch-down + faster wobble** in the last ~3 s. Do **not** fade gain — it reads identical to "moving farther away" with our distance attenuation.
+- **Timed buffs are signaled by one-shot stings, not a looping pad.** `audio.frame()` diffs the active-buff Set each frame and fires `emitBuffStart(id)` on activation, `emitBuffEnd(id)` on expiry (mirror sweep, dimmer). The in-between gameplay change (rapid pace, bigger bullets) is the cue — a looping "you have the buff" voice masked rocks and was removed.
 
-**Audio listener — screen-locked.** Set yaw to a constant in `content.audio.updateListener()` and don't update it from player direction. Anchor audio-front to whichever screen direction feels like "up" to the player (typically screen-north). With the screen→audio y-flip in place, `LISTENER_YAW = Math.PI / 2` puts audio-front at screen-north:
+### Tab targeting override
 
-```js
-const LISTENER_YAW = Math.PI / 2 // screen-north = audio-front
-function updateListener() {
-  const p = content.player.getPosition()
-  engine.position.setVector(tileToM(p))
-  engine.position.setQuaternion(engine.tool.quaternion.fromEuler({yaw: LISTENER_YAW}))
-}
+`content.game.aimAtMostDangerous()` is the Tab handler. In arcade mode, if a world pickup exists, Tab snaps the ship's heading toward the pickup instead of running the danger heuristic. The fallback (closing rocks beat drifting, UFO bullets > UFOs > rocks) is unchanged for classic mode and for arcade-mode-with-no-current-pickup.
+
+### Rapid-fire input plumbing
+
+`content.game.setFireHeld(on, side)` is called by `app/screen/game.js` from the raw `keydown/keyup` listeners. The fire loop in `tick()` only honours the held flag while `isActive('rapidFire')`. The 4-bullet cap is bypassed in `content.bullets.fire()` by checking the same flag. Cooldown drops to `RAPID_FIRE_COOLDOWN` (0.07 s) during the buff.
+
+## Fire keys and directional shots
+
+- **Space + S** — centre shot (bullet spawns at the ship's centre, pan is positional).
+- **A** — left shot (bullet spawns at `SIDE_SHOT_OFFSET` perpendicular-left of centre, audio pan biased left).
+- **D** — right shot (mirror of A).
+
+All four routes go through `content.game.requestFire(side)`. The bullet's velocity vector is **always** along ship heading — the side only shifts the muzzle spawn point and the audio pan. This is the cheap "two cannons + one main" feel without complicating the physics or the player's mental model of where the shot will land.
+
+Multiple sides can be held at once; arcade rapidFire's auto-re-fire follows the most recently pressed side, falling back to whatever is still down if that key is released.
+
+## Bullet origin invariant
+
+**Bullets always spawn at the ship's centre** (or the offset directly perpendicular for A / D). They do **not** spawn at the ship's "nose" (heading-aligned). Don't reintroduce the nose offset — the user noticed it sounded like the ship was shooting from one side, and verified the centre-spawn is what they want.
+
+## Bullet aim-assist (small-target slack)
+
+A hit registers when the bullet centre comes within `bullet.radius + target.radius (+ slack)` of the target centre. With raw radii a large rock's hit window (~4.7u) is ~3x wider than a small rock's (~1.4u) — brutal when aiming by ear. Two corrections, both applied to the **bullet** hit test only — ship-crash collisions stay honest so colliding with a small rock is still fair:
+
+- **Per-size slack** — `AIM_SLACK` (rocks) and `UFO_AIM_SLACK` (UFOs) add extra slack that's larger for smaller bodies, equalising windows toward ~2.4u. Currently only small rocks (0.6) and small UFOs (0.4) get any. Passed as the `extraSlack` arg of `physics.circleHit` via `content.game._bulletSlack()`.
+- **`BIG_SHOT_HIT_BONUS`** — a flat window bonus (0.8u) added while `bigShots` is active. The `BIG_SHOT_RADIUS_MUL` 3x alone barely moves the window (3x of a 0.2u bullet is still tiny); this bonus is what makes bigShots actually feel like wider aim.
+
+Small-body radii were also bumped (small rock 1.2→1.5, small UFO 1.5→1.8) so they have more physical presence — this *does* affect ship-crash collision, intentionally.
+
+## Player bullet audio
+
+`audio.emitBullet(x, y, heading, side, big)` is the per-shot one-shot. The first version was a single thin sine sweep (900 → 200 Hz) — the user found it "soooo tiny." It is now three layers so it reads as a *shot*, not a beep:
+
+- **Buzzy sweep** — a sawtooth through a lowpass that tracks the pitch down. The harmonics are what carry the laser character; a pure sine has none, which is why the old one sounded thin.
+- **Sub thump** — a sine well below the sweep for body weight.
+- **Attack transient** — a short bandpassed noise burst for the percussive snap.
+
+Plus the existing quiet binaural triangle for HRTF colour. The `big` flag (passed through from `bullet.big`, the `bigShots` powerup) selects a heavy-cannon variant: lower fundamental (560 vs 1050 Hz), longer tail (0.22 vs 0.13 s), an extra-octave sub, darker noise, and more gain. Don't revert to a single-oscillator bullet — the layering is deliberate. `previewBullet()` (learn screen) plays the normal shot then the big shot ~420 ms later so players learn the contrast.
+
+## Imminent-collision proximity beep
+
+`audio.setProximityBeep(sources)` is the per-frame audio cue for "things relevant to the player." Called from `content.game.tick()` via `findProximitySources()`. Sources fall into two buckets:
+
+- **Threats** (rocks of any size, the active UFO, every UFO bullet) — included only when they're on a collision course with the ship and will impact within `IMPACT_TTI_MAX` (2.5 s) at current relative velocity. Pitch family per kind (rocks descend large→medium→small low→high; UFO bullets at 300 Hz; UFO body higher). Pulse rate scales inversely with TTI so an immediate threat sounds like an alarm.
+- **Powerups** (arcade mode only) — always included as a positive source when a pickup exists on the field, regardless of trajectory. Triangle waveform, higher pitch family (1175–1976 Hz), softer pulse rate (~3 Hz). The player always knows where a pickup is.
+
+Up to `MAX = 4` sources play simultaneously, sorted by urgency (lowest TTI wins the early voice slots). The legacy `setTargetLock(on, info)` is preserved as a thin wrapper that collapses to a single proximity source with `tti=0.2`.
+
+## UFO bullet audio
+
+UFO bullets had no audio in v0.1 — the player just died invisibly. Three cues now cover the threat:
+
+- **Muzzle ping** — `audio.emitUfoBulletFire(x, y)` fires on every UFO shot. Sci-fi "pew" sweep: sine 1600 → 500 Hz + triangle 2400 → 750 Hz over ~140 ms, panned from the shooter's position with a quieter binaural copy for HRTF colour. Distinct from the player's bullet, which is a three-layer buzzy shot (see *Player bullet audio*).
+- **Continuous in-flight voice** — each UFO bullet carries a stable `id` (assigned in `ufo.js` `_fire`) and gets a continuous spatial voice via `makeSpatialVoice` / `buildUfoBullet`, synced in `audio.frame()` against `content.ufo.bullets()` exactly like the asteroid voices (`ensureUfoBulletVoice` / `dropUfoBulletVoice`, keyed by bullet id). Without it, a bullet that isn't on a collision course is unlocatable — the player can't hear where incoming fire *is*, only that a shot happened. The proximity-beep-only design was tried and the user found it impossible to locate bullets.
+- **Proximity beep** — `setProximityBeep` includes UFO bullets when they're on a collision course (300 Hz pulse at the bullet's position, rate scales with TTI). This adds the collision-course *urgency alarm* on top of the always-on locating voice — same dual role rocks have (continuous voice + proximity beep).
+
+**The in-flight voice that was killed, and why this one is different.** An earlier per-bullet loop (low square + 60 Hz buzz tremolo through a narrow bandpass) was removed for flooding the field and sounding like a fart. `buildUfoBullet` deliberately avoids both failure modes: a *clean* pitched tone (triangle fundamental + a quiet sine shimmer partial + a gentle ~7 Hz AM — no buzz, no narrow bandpass), modest gain that sits between a small and medium rock, and a per-bullet ±4% pitch jitter so two in flight stay distinguishable. Flooding is not a real risk here — one UFO at a time, ~1.5 s fire period, 1.4 s bullet life → only 1–2 voices ever live. If a future change ever does spawn many bullets at once, cap the number of voiced bullets (nearest-N) rather than dropping the voice.
+
+## Scoring, waves, and lives
+
+The constants live in `constants.js`, but the *relationships* between them are what matter for tuning anything score-gated — keep this table in mind before touching a threshold.
+
+- **Waves.** `content.game._startNextWave()` spawns wave N with `WAVE_BASE + (N-1)*WAVE_PER_LEVEL` large asteroids (4, 5, 6, …) and scales every rock's speed by `WAVE_SPEED_MUL^(N-1)` (~8 %/wave, compounding). A wave ends when the field is cleared; the next starts automatically.
+- **Splitting.** `asteroids.split()` turns a large rock into 2 mediums, a medium into 2 smalls, a small into nothing. Children fly at the parent's heading ± `SPLIT_SPREAD` and inherit *at least* 1.4× the parent's speed, so a wave gets faster as it's whittled down.
+- **Score per rock** (`SCORE`): large 20, medium 50, small 100 — so one large rock fully cascaded is 20 + 2×50 + 4×100 = **520 pts**. A full wave-N clear is `(3+N) × 520`: ≈ 2,080 / 2,600 / 3,120 for waves 1–3 → **cumulative ≈ 2,080 / 4,680 / 7,800**. UFOs add bigUfo 200 / smallUfo 1000.
+- **Lives.** Start `START_LIVES` (3). The **first** extra life is awarded at `EXTEND_FIRST` (4,000); every one after is `EXTEND_INTERVAL` (8,000) further — 4k / 12k / 20k / 28k … `_award()` tracks `state.nextExtendAt`. The first threshold is split out from the interval on purpose: a flat 10k interval put the first life around wave 4, so a new player had no safety net through the hardest early waves.
+- **Score-gated features.** `SMALL_UFO_THRESHOLD` (10,000) gates small UFOs — below it *every* UFO is big, which (per the cumulative table) means small UFOs cannot appear until ≈ wave 4. Any new score-gated mechanic should be sanity-checked against that table or it will effectively never trigger in normal play.
+
+## Online scores — dual mode
+
+`app/onlineScores.js` keeps a `GAMES` map keyed by mode, each with `{id, secret}`. `app/screen/game.js` calls `app.onlineScores.setMode(content.game.isArcade() ? 'arcade' : 'classic')` before `openSession()`. The session captures the game id at open time, so even if the mode is changed mid-run the submit is signed with the right secret.
+
+Both leaderboards are registered on `scores.oriolgomez.com`. **The admin API doesn't accept a chosen secret** — `adminCreateGame` always calls `randomSecret()`, `/rotate` does the same, and `adminUpdateGame` ignores the `secret` field. To set a specific secret, write directly to `/home/scores/data/scores.db` (the file is on the same VPS):
+
+```sh
+sqlite3 /home/scores/data/scores.db \
+  "UPDATE games SET secret='<NEW>' WHERE id='asteroids-arcade';"
 ```
 
-`behindness()` reads the same constant via `_lastYaw`, so a "behind" muffle still triggers for sources opposite the anchored front. Build a diagnostic screen that emits ticks at front/right/behind/left around a static listener with the same yaw, and verify by ear after any change. The `audio-pacman` repo (`../pacman/src/js/content/audio.js`) is the reference implementation.
-
-**Audio listener — player-locked.** Update yaw from the player's facing every frame:
-
-```js
-const d = content.player.state.dir
-const yaw = Math.atan2(-d.y, d.x) // negate y to match the screen→audio flip
-engine.position.setQuaternion(engine.tool.quaternion.fromEuler({yaw}))
-```
-
-`behindness()` then naturally means "behind the player's heading" — the FPS interpretation.
-
-**Audio listener — camera-locked.** Track the camera's yaw, not the avatar's. If the camera lags behind the avatar (smoothed follow), low-pass the yaw before applying so listener orientation doesn't snap.
-
-**Audio — stereo only.** Skip the binaural pipeline entirely. Per source: a `StereoPannerNode` whose `pan` is the source's screen-x relative to the player, clamped to `[-1, 1]`. No `engine.position`, no listener yaw.
-
-**Movement — tile-based grid.** Use queued-direction movement (store current `dir` and a queued `dir`; on each tile center, swap if the new tile is passable). Add a small "cornering" window near tile centers where motion happens on both axes for smoothness. The pacman repo's `content/pacman.js` is the reference.
-
-**Movement — continuous free.** Read `app.controls.game()` each frame for `{x, y}` and integrate position. Collision is geometric (AABB or circle-vs-tile), no grid snap needed.
-
-**Persistence — autosave.** Leave `app.autosave` running. Each `content.*` module exposes import/export hooks via `engine.state`. Keep saved state small — most gameplay state should rebuild on level start.
-
-**Persistence — high scores only.** Disable `app.autosave` in `main.js`. Add a dedicated `app.highscores` module reading/writing its own storage key. The pacman repo's `src/js/app/highscores.js` is a reference.
-
-**Progression — levels.** Add `levelClear` and `gameOver` screens to the FSM. The game's top-level FSM (in `content/game.js` or similar) typically transitions `intro → ready → play → death/levelClear → play (next level) | gameOver`.
+Then update `app/onlineScores.js` to match. Local highscores in `app/highscores.js` are **shared across modes** — keep this in mind if you ever want per-mode local boards.
 
 ## Common commands
 
@@ -232,246 +293,6 @@ For the same reason, the pinball table stores a `labelKey` alongside each bumper
 
 The `dist-electron` Gulp task packages only the current platform — to ship Windows + Linux + macOS, run `gulp dist` separately on each.
 
-## Audio patterns beyond binaural
-
-The template wires up `engine.ear.binaural` via `setVector` / `setQuaternion`, but binaural alone is a thin cue — every shipped game in this collection layers extra shaping on top. When you build a new game, reach for these patterns rather than treating raw binaural as the whole story.
-
-- **Behind-listener muffle.** Looping voices route through a shared lowpass + slight detune that opens as the source moves in front of the listener and closes behind it (`behindness()` returning 0 = ahead, 1 = directly behind). Sweep cutoff e.g. 22 kHz → 700 Hz with a `~0.05s` time constant; drop pitch by a few percent at maximum behindness. Stacks a strong front/back cue on top of binaural's weak HRTF nulls. Reference: `../pacman/src/js/content/audio.js`, `../bumper/src/js/content/pickups.js`.
-- **Per-source gain model.** Don't apply the same distance falloff everywhere. Use `gainModel.exponential` with a steep `power` for short-range FX (bullets, footsteps); `gainModel.normalize` for sensors that should stay audible at any range (proximity walls, off-screen indicators); cubic falloff for the local player's own car so it's loud locally but dies fast at distance for other peers. Reference: `../bumper/src/js/content/{bullets,carEngine,targeting}.js`.
-- **Continuous looping voice with parameter coupling.** For balls, engines, ball-rolls, danger drones, fan whooshes: open one oscillator/noise chain on screen-enter and shape it every frame from world state — gain ∝ speed, lowpass cutoff sweeps with speed, fundamental tracks position. Cheap, much easier to audition than discrete impacts, and gives constant ambient presence. Reference: `../pinball/src/js/content/audio.js` (rolling sound), `../pong/src/js/content/audio.js` (ball tone), `../racing/public/js/audio.js` (engine harmonics + turbo whine).
-- **Stereo + binaural dual path for one-shot SFX in 2D.** Sum a `StereoPannerNode` (dominant L/R, no head-shadow nulls) with a quieter binaural ear at the same position. Stereo carries position; binaural adds HRTF colour. Stereo dominates at distance because binaural drops off harder. Reference: `../pinball/src/js/content/audio.js:49`.
-- **Solenoid-style kick on collision.** Fixed energy added on top of restitution (e.g. `BUMPER_KICK = 22 u/s`) gives pop-bumpers, kickers, fan-blades, slings their snap. Pure restitution alone feels dead even at e = 1.0. Reference: `../pinball/src/js/content/physics.js:20`.
-- **Pitch families for disambiguation.** When the same entity type spawns in multiples (bumpers, drop targets, rollovers, ghosts, AI cars), give each instance a distinct base pitch (or a head/body two-tone pair) so rapid sequential hits stay decipherable. Same logic applies to enemy classes in shooters: tie a fundamental frequency to type so the player identifies an off-screen threat by timbre. Reference: `../pinball/src/js/content/audio.js:98`, `../vfb/src/js/content/entities.js:47`.
-- **Audio-clock scheduled lookahead.** For repeated cues (bleeps, pulses, beacons), schedule the next event with `engine.synth.simple({when: t})` ~50 ms ahead of `audioContext.currentTime` so `setTimeout` jitter never causes audible gaps. The outer JS loop only refills the queue. Reference: `../neverStop/src/js/content/audio.js:378`.
-- **Disposable per-frame ear for one-shots.** Spawn a fresh binaural ear per impact, schedule the graph, `setTimeout`-disconnect after the tail decays. Cheap and avoids voice-stealing logic. Don't reuse for high-rate streams (allocation cost dominates) — use a pooled or persistent voice instead. Reference: `../bumper/src/js/content/sounds.js:13`.
-- **Reusable ADSR helper.** Most games end up writing an `envelope(gain, t0, attack, hold, release, peak)` helper that cancels prior schedules and applies clean `setValueAtTime` + `linearRampToValueAtTime` curves. Write it once per game and route every synth voice through it. Reference: `../bumper/src/js/content/sounds.js:53`.
-- **Silence-all on screen exit.** When leaving the game screen for pause/menu/gameover, stop every looping spatial voice. Otherwise an enemy drone keeps playing under the menu, which is both distracting and confusing for screen-reader users. Reference: `../pacman/src/js/app/screen/game.js:85` calls `content.audio.silenceAll()`.
-- **BFS-routed radar beacon for navigation games.** When the listener is screen-locked and players need to *reach* a target (not just hear where it is), pathfind from the player to the target every ~1.5s and emit a directional tick at the next BFS step — "go this way to actually get there", not just "the target is over there." Reference: `../pacman/src/js/content/audio.js`.
-
-## Announcer and screen-reader patterns
-
-The accessible UI shell section above covers basic `aria-live`. The shipped games converge on a richer announcer than the bare minimum:
-
-- **Two regions, polite and assertive.** Polite carries routine events (score, pickup, rollover); assertive carries state changes (drain, rank-up, pause, game-over, boss spawn). Don't overload polite — assistive tech queues polite messages and a flood swallows everything. Reference: `../pinball/src/js/app/announce.js`, `../pacman/src/js/app/announce.js`, `../vfb/src/js/content/world.js`.
-- **Re-read identical strings.** Screen readers swallow back-to-back identical text. Either (a) clear the region to `''`, yield via `requestAnimationFrame` or `setTimeout(…, 50)`, then re-set, or (b) keep two parallel buffers per key and ping-pong between them. Reference: `../pacman/src/js/app/announce.js`, `../bumper/src/js/content/announcer.js`.
-- **Optional TTS fallback.** A `setUseTts(true)` toggle that adds a SpeechSynthesis path so users without a screen reader still get spoken cues. Off by default; expose in settings. Reference: `../bumper/src/js/content/announcer.js:34`.
-- **Function-key status hotkeys (F1–F7).** Every game in the collection wires F1–F4 (sometimes through F7) to read out a stat — score, lives, position, fuel, gear, nearest target, time. Bind at `window` keydown so they work regardless of focus. Without these, blind players have no way to query state mid-action. Reference: every game's `src/js/app/screen/game.js`.
-- **`preventDefault` on F1, F3, F5.** The browser maps F1 to Help, F3 to Find, F5 to Reload, F11 to Fullscreen. Capture-phase preventDefault on the game screen to keep them — but **don't** bind F11 (let users fullscreen). F1/F3/F5 are the dangerous ones in browsers; in Electron only F11 matters and is already removed by the menu strip.
-- **Opponent label switches by mode.** "Computer" vs "opponent" reads differently. Branch on `isMultiplayer()` at i18n lookup time, not in the message constant. Reference: `../pong/src/js/content/scoring.js:12`.
-
-## AI patterns
-
-- **Per-AI personality randomization.** Construct each AI with random `aggression`, `cooldown`, `reactionDelay`, etc. so they feel distinct and don't dogpile in unison. Tune the *ranges* not the values. Reference: `../bumper/src/js/content/ai.js:20`.
-- **Anti-gang targeting tax.** When picking a target, subtract a penalty per other AI already chasing the same victim — spreads attention instead of all five chasing the player. Reference: `../bumper/src/js/content/ai.js:71`.
-- **Reaction-delay buffer.** For human-feeling AI (paddle, follower, AI car), keep a circular buffer of recent observed positions and read it `N` frames in the past instead of the current frame. Easier to tune than predictive AI, naturally beatable, and reads as "human reflexes" rather than "perfect tracking." Reference: `../pong/src/js/content/ai.js:10`.
-- **Hysteresis on toggle decisions.** AI throttle direction, target switching, and similar binary choices need a hysteresis flag so the value doesn't flap when the underlying signal sits on the threshold. Reference: `../bumper/src/js/content/ai.js:36`.
-- **Post-action cooldown / breather.** After a big action (ram, swing, fire), force the AI to disengage for a randomized interval scaled by personality. Without it, AIs pin-and-spam. Reference: `../bumper/src/js/content/ai.js:495`.
-- **Schedule tables for arcade-fidelity behavior.** Pac-Man ghosts use per-level scatter/chase tables, dot-counter release thresholds, and Cruise Elroy speedups straight from the Pac-Man Dossier. If a port needs feel parity, port the tables verbatim — feel-tuning by hand never converges. Reference: `../pacman/src/js/content/ghosts.js`.
-
-## Physics patterns
-
-- **Sub-stepped integration to prevent tunneling.** Adapt sub-step count from `MAX_SPEED / (collisionRadius * dt)` so per-substep travel stays below ~70% of the smallest collider. 8–48 substeps/frame is normal for fast 2D games. Reference: `../pinball/src/js/content/physics.js:46`.
-- **Multi-pass collision resolution.** A single resolve against segment A can push the body into segment B at corners. Loop up to ~4 passes per substep — first pass reflects velocity, subsequent passes are pure position correction. Reference: `../pinball/src/js/content/physics.js:54`.
-- **Velocity-aware normal fallback.** When a circle's centre lands exactly on a line (`dist < 1e-6`), the perpendicular has two valid signs. Pick the one opposite to velocity so fast bodies don't get punched through the wall. Reference: `../pinball/src/js/content/physics.js:82`.
-- **Velocity-dependent restitution.** Rubber-on-flipper compression: `e = base / (1 + falloff * impactSpeed)`. Hard hits absorb energy, allowing cradling and drop-catch. Without it a held flipper acts as a perfect catapult. Reference: `../pinball/src/js/content/physics.js:36`.
-- **Asymmetric kinematics for actuators.** Real solenoids snap fast, springs return slow. Pinball flippers use 30 rad/s up vs 9 rad/s down. Symmetric speed prevents ball settling and breaks every advanced technique. Reference: `../pinball/src/js/content/physics.js:25`.
-- **Stuck-body force-drain.** Track frames where speed < ε; after ~90 frames force-drain or teleport. Numerical equilibrium in geometric wedges is otherwise unreachable. Reference: `../pinball/src/js/content/physics.js:126`.
-- **Asymmetric damage on collision.** The aggressor (body driving harder into the contact normal) eats less damage; the victim eats more. Encourages attacking and rewards positioning. Reference: `../bumper/src/js/content/physics.js:24`.
-- **Steering scales with speed and direction.** `steerMul = clamp(speed/v0, 0, 1) * sign(forwardSpeed)` so reversing inverts steering naturally — like a real car. Without the speed gate, parked cars spin in place. Reference: `../bumper/src/js/content/physics.js:82`.
-- **One-way gates.** Mark a segment as `oneway` with a `normal`; only resolve collisions where `dot(velocity, normal) > 0`. Useful for ramps, gutter return lanes, no-back-tracking corridors. Reference: `../pinball/src/js/content/physics.js:316`.
-- **Soft speed cap.** Instead of hard-clamping `|v| ≤ vmax`, scale by `k = vmax / |v|` when over the cap. Smoother and avoids step discontinuities in derived audio (engine pitch). Reference: `../bumper/src/js/content/physics.js:76`.
-
-## Progression, state, and persistence patterns
-
-- **Persistent vs session state.** Distinguish run-state (lives, score, fuel, current level) from cross-run state (cash, permanent upgrades, high scores, unlocked locales). Persistent state survives `engine.state.reset()`; session is rebuilt every run. The store screen mutates persistent values, then session re-baselines from persistent on the next run. Reference: `../vfb/src/js/content/state.js`.
-- **i18n keys for locale-stable values.** The template's i18n section mentions `stopReasonKey` — generalize it: any value computed in module A and rendered in module B (stop reasons, label keys, rank names, mission descriptions, achievement titles, gameover messages) must store the **key**, not the rendered string. Translates fresh at render time even if locale changed mid-flight. Reference: `../neverStop/src/js/content/car.js`, `../pinball/src/js/content/table.js`.
-- **High scores dual backend.** Electron writes to a JSON file via the preload bridge (`window.ElectronApi.readHighScores/writeHighScores`); web falls back to `localStorage[<game>-highscores-v1]`. Up to 10 entries, sorted descending. Don't put high scores in `engine.state` if they should survive a `state.reset()`. Reference: `../pacman/src/js/app/highscores.js`.
-- **Combo with decay timer.** Track `comboValue` and a `comboTimer` that resets on each kill/hit. Timer expiring drops the combo; chained hits scale the reward. Bind the combo trigger to *impact*, not death, so the visual/audio frame is right. Reference: `../vfb/src/js/content/world.js:115`.
-- **Score-threshold extends.** Award an extra life at thresholds that **increase with each extend** (20k, 60k, 120k, 200k, …) rather than a fixed period. Avoids late-game infinite extends. Reference: `../vfb/src/js/content/state.js:162`.
-- **Rank tiers driven by score.** Score → rank lookup with i18n-keyed names announces "promoted to X" on cross-thresholds. Cheap progression hook for endless games. Reference: `../pinball/src/js/content/game.js:24`.
-- **Mission queue with per-mission `kind`.** Each mission has a `kind` (`targets`, `bumpers`, `rollovers`, `survive`, …) that selects the progress predicate. Completing all advances to a final state. Easier to add new missions than to write a custom state machine. Reference: `../pinball/src/js/content/game.js:41`.
-- **Inventory as map of stacks.** `inventory = {shields, bullets, mines, boosts, teleports}`. Stack on pickup with optional caps. Auto-consume items have a per-frame `autoCheck(state)` (e.g. fuel pack triggers when `fuel < 0.15`); manual items consume on player action. A "random box" pickup runs a weighted roll on the registry. Reference: `../bumper/src/js/content/car.js:46`, `../neverStop/src/js/content/items.js`.
-- **Checkpoint on intermediate landmark.** When the player dies but has lives left, restart from the last passed checkpoint (tower destroyed, boss flag, midpoint), not the level start. Removes the "lost 5 minutes of progress" friction. Reference: `../vfb/src/js/content/entities.js:152`.
-- **Game-over delay so audio finishes.** A crash/death often has a satisfying audio sting (700–1500 ms). Set a `pendingGameOver` flag, keep audio ticking, and only transition the screen after the cue completes. Reference: `../neverStop/src/js/content/game.js:159`.
-
-## Diagnostic, learn, and soundtest screens
-
-Hidden screens are essential for an audio-first game — without them you can't validate spatial audio orientation, audition new sounds, or let players learn the cue vocabulary. The collection converges on three:
-
-- **`#test` route** — plays ticks at front / right / behind / left around a static listener at the canonical orientation. Verifies the screen→audio coordinate flip is correct *by ear*. Run this first whenever you touch listener code. Reference: `../pacman/src/js/app/screen/test.js`.
-- **`#learn` (or "learn sounds") route** — plays each spatial prop (enemy types, pickup types, hazards) and one-shot SFX individually with labeled buttons. Calls `content.audio.setStaticListener(0)` once on enter so the listener doesn't drift, and re-applies it on re-entry from screens that may have moved it. Reference: `../pacman/src/js/app/screen/learn.js`, `../pinball/src/js/app/screen/learn.js`.
-- **Soundtest / variant preview** — for games with synth variant tables (bleeps, drones), expose a hidden screen reachable by a key press from the menu (T in neverStop) that auditions each variant and lets the player select one for the session. Useful for tuning and for letting screen-reader users pick a timbre that doesn't conflict with their TTS. Reference: `../neverStop/src/js/app/screen/soundtest.js`.
-- **Wire diagnostic routes via `none → activate`.** Honor `window.location.hash` in the FSM's `activate` transition (see existing gotcha). Don't try to dispatch from `main.js` after `app.screenManager.dispatch('activate')` — at that point the FSM is already at the destination.
-
-## Multiplayer (when adding network play)
-
-The template ships single-player. If a game needs online multiplayer,
-the rest of `oriolgomez.com`'s games (`../bumper`, `../racing`) follow
-a fixed pattern — copy it instead of inventing something new, so the
-shared coturn server keeps working uniformly.
-
-### Infrastructure (already running, don't redeploy)
-
-- **Signalling**: free public **PeerJS broker** (`0.peerjs.com`). No
-  backend to host, no ports to open. Each peer gets a string id; the
-  host picks a deterministic id like `<gameslug>-<roomcode>` and
-  clients connect to it. Public PeerJS ids are global, so always
-  prefix with the game's name to avoid collisions.
-- **Data plane**: direct **WebRTC data channels** between peers. JSON
-  over `DataConnection.send()`.
-- **STUN / TURN / TURNS**: self-hosted **coturn** on the VPS that
-  serves oriolgomez.com.
-  - `turn.oriolgomez.com:3478` UDP+TCP — STUN + TURN.
-  - `turn.oriolgomez.com:5349` TCP — TURNS (TLS, last-resort path
-    through restrictive firewalls).
-  - Hostname rides the wildcard `*.oriolgomez.com` A record. If the
-    VPS IP ever changes, only the wildcard updates — no game rebuild.
-  - Server config: `/etc/turnserver.conf`. Long-term creds, single
-    user `gamesturn` (the password lives in the games' source — it's
-    public-by-design because WebRTC requires the browser to know it).
-  - TLS cert is provisioned by Caddy (Caddyfile entry for
-    `turn.oriolgomez.com`) and copied into `/etc/coturn/{turn.crt,
-    turn.key}` by `/usr/local/bin/coturn-cert-deploy`. The systemd
-    path unit `coturn-cert-watch.path` re-runs the deploy on Let's
-    Encrypt renewal.
-  - UFW: `3478/udp+tcp`, `5349/tcp+udp`, `49160-49200/udp` (relay
-    range, kept narrow on purpose).
-
-### The constants block (copy this verbatim)
-
-In whichever module owns networking (call it `net.js` or
-`src/js/app/net.js`), put these five constants at the top — never
-inline the host/port/creds further down. Future ops changes (server
-move, cred rotation, port shift) should be one diff in five lines.
-
-```js
-const TURN_HOST = 'turn.oriolgomez.com'
-const TURN_PORT = 3478
-const TURNS_PORT = 5349
-const TURN_USER = 'gamesturn'
-const TURN_PASS = 'sin6V0gFokHz78gM0GDfXmat'
-```
-
-The `iceServers` array fed to `new Peer({config: {iceServers}})` (or
-to a raw `RTCPeerConnection`) follows a fixed order — STUN first
-because most connections never need a relay, then TURN/UDP, then
-TURN/TCP for firewalls that drop UDP, then TURNS/TLS as the last
-resort:
-
-```js
-config: {
-  iceServers: [
-    {urls: `stun:${TURN_HOST}:${TURN_PORT}`},
-    {urls: 'stun:stun.l.google.com:19302'},  // Google STUN as backup
-    {
-      urls: `turn:${TURN_HOST}:${TURN_PORT}?transport=udp`,
-      username: TURN_USER,
-      credential: TURN_PASS,
-    },
-    {
-      urls: `turn:${TURN_HOST}:${TURN_PORT}?transport=tcp`,
-      username: TURN_USER,
-      credential: TURN_PASS,
-    },
-    {
-      urls: `turns:${TURN_HOST}:${TURNS_PORT}?transport=tcp`,
-      username: TURN_USER,
-      credential: TURN_PASS,
-    },
-  ],
-  iceCandidatePoolSize: 2,
-}
-```
-
-ICE candidate types in the browser console (when debugging connection
-failures, this is the most useful signal):
-- `host` — local LAN address (always present).
-- `srflx` — public address discovered via STUN (means STUN works).
-- `relay` — TURN-allocated address (means TURN works).
-- No `relay` candidates + symmetric NAT = no path = silent timeout.
-
-### Topology: star with host-authoritative sim
-
-Both reference games use the same shape, and you should too unless
-there's a strong reason not to:
-
-- **One host, N clients.** Host runs the full simulation (physics,
-  AI, scoring, item state) and broadcasts authoritative snapshots.
-  Clients send inputs only.
-- **Wire protocol** is plain JSON, no schema. Tag every message with
-  a `type` field. Typical types: `hello`, `lobby`, `start`, `input`,
-  `snap`, `event`, `end`, `kick`, `bye`. Validate `type` on receive,
-  trust the rest (same code on both sides).
-- **Tick / snap rate** is decoupled. Bumper runs the sim at 60 Hz on
-  the host but only emits snapshots at 30 Hz. Clients lerp between
-  snapshots and dead-reckon between them where it matters (e.g. car
-  position uses lerp; listener yaw uses an immediate steering
-  prediction so spatial audio doesn't lag a tick).
-- **Events** that fire from the sim (collisions, pickups, weapon
-  fires, eliminations) ride along inside the next snapshot in a
-  `pendingEvents` array. The client re-emits them through its own
-  pubsub so audio / haptics / announcer subscribers fire from the
-  *local* player's perspective. Don't fire events out-of-band — they
-  can arrive before the snapshot that establishes the state they
-  describe.
-- **Round-end ordering**: on the host, push the `roundEnd` event into
-  the next snapshot **before** locally emitting any "stop the round"
-  signal that would clear the cars/state. Otherwise clients never see
-  the final state.
-- **Disconnect handling**: mid-round client leave → host treats them
-  as eliminated (forfeit). Mid-round host disconnect → client catches
-  the `close` event and exits to the menu.
-
-### Reference implementations
-
-- **`../bumper/src/js/app/net.js`** — full implementation: PeerJS
-  wrapper, lobby flow, snapshot replication, arcade items, heartbeat
-  + peer timeout. Source-tree game with a Gulp build step, so changes
-  to `net.js` need `gulp build` to land in `public/scripts.min.js`.
-  Has the most complete docstring at the top of the file — read that
-  for the wire-protocol schema and message-flow examples.
-- **`../racing/public/js/net.js`** — leaner version of the same idea
-  for a no-build static game. Plain `<script>` tag in
-  `public/index.html` loads PeerJS from CDN, then `net.js` is served
-  as-is. Edit and reload.
-
-### Things to remember
-
-- **PeerJS data channels don't throw on send when closed.** They
-  silently drop. If you need delivery guarantees, ack at the app
-  layer.
-- **Loading PeerJS from CDN can fail offline.** `net.js` should
-  expose `libAvailable()` and the menu should hide multiplayer when
-  it returns false, instead of erroring inside `host()` / `join()`.
-- **Don't put gameplay logic in `net.js`.** Keep it a thin transport
-  with `on(event, cb)` / `send(msg)` / `broadcast(msg)` /
-  `host(opts)` / `join(opts)` / `disconnect()`. Game modules
-  subscribe and translate.
-- **Document this game's wire protocol in its own CLAUDE.md.** A
-  `Multiplayer` section listing every `type` and its payload shape is
-  essential — clients and hosts share validation by trust, so the
-  CLAUDE.md *is* the schema.
-
-### Additional patterns (drawn from the shipped games)
-
-- **Room codes use an unambiguous charset.** `'BCDFGHJKLMNPQRSTVWXZ23456789'` — no `0/O`, `1/I/L`, no vowels (avoids accidental words). Players read codes aloud over voice chat, so this matters more than it looks. Reference: `../bumper/src/js/app/net.js:44`.
-- **Networked vs local events allow-list.** Define an explicit `NETWORKED_EVENTS` array. Only events in the list ride in `pendingEvents`; everything else stays local. Side-channel events that aren't in the list silently won't replicate, so making the allow-list explicit prevents "works locally, missing for remote players" bugs. Reference: `../bumper/src/js/content/game.js:61`.
-- **Don't put `type` in event payloads.** The capture spreads `{type: eventName, ...payload}` into the wire message — a payload field named `type` clobbers the event name. Use `kind` / `category` / `action` instead. Reference: `../bumper/src/js/content/game.js:415`.
-- **Role-guarded mutations.** Subscribers that mutate authoritative state (score, health, inventory) must `if (role !== 'client') return` — clients receive the result via the next snapshot, not by re-running the logic. Otherwise scores double. Reference: `../bumper/src/js/content/game.js:138`.
-- **Predict only what audio cares about.** Position can lag a tick (lerp between snapshots). Listener orientation can't — predict it locally from steering input so spatial audio doesn't lag the controls. Position drift corrects naturally over the next snapshot. Reference: `../bumper/src/js/content/game.js:1168`.
-- **Shortest-arc lerp for angles.** `dh = atan2(sin(target - current), cos(target - current))` to wrap the difference into `[-π, π]` before lerping. Raw subtraction snaps 359° → 0° and the avatar flips. Reference: `../bumper/src/js/content/game.js:1163`.
-- **Items reconcile from snapshots, not local logic.** Clients don't simulate pickups / bullets / mines. Each snapshot carries the authoritative item list; the client diffs it: create voices for new ids, destroy voices for missing ids, hard-set positions. Optionally dead-reckon between snapshots using `vx, vy`. Reference: `../bumper/src/js/content/game.js:355`, `../racing/public/js/main.js:415`.
-- **Bot fill on host.** If the lobby has fewer than the target player count, fill with AI bots so the round always has a full roster. Bots ride the same snapshot fields as remote players. Clients auto-discover bots from the first snapshot. Reference: `../racing/public/js/main.js:83`.
-- **Per-team listener flip.** In symmetric arena games (pong, head-to-head), the listener for team 2 sits at the opposite end. Helper functions `calcPan(ev)` and `calcDepthT(ev)` take the local team into account so audio events broadcast in world coords play with the right perspective on each peer. Reference: `../pong/src/js/content/audio.js`, `teamManager.js`.
-- **Audio-event relay queue.** Wrap `content.audio.*` with a relay that queues events to `pendingAudioEvents`; ride them in the next snapshot so clients replay locally with their own listener pose. Don't fire audio out-of-band — it can race the snapshot that establishes the source's position. Reference: `../pong/src/js/content/audio.js:8`.
-- **Per-peer profile swap for self-comfort.** If cars / players have audio profiles (timbre, color), swap profiles 0 and `selfSlot` per-peer so each listener hears their own car as the gentlest profile (the loud aggressive timbre is fine on someone else's screen). Side effect: the same player has different perceived audio per peer. Reference: `../bumper/src/js/content/carEngine.js:14`.
-- **Optimistic local action with host reconciliation.** Decrement bullet count, play fire SFX, queue the input — all locally and immediately. Host runs the authoritative shot a tick later. The shared SFX masks the latency; the eventual host-broadcast result corrects state. Reference: `../racing/public/js/main.js:243`.
-- **Per-player pickup spawn timers.** A leader-only spawn schedule means trailing players never see pickups. Track spawn timing per-player on the host so everyone gets the same item rate regardless of position. Reference: `../racing/public/js/pickups.js:34`.
-- **Use absolute (monotonic) coordinates for spawn math.** Never compute spawn positions in wrapping coordinates. Promote to a monotonic absolute (e.g. `zAbs = lap * trackLen + z`) so "spawn 200 m ahead of player" works across lap / loop boundaries. Reference: `../racing/public/js/pickups.js:44`.
-- **Two-paddle manual mode.** In multiplayer the host drives both paddles via `setManualKeys()` rather than each peer reading its own keyboard for its paddle. Avoids double-reading the host's keys when both adapters are on the same machine. Reference: `../pong/src/js/content/game.js:93`.
-- **Heartbeat + peer timeout.** Send a tiny `ping` every ~2s; treat a peer as gone after ~6s without traffic. PeerJS connections can sit "open" for minutes after a real disconnect. Reference: `../bumper/src/js/app/net.js`.
-- **Static games still need `gulp build`.** Source-tree games like `bumper` require rebuilding `public/scripts.min.js` after editing `net.js`. Static games like `racing` are edit-and-reload. Don't burn time debugging stale builds — check which kind you're in.
-
 ## Conventions
 
 - No build-time module system. All app code is written as IIFEs or assignments to the `app` / `content` namespaces. New files are picked up via the glob in `Gulpfile.js`'s `getJs()`/`getCss()` — no manual registration needed.
@@ -567,6 +388,16 @@ engine.mixer.reverb.setActive(false)
 ```
 
 CRAZY CLIMBER! (`../climber/src/js/main.js`) does this. If a specific cue genuinely needs a room sound, build a per-cue convolver on that signal chain instead of leaning on the global send.
+
+### Loops for short-lived buffs and per-bullet trails flood the field
+
+A continuous looping voice on the listener (e.g. "you have rapidFire") or on every projectile (e.g. an in-flight UFO bullet drone) sounds informative in isolation but **drowns the rest of the field** when the player is doing the thing the loop is meant to advertise — i.e. all the time. Symptom: the player reports "I can't hear the rocks anymore" while a buff is active, or "everything sounds like noise" while multiple UFO bullets are airborne.
+
+Prefer **one-shot stings on transitions** — start sting on activation, end sting on expiry — and let the in-between gameplay change (different fire rate, bigger bullets, proximity-beep ping at the threat) be the cue. The buff/threat is what the player is currently *doing or reacting to*; they don't need a constant reminder.
+
+Reference: `content/audio.js` `emitBuffStart`/`emitBuffEnd` (replaces the old `startBuffVoice`/`stopBuffVoice` pad).
+
+The rule is about *flooding*, not about looping voices being banned outright. UFO bullets *do* now carry a continuous in-flight voice (`buildUfoBullet`) — the original proximity-beep-only design left them unlocatable. It's safe here because the bullet count is naturally tiny (1–2 live at once) and the timbre is a clean tone, not the old buzz drone. The danger is a loop that's both *numerous* and *masking*; one or two clean-toned voices are neither. If projectile counts ever balloon, cap voiced bullets to the nearest N rather than removing the voice. See *UFO bullet audio*.
 
 ### Hash routing in screenManager
 

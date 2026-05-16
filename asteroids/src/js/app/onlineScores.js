@@ -4,8 +4,27 @@
 // enforces single-use nonces, per-game max_score, IP rate limits, and a
 // charset check on the player name.
 app.onlineScores = (() => {
-  const GAME_ID = 'asteroids'
-  const SECRET = '9fO7rgGN0RWsgzuRRaW3O0ujRQLpryVwzskxbKYPnBM'
+  // The game ships with two leaderboards — classic asteroids and the
+  // arcade-mode powerup variant. The active mode is set by the menu /
+  // gameover screen via setMode(); openSession() / fetchTop() consult the
+  // active mode when picking GAME_ID + SECRET. Each board is registered
+  // separately on scores.oriolgomez.com.
+  const GAMES = {
+    classic: {
+      id: 'asteroids',
+      secret: '9fO7rgGN0RWsgzuRRaW3O0ujRQLpryVwzskxbKYPnBM',
+    },
+    arcade: {
+      // Set manually in /home/scores/data/scores.db — the admin API only
+      // generates random secrets, so we wrote this row directly. Rotate
+      // via the same path if it ever needs to change.
+      id: 'asteroids-arcade',
+      secret: 'ZRBrJAVd4CuO6SOVRCICB7as3mVk8YRZpy0GvAtwtoo',
+    },
+  }
+  let activeMode = 'classic'
+  function setMode(mode) { activeMode = (mode === 'arcade' ? 'arcade' : 'classic') }
+  function GAME_ID() { return GAMES[activeMode].id }
   const BASE   = 'https://scores.oriolgomez.com'
   // Mirrors the server's safe-charset regex so we can reject bad names
   // client-side instead of round-tripping.
@@ -34,11 +53,11 @@ app.onlineScores = (() => {
     const r = await fetch(BASE + '/api/session', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({game_id: GAME_ID}),
+      body: JSON.stringify({game_id: GAME_ID()}),
     })
     if (!r.ok) throw new Error('session: ' + r.status)
     const d = await r.json()
-    session = {token: d.token, issuedAt: d.issued_at}
+    session = {token: d.token, issuedAt: d.issued_at, gameId: GAME_ID()}
     serverInfo = d
     return d
   }
@@ -49,8 +68,12 @@ app.onlineScores = (() => {
   async function submit({name, score, meta = {}}) {
     if (!session) throw new Error('open a session before submitting')
     const metaJson = JSON.stringify(meta)
+    // Use the secret tied to the session's game_id, not the currently
+    // selected mode — in case the user switched mode between openSession
+    // and submit, we still sign with the right key.
+    const secret = (session.gameId === GAMES.arcade.id) ? GAMES.arcade.secret : GAMES.classic.secret
     const sig = await hmacSha256(
-      SECRET,
+      secret,
       session.token + '|' + name + '|' + score + '|' + metaJson,
     )
     const r = await fetch(BASE + '/api/score', {
@@ -74,7 +97,7 @@ app.onlineScores = (() => {
   async function fetchTop(limit = 10) {
     try {
       const r = await fetch(
-        BASE + '/api/scores/' + encodeURIComponent(GAME_ID) +
+        BASE + '/api/scores/' + encodeURIComponent(GAME_ID()) +
         '?limit=' + (limit | 0),
       )
       if (!r.ok) return []
@@ -89,9 +112,11 @@ app.onlineScores = (() => {
     openSession,
     submit,
     fetchTop,
+    setMode,
+    mode: () => activeMode,
     hasSession: () => !!session,
     isValidName: (s) => typeof s === 'string' && NAME_RE.test(s),
     maxNameLength: () => (serverInfo && serverInfo.max_name_length) || 32,
-    gameId: () => GAME_ID,
+    gameId: () => GAME_ID(),
   }
 })()

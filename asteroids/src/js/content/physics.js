@@ -36,10 +36,16 @@ content.physics = (() => {
     return Math.sqrt(dx*dx + dy*dy)
   }
 
-  // Integrate one body with light damping. Wraps position via wrap().
-  function integrate(body, dt) {
-    body.vx *= K().SOFT_DAMP
-    body.vy *= K().SOFT_DAMP
+  // Integrate one body and wrap its position. Damping is opt-in via the
+  // `damp` flag — the ship coasts with light drag (genre flavour), but
+  // asteroids and UFOs must drift at constant speed forever, which is the
+  // classic Asteroids behaviour. Applying SOFT_DAMP to a rock makes it
+  // gradually freeze in place, which is wrong.
+  function integrate(body, dt, damp) {
+    if (damp) {
+      body.vx *= K().SOFT_DAMP
+      body.vy *= K().SOFT_DAMP
+    }
     body.x += body.vx * dt
     body.y += body.vy * dt
     const w = wrap(body)
