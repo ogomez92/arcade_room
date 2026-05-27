@@ -70,6 +70,14 @@ content.constants = {
   // the spawn position (and therefore the audio pan) shifts to the side.
   SIDE_SHOT_OFFSET: 1.2,
 
+  // Proton bomb (arcade) — a stackable inventory item, fired with Space.
+  // On detonation it vaporises every rock (and the UFO + its bullets)
+  // within PROTON_BOMB_RADIUS of the ship, awarding each body's score.
+  PROTON_BOMB_RADIUS: 65,
+  // Score-multiplier buff — while active, every score gain is multiplied
+  // by the current wave number.
+  SCORE_MULTIPLIER_DURATION: 18,
+
   // Scoring + progression
   SCORE: {large: 20, medium: 50, small: 100, bigUfo: 200, smallUfo: 1000},
   START_LIVES: 3,

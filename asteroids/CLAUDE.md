@@ -61,13 +61,28 @@ No other file needs touching — `content.bullets`, `content.game`, the spawn lo
 
 ## Fire keys and directional shots
 
-- **Space + S** — centre shot (bullet spawns at the ship's centre, pan is positional).
+- **S** — centre shot (bullet spawns at the ship's centre, pan is positional).
 - **A** — left shot (bullet spawns at `SIDE_SHOT_OFFSET` perpendicular-left of centre, audio pan biased left).
 - **D** — right shot (mirror of A).
 
-All four routes go through `content.game.requestFire(side)`. The bullet's velocity vector is **always** along ship heading — the side only shifts the muzzle spawn point and the audio pan. This is the cheap "two cannons + one main" feel without complicating the physics or the player's mental model of where the shot will land.
+**Space does NOT fire a bullet** — it detonates a proton bomb (see *Inventory powerups*). Space used to be a centre-fire alias; that was removed when the bomb was added. Don't re-add Space as a fire key — the user wants Space to be the bomb.
+
+All three fire routes go through `content.game.requestFire(side)`. The bullet's velocity vector is **always** along ship heading — the side only shifts the muzzle spawn point and the audio pan. This is the cheap "two cannons + one main" feel without complicating the physics or the player's mental model of where the shot will land.
 
 Multiple sides can be held at once; arcade rapidFire's auto-re-fire follows the most recently pressed side, falling back to whatever is still down if that key is released.
+
+## Inventory powerups, proton bomb, shield, score multiplier
+
+Four arcade powerups beyond the original rapidFire / bigShots / scoreBonus / rockSpawn. All are registry entries in `DEFS` (`content/powerups.js`) — they spawn, drift and are picked up by the generic loop. What's special is the *effect plumbing* in `content.game`:
+
+- **scoreMultiplier** — timed buff (`SCORE_MULTIPLIER_DURATION` 18 s). While `isActive('scoreMultiplier')`, `content.game._award()` multiplies every gain by `max(1, state.wave)`. Because it's a timed buff it gets the automatic `emitBuffStart`/`emitBuffEnd` stings from `audio.frame()`'s active-set diff — a `_buffStingProfile('scoreMultiplier')` entry was added for that.
+- **extraLife** — instant; `onPickup` calls `content.game.grantExtraLife()` → `state.lives += 1`, emits `extra-life` (HUD refresh only; the spoken cue is the generic `powerup-pickup` → `ann.pwrExtraLife`).
+- **protonBomb** — instant, but **stackable**: `onPickup` calls `content.game.addBomb()` which increments `state.bombs`. Fired with **Space** → `content.game.fireBomb()`: spends one bomb and vaporises every rock (no split), the UFO, and all UFO bullets within `PROTON_BOMB_RADIUS` (65 u) of the ship, awarding each body's score; plays `audio.emitProtonBomb()` (a huge binaural blast). Firing with an empty inventory emits `bomb-empty` ("No proton bombs"). **F5** announces the inventory (`announceInventory` → `ann.inventory`).
+- **shield** — instant, **stackable** (like protonBomb): `onPickup` calls `content.game.grantShield()` which increments `state.shields`. In `tick()`, both the collision-death block and the hyperspace-death branch check `state.shields > 0` *before* killing the ship: if a shield is available it's spent (`state.shields -= 1`), `audio.emitShieldBlock()` plays, a `shield-block` event fires, and the ship survives (collision → 2 s invuln; hyperspace → respawn in place). Shield is **not** a timed buff — it's a plain counter in game state, one consumed per would-be death.
+
+`state.bombs` and `state.shields` are reset in `startRun()`.
+
+**Debug key.** Triple-tap **`0`** within 1 s (tracked in `app/screen/game.js` `state.debugTaps`) arms a debug grant key. Once armed, each `0` press grants an inventory item, cycling proton bomb → shield → bomb → … This is a debug aid; it stays armed for the session.
 
 ## Bullet origin invariant
 
@@ -97,9 +112,11 @@ Plus the existing quiet binaural triangle for HRTF colour. The `big` flag (passe
 `audio.setProximityBeep(sources)` is the per-frame audio cue for "things relevant to the player." Called from `content.game.tick()` via `findProximitySources()`. Sources fall into two buckets:
 
 - **Threats** (rocks of any size, the active UFO, every UFO bullet) — included only when they're on a collision course with the ship and will impact within `IMPACT_TTI_MAX` (2.5 s) at current relative velocity. Pitch family per kind (rocks descend large→medium→small low→high; UFO bullets at 300 Hz; UFO body higher). Pulse rate scales inversely with TTI so an immediate threat sounds like an alarm.
-- **Powerups** (arcade mode only) — always included as a positive source when a pickup exists on the field, regardless of trajectory. Triangle waveform, higher pitch family (1175–1976 Hz), softer pulse rate (~3 Hz). The player always knows where a pickup is.
+- **Powerups** (arcade mode only) — the current pickup is gated by the **same collision-course test as a threat** (via `pushIfImminent(pw, pw.kind, true)`): it beeps only while the ship is actually on an intercept course and would reach it within `IMPACT_TTI_MAX`, and the beep fades out if the player drifts past or turns away. It's flagged `positive` so the audio still uses the powerup pitch/timbre (triangle waveform, higher pitch family 1175–1976 Hz, softer ~3 Hz pulse). The continuous looping world voice — not this beep — is what locates a pickup at any range; the beep is the "you're closing on it" confirmation. (This replaced the original always-on, trajectory-ignoring powerup source.)
 
 Up to `MAX = 4` sources play simultaneously, sorted by urgency (lowest TTI wins the early voice slots). The legacy `setTargetLock(on, info)` is preserved as a thin wrapper that collapses to a single proximity source with `tti=0.2`.
+
+**Front/behind cue.** The beep's stereo pan carries only left/right (`-rel.y`), so a threat dead ahead and one dead behind would otherwise be indistinguishable — both pan-center, same pitch. `_proximityBeepTick` runs each pulse through `behindness()` (0 ahead → 1 directly behind) which drives a **modest pitch-down (≤15%)** and a **lowpass that closes from ~8× the fundamental down to ~1.2×** (bright → near-sine muffle). A rock closing on a stopped ship from behind reads as a dull, slightly lower pulse. The pitch-down is deliberately capped at 15% so it can't push one kind's pitch into the next kind's family (rock pitches are ~1.34× apart) — the muffle is the dominant behind cue, the pitch-down only reinforces it.
 
 ## UFO bullet audio
 
@@ -110,6 +127,22 @@ UFO bullets had no audio in v0.1 — the player just died invisibly. Three cues 
 - **Proximity beep** — `setProximityBeep` includes UFO bullets when they're on a collision course (300 Hz pulse at the bullet's position, rate scales with TTI). This adds the collision-course *urgency alarm* on top of the always-on locating voice — same dual role rocks have (continuous voice + proximity beep).
 
 **The in-flight voice that was killed, and why this one is different.** An earlier per-bullet loop (low square + 60 Hz buzz tremolo through a narrow bandpass) was removed for flooding the field and sounding like a fart. `buildUfoBullet` deliberately avoids both failure modes: a *clean* pitched tone (triangle fundamental + a quiet sine shimmer partial + a gentle ~7 Hz AM — no buzz, no narrow bandpass), modest gain that sits between a small and medium rock, and a per-bullet ±4% pitch jitter so two in flight stay distinguishable. Flooding is not a real risk here — one UFO at a time, ~1.5 s fire period, 1.4 s bullet life → only 1–2 voices ever live. If a future change ever does spawn many bullets at once, cap the number of voiced bullets (nearest-N) rather than dropping the voice.
+
+## Explosion audio
+
+`audio.emitExplosion(x, y, size, type)` is the destruction sting. All layers mix into a single per-event binaural ear at the world position. `type` is `'rock'` (default) or `'ufo'` — a rock and a UFO must never sound alike.
+
+- **Rock** — the percussive noise **pop** the player already knew is kept as the core; the new layers wrap *around* it, they don't replace it. A descending sine **boom** sweep carries the spacey character and is strongly size-keyed (large 200→38 Hz, medium 360→92, small 720→250), so the three sizes are unmistakable by ear. A large rock also gets a sub thump. The **shatter** — staggered bandpass crack bursts tumbling downward in pitch — only fires for rocks that *split* (large = 4 cracks, medium = 2, **small = none**): a small rock just vaporizes with a bare pop, so the ear hears whether the rock broke apart. A faint triangle shimmer tail (large/medium) gives the airy wash. Durations are deliberately spread wide (0.9 / 0.55 / 0.26 s) — don't compress them back together.
+- **UFO** — a metallic electronic burst (resonant sawtooth zap + square ring clang + noise body). Mechanical on purpose. `game.js` passes `'ufo'` when a UFO is shot down.
+
+Don't drop the noise pop or merge the sizes — the user specifically wanted the pop kept and the per-size / split-vs-vaporize distinction made *more* obvious, not less.
+
+## Ship-destroyed audio and announcement
+
+The ship death is named, not generic. `game.js` records *what* killed the ship as `state._deathReason` (`'rock-large'|'rock-medium'|'rock-small'|'ufo'|'ufoBullet'|'hyperspace'`), set in `_onShipKilled(reason)` and resolved in the collision scan in `tick()`.
+
+- **Sound** — `audio.emitDeath(reason)` always plays the same descending **dirge** (`_emitDeathDirge` — the "ship destroyed" identity) but layers a short **cause sting** on the front via `_emitDeathCause`: rock crash = a size-keyed heavy crunch; `ufo` = a metallic hull clang; `ufoBullet` = a searing laser zap + hiss; `hyperspace` = a glitchy stepped warble (disintegration). `'collision'` is a generic-crunch fallback (also what `previewDeath()` uses).
+- **Announcement** — the `life-lost` event carries `reason`; `app/screen/game.js` maps it to an `ann.deathRock*` / `ann.deathUfo` / `ann.deathUfoBullet` / `ann.deathHyperspace` i18n key (e.g. "Ship destroyed. You crashed into a large rock."). `ann.death` is the no-reason fallback. The old `hyperspace-death` "Bad jump." announcement was removed — it's now subsumed by `ann.deathHyperspace`.
 
 ## Scoring, waves, and lives
 

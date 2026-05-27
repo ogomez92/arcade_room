@@ -33,10 +33,14 @@ content.powerups = (() => {
 
   // --- registry ---
   // Effects:
-  //   rapidFire  — timed; fire cooldown ignores MAX_BULLETS cap.
-  //   bigShots   — timed; bullet radius/visual scaled up.
-  //   scoreBonus — instant; awards rand(500..2500) * wave points.
-  //   rockSpawn  — instant; spawns 10 small rocks anywhere in field.
+  //   rapidFire       — timed; fire cooldown ignores MAX_BULLETS cap.
+  //   bigShots        — timed; bullet radius/visual scaled up.
+  //   scoreBonus      — instant; awards rand(500..2500) * wave points.
+  //   rockSpawn       — instant; spawns 10 small rocks anywhere in field.
+  //   scoreMultiplier — timed; every score gain is multiplied by the wave.
+  //   extraLife       — instant; grants one extra life.
+  //   protonBomb      — instant; adds one bomb to the stackable inventory.
+  //   shield          — instant; absorbs the next ship destroy.
   const DEFS = {
     rapidFire: {
       id: 'rapidFire',
@@ -99,6 +103,66 @@ content.powerups = (() => {
         content.asteroids.spawnExtra('small', 10)
         try { content.audio.emitRockSpawn() } catch (e) {}
         content.events.emit('powerup-rockspawn', {count: 10})
+      },
+    },
+    // Timed buff — while active every score gain is multiplied by the
+    // current wave number (see content.game._award()).
+    scoreMultiplier: {
+      id: 'scoreMultiplier',
+      kind: 'scoreMultiplier',
+      weight: 2,
+      durationS: 18,
+      timed: true,
+      voice: 'scoreMultiplier',
+      announceKey: 'ann.pwrScoreMultiplier',
+      announceEndKey: 'ann.pwrScoreMultiplierEnd',
+      pickupSoundKey: 'pwrPickScoreMultiplier',
+      learnKey: 'learn.pwrScoreMultiplier',
+      onPickup(s) {
+        s.activate('scoreMultiplier', this.durationS)
+      },
+    },
+    // Instant — grants one extra life.
+    extraLife: {
+      id: 'extraLife',
+      kind: 'extraLife',
+      weight: 1,                  // rarest — an extra life is a big deal
+      timed: false,
+      voice: 'extraLife',
+      announceKey: 'ann.pwrExtraLife',
+      pickupSoundKey: 'pwrPickExtraLife',
+      learnKey: 'learn.pwrExtraLife',
+      onPickup() {
+        content.game.grantExtraLife()
+      },
+    },
+    // Instant — adds one proton bomb to the stackable inventory. Fired
+    // with Space (see content.game.fireBomb()).
+    protonBomb: {
+      id: 'protonBomb',
+      kind: 'protonBomb',
+      weight: 2,
+      timed: false,
+      voice: 'protonBomb',
+      announceKey: 'ann.pwrProtonBomb',
+      pickupSoundKey: 'pwrPickProtonBomb',
+      learnKey: 'learn.pwrProtonBomb',
+      onPickup(_s, ctx) {
+        ctx.bombCount = content.game.addBomb()
+      },
+    },
+    // Instant — raises a shield that absorbs the next ship destroy.
+    shield: {
+      id: 'shield',
+      kind: 'shield',
+      weight: 2,
+      timed: false,
+      voice: 'shield',
+      announceKey: 'ann.pwrShield',
+      pickupSoundKey: 'pwrPickShield',
+      learnKey: 'learn.pwrShield',
+      onPickup() {
+        content.game.grantShield()
       },
     },
   }

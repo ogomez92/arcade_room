@@ -1,5 +1,6 @@
-// Asteroids — game screen. Drives content.game.tick(), wires F1-F4 status
-// hotkeys, fire (Space) + hyperspace (Shift) via direct window keydown.
+// Asteroids — game screen. Drives content.game.tick(), wires F1-F5 status
+// hotkeys, fire (S/A/D) + proton bomb (Space) + hyperspace (Shift) via
+// direct window keydown. Triple-tap "0" arms a debug item-grant key.
 app.screen.game = app.screenManager.invent({
   id: 'game',
   parentSelector: '.a-app--game',
@@ -12,11 +13,14 @@ app.screen.game = app.screenManager.invent({
     entryFrames: 0,
     keydownHandler: null,
     keyupHandler: null,
-    fireDown: false,           // legacy single Space-held flag
+    fireDown: false,           // legacy single centre-fire-held flag (S)
     fireDownSides: {left: false, center: false, right: false},
     hyperDown: false,
     lastTickAt: 0,
     wiredEvents: false,
+    debugTaps: [],             // timestamps of recent "0" presses (debug arm)
+    debugArmed: false,         // true once "0" triple-tapped within 1 s
+    debugGive: null,           // 'bomb' | 'shield' — last debug grant (cycles)
   },
   onReady: function () {
     content.hud.bind(this.rootElement)
@@ -37,16 +41,23 @@ app.screen.game = app.screenManager.invent({
       try { app.announce.polite(app.i18n.t('ann.bonusLife')) } catch (err) {}
       content.hud.refresh()
     })
-    content.events.on('life-lost', () => {
-      try { app.announce.assertive(app.i18n.t('ann.death')) } catch (err) {}
+    content.events.on('life-lost', (e) => {
+      const key = ({
+        'rock-large':  'ann.deathRockLarge',
+        'rock-medium': 'ann.deathRockMedium',
+        'rock-small':  'ann.deathRockSmall',
+        'ufo':         'ann.deathUfo',
+        'ufoBullet':   'ann.deathUfoBullet',
+        'hyperspace':  'ann.deathHyperspace',
+      })[e && e.reason] || 'ann.death'
+      try { app.announce.assertive(app.i18n.t(key)) } catch (err) {}
       content.hud.refresh()
     })
     content.events.on('hyperspace-jump', () => {
       try { app.announce.polite(app.i18n.t('ann.hyperspace')) } catch (err) {}
     })
-    content.events.on('hyperspace-death', () => {
-      try { app.announce.assertive(app.i18n.t('ann.hyperspaceDeath')) } catch (err) {}
-    })
+    // hyperspace-death needs no announcement of its own — the 'life-lost'
+    // handler announces 'ann.deathHyperspace' ("...Hyperspace failure.").
     content.events.on('ufo-spawn', (e) => {
       const key = e.kind === 'big' ? 'ann.ufoBig' : 'ann.ufoSmall'
       try { app.announce.polite(app.i18n.t(key)) } catch (err) {}
@@ -78,6 +89,22 @@ app.screen.game = app.screenManager.invent({
       if (def && def.announceEndKey) {
         try { app.announce.polite(app.i18n.t(def.announceEndKey)) } catch (err) {}
       }
+    })
+    // Extra life changes the life count — refresh the HUD (the pickup
+    // itself is announced by the generic powerup-pickup handler).
+    content.events.on('extra-life', () => { content.hud.refresh() })
+    // Proton bomb fired — name how many bodies it cleared.
+    content.events.on('bomb-fired', (e) => {
+      try { app.announce.assertive(app.i18n.t('ann.bombFired', {count: (e && e.cleared) | 0})) } catch (err) {}
+      content.hud.refresh()
+    })
+    content.events.on('bomb-empty', () => {
+      try { app.announce.assertive(app.i18n.t('ann.bombEmpty')) } catch (err) {}
+    })
+    // Shield absorbed a hit — reassuring, not fatal.
+    content.events.on('shield-block', () => {
+      try { app.announce.assertive(app.i18n.t('ann.shieldBlock')) } catch (err) {}
+      content.hud.refresh()
     })
   },
   onEnter: function () {
@@ -139,13 +166,46 @@ app.screen.game = app.screenManager.invent({
       if (e.code === 'F2') {                       this.announceWave();    return }
       if (e.code === 'F3') { e.preventDefault(); this.announceHeading(); return }
       if (e.code === 'F4') {                       this.announceNearest(); return }
+      if (e.code === 'F5') { e.preventDefault(); this.announceInventory(); return }
       if (e.repeat) return
-      // Fire keys: Space + S = centre, A = left, D = right. All four routes
+      // Debug: triple-tap "0" within 1 s arms the debug grant key. Once
+      // armed, each subsequent "0" press grants an inventory item,
+      // cycling proton bomb / shield.
+      if (e.code === 'Digit0') {
+        const dt = engine.time()
+        const taps = (this.state.debugTaps || []).filter((tt) => dt - tt < 1.0)
+        taps.push(dt)
+        this.state.debugTaps = taps
+        if (!this.state.debugArmed) {
+          if (taps.length >= 3) {
+            this.state.debugArmed = true
+            try { app.announce.assertive(app.i18n.t('ann.debugArmed')) } catch (err) {}
+          }
+          return
+        }
+        const give = this.state.debugGive === 'bomb' ? 'shield' : 'bomb'
+        this.state.debugGive = give
+        if (give === 'bomb') {
+          const n = content.game.addBomb()
+          try { app.announce.assertive(app.i18n.t('ann.debugBomb', {bombs: n})) } catch (err) {}
+        } else {
+          content.game.grantShield()
+          try { app.announce.assertive(app.i18n.t('ann.debugShield')) } catch (err) {}
+        }
+        return
+      }
+      // Space fires a proton bomb (arcade inventory item), NOT a bullet.
+      // The bullet-fire keys are S (centre), A (left), D (right).
+      if (e.code === 'Space') {
+        e.preventDefault()
+        content.game.fireBomb()
+        return
+      }
+      // Fire keys: S = centre, A = left, D = right. All three routes
       // call requestFire(side) and arm the matching side-held flag so
       // arcade rapidFire continues to auto-re-fire on the correct side.
       const fireSide =
-        e.code === 'Space' ? 'center'
-      : e.code === 'KeyS'  ? 'center'
+        e.code === 'KeyS'  ? 'center'
       : e.code === 'KeyA'  ? 'left'
       : e.code === 'KeyD'  ? 'right'
       : null
@@ -199,8 +259,7 @@ app.screen.game = app.screenManager.invent({
     }
     const onUp = (e) => {
       const fireSide =
-        e.code === 'Space' ? 'center'
-      : e.code === 'KeyS'  ? 'center'
+        e.code === 'KeyS'  ? 'center'
       : e.code === 'KeyA'  ? 'left'
       : e.code === 'KeyD'  ? 'right'
       : null
@@ -297,6 +356,15 @@ app.screen.game = app.screenManager.invent({
         kind: app.i18n.t(kind),
         direction: compassFromScreenAngle(screenAngle),
         distance: Math.round(bestDist),
+      }))
+    } catch (e) {}
+  },
+  // F5 — read out the arcade inventory: proton bombs + shields held.
+  announceInventory: function () {
+    try {
+      app.announce.assertive(app.i18n.t('ann.inventory', {
+        bombs: content.game.bombCount(),
+        shields: content.game.shieldCount(),
       }))
     } catch (e) {}
   },

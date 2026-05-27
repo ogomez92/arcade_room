@@ -790,11 +790,15 @@ content.audio = (() => {
       // player can tell positive from negative at a glance. Per-kind
       // sub-family for further disambiguation.
       const f =
-        kind === 'powerup-rapidFire'  ? 1760 :
-        kind === 'powerup-bigShots'   ? 1175 :
-        kind === 'powerup-scoreBonus' ? 1976 :
-        kind === 'powerup-rockSpawn'  ? 880  :
-                                        1320
+        kind === 'powerup-rapidFire'       ? 1760 :
+        kind === 'powerup-bigShots'        ? 1175 :
+        kind === 'powerup-scoreBonus'      ? 1480 :
+        kind === 'powerup-rockSpawn'       ? 880  :
+        kind === 'powerup-scoreMultiplier' ? 1640 :
+        kind === 'powerup-extraLife'       ? 1397 :
+        kind === 'powerup-protonBomb'      ? 1046 :
+        kind === 'powerup-shield'          ? 1568 :
+                                             1320
       return f
     }
     return (
@@ -820,24 +824,42 @@ content.audio = (() => {
     slot.lastPingAt = t
 
     const c = ctxFn()
-    const f = _proximityFreqFor(slot.kind, slot.positive)
+    // Front/behind cue. The stereo pan only carries left/right, so a
+    // threat dead ahead and one dead behind would otherwise sound
+    // identical (both pan-center). behindness() is 0 in the front
+    // hemisphere and ramps 0→1 across the back, and it drives two
+    // things, matching the CLAUDE.md "behind = muffle + pitch-down"
+    // idiom used by the continuous voices:
+    //  - a modest pitch-down (≤15%, small enough not to collide with
+    //    the next kind's pitch family), and
+    //  - a lowpass that closes from ~8× the fundamental (bright, all
+    //    harmonics) down to ~1.2× (muffled, near-sine).
+    // So a rock closing from behind a stopped ship reads as a dull,
+    // slightly lower pulse — clearly "behind", not "ahead".
+    let b = 0
+    try { b = behindness(slot.x, slot.y) } catch (e) {}
+    const f = _proximityFreqFor(slot.kind, slot.positive) * (1 - 0.15 * b)
     const o = c.createOscillator()
     o.type = slot.positive ? 'triangle'
            : slot.kind && slot.kind.startsWith('ufo') ? 'sawtooth'
            : 'square'
     o.frequency.value = f
+    const lp = c.createBiquadFilter()
+    lp.type = 'lowpass'
+    lp.frequency.value = Math.max(300, Math.min(12000, f * (8 - 6.8 * b)))
     const g = c.createGain(); g.gain.value = 0
     const pan = c.createStereoPanner()
     try {
       const rel = relativeVector(slot.x, slot.y)
       pan.pan.value = Math.max(-1, Math.min(1, -rel.y / 6))
     } catch (e) {}
-    o.connect(g).connect(pan).connect(slot.bus)
+    o.connect(lp).connect(g).connect(pan).connect(slot.bus)
     const peak = slot.positive ? 0.22 : 0.30
     adsr(g.gain, t, 0.001, 0.010, 0.022, peak)
     o.start(t); o.stop(t + 0.05)
     setTimeout(() => {
       try { o.disconnect() } catch (e) {}
+      try { lp.disconnect() } catch (e) {}
       try { g.disconnect() } catch (e) {}
       try { pan.disconnect() } catch (e) {}
     }, 150)
@@ -956,35 +978,151 @@ content.audio = (() => {
   }
 
   // Explosion sting at a world position — per-event binaural ear.
-  function emitExplosion(x, y, size) {
+  //
+  // `type` picks the character so a rock and a UFO never sound alike:
+  //
+  //  - 'rock' (default) — a spacey size-keyed boom. The descending sine
+  //    "boom" sweep is pitched deep for a large rock and bright for a
+  //    small one, so the three sizes are unmistakable by ear. A rock
+  //    that SPLITS (large, medium) also throws a tumbling shatter of
+  //    staggered crack bursts on top of the noise pop — a big rock
+  //    breaking into chunks sounds nothing like a small rock vaporizing
+  //    with a bare pop. A faint triangle shimmer tail gives the spacey
+  //    wash. The percussive noise pop the player already knows is kept
+  //    as the core; this only adds depth and a split cue around it.
+  //
+  //  - 'ufo' — a metallic electronic burst (resonant sawtooth zap +
+  //    square ring clang). Deliberately mechanical, never organic.
+  function emitExplosion(x, y, size, type) {
     ensureStarted()
     const c = ctxFn()
     const t0 = now()
-    const dur = size === 'large' ? 0.6 : size === 'medium' ? 0.45 : 0.30
-    const buf = c.createBuffer(1, Math.max(1, Math.floor(c.sampleRate * dur)), c.sampleRate)
-    const ch = buf.getChannelData(0)
-    for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / ch.length, 1.6)
-    const src = c.createBufferSource()
-    src.buffer = buf
-    const lp = c.createBiquadFilter()
-    lp.type = 'lowpass'
-    lp.frequency.value = size === 'large' ? 1400 : size === 'medium' ? 2200 : 3200
-    const g = c.createGain(); g.gain.value = 0
-    src.connect(lp).connect(g)
-    const peak = size === 'large' ? 0.55 : size === 'medium' ? 0.45 : 0.30
-    adsr(g.gain, t0, 0.003, 0.04, dur - 0.04, peak)
+    const isUfo = type === 'ufo'
+
+    const mix = c.createGain(); mix.gain.value = 1
     const binaural = engine.ear.binaural.create({
       gainModel: engine.ear.gainModel.exponential.instantiate(),
       filterModel: engine.ear.filterModel.head.instantiate(),
-    }).from(g).to(_state.sfxBus)
+    }).from(mix).to(_state.sfxBus)
     try { binaural.update(relativeVector(x, y)) } catch (e) {}
-    src.start(t0)
+
+    const nodes = [mix]
+    const reg = (n) => { nodes.push(n); return n }
+    const noise = (dur, decayPow) => {
+      const len = Math.max(1, Math.floor(c.sampleRate * dur))
+      const buf = c.createBuffer(1, len, c.sampleRate)
+      const ch = buf.getChannelData(0)
+      for (let i = 0; i < ch.length; i++) {
+        ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / ch.length, decayPow)
+      }
+      const src = c.createBufferSource(); src.buffer = buf
+      return reg(src)
+    }
+
+    if (isUfo) {
+      const big = size !== 'small'
+      const dur = big ? 0.5 : 0.36
+      // Resonant sawtooth zap — the electric "the machine died" sweep.
+      const zap = reg(c.createOscillator()); zap.type = 'sawtooth'
+      zap.frequency.setValueAtTime(big ? 680 : 940, t0)
+      zap.frequency.exponentialRampToValueAtTime(big ? 70 : 130, t0 + dur * 0.7)
+      const zlp = reg(c.createBiquadFilter()); zlp.type = 'lowpass'
+      zlp.frequency.setValueAtTime(3400, t0)
+      zlp.frequency.exponentialRampToValueAtTime(300, t0 + dur)
+      zlp.Q.value = 8
+      const zg = reg(c.createGain()); zg.gain.value = 0
+      zap.connect(zlp).connect(zg).connect(mix)
+      adsr(zg.gain, t0, 0.002, 0.03, dur, 0.4)
+      zap.start(t0); zap.stop(t0 + dur + 0.1)
+      // Square ring clang — metallic partial above the zap.
+      const ring = reg(c.createOscillator()); ring.type = 'square'
+      ring.frequency.setValueAtTime(big ? 1300 : 1750, t0)
+      ring.frequency.exponentialRampToValueAtTime(big ? 320 : 470, t0 + dur * 0.6)
+      const rg = reg(c.createGain()); rg.gain.value = 0
+      ring.connect(rg).connect(mix)
+      adsr(rg.gain, t0, 0.002, 0.02, dur * 0.5, 0.16)
+      ring.start(t0); ring.stop(t0 + dur + 0.1)
+      // Noise body.
+      const nsrc = noise(dur, 1.6)
+      const nlp = reg(c.createBiquadFilter()); nlp.type = 'lowpass'
+      nlp.frequency.value = big ? 2000 : 2800
+      const ng = reg(c.createGain()); ng.gain.value = 0
+      nsrc.connect(nlp).connect(ng).connect(mix)
+      adsr(ng.gain, t0, 0.003, 0.03, dur - 0.03, big ? 0.38 : 0.3)
+      nsrc.start(t0)
+    } else {
+      const big = size === 'large', med = size === 'medium', sml = size === 'small'
+      const dur = big ? 0.9 : med ? 0.55 : 0.26
+
+      // --- Pop core: descending-lowpass noise burst (the familiar pop) ---
+      const popSrc = noise(dur, 1.7)
+      const popLp = reg(c.createBiquadFilter()); popLp.type = 'lowpass'
+      popLp.frequency.setValueAtTime(big ? 1500 : med ? 2400 : 3600, t0)
+      popLp.frequency.exponentialRampToValueAtTime(big ? 240 : med ? 480 : 920, t0 + dur)
+      const popG = reg(c.createGain()); popG.gain.value = 0
+      popSrc.connect(popLp).connect(popG).connect(mix)
+      adsr(popG.gain, t0, 0.003, 0.03, dur - 0.03, big ? 0.5 : med ? 0.42 : 0.34)
+      popSrc.start(t0)
+
+      // --- Spacey boom: descending sine, deep for large, bright for small ---
+      const boomStart = big ? 200 : med ? 360 : 720
+      const boomEnd   = big ? 38  : med ? 92  : 250
+      const boomT     = big ? 0.5 : med ? 0.28 : 0.12
+      const boom = reg(c.createOscillator()); boom.type = 'sine'
+      boom.frequency.setValueAtTime(boomStart, t0)
+      boom.frequency.exponentialRampToValueAtTime(boomEnd, t0 + boomT)
+      const boomG = reg(c.createGain()); boomG.gain.value = 0
+      boom.connect(boomG).connect(mix)
+      adsr(boomG.gain, t0, 0.004, boomT * 0.3, dur * 0.85, big ? 0.5 : med ? 0.4 : 0.3)
+      boom.start(t0); boom.stop(t0 + dur + 0.12)
+
+      // --- Sub thump — extra body for a large rock only ---
+      if (big) {
+        const sub = reg(c.createOscillator()); sub.type = 'sine'
+        sub.frequency.setValueAtTime(70, t0)
+        sub.frequency.exponentialRampToValueAtTime(28, t0 + 0.45)
+        const subG = reg(c.createGain()); subG.gain.value = 0
+        sub.connect(subG).connect(mix)
+        adsr(subG.gain, t0, 0.005, 0.10, 0.6, 0.55)
+        sub.start(t0); sub.stop(t0 + dur + 0.12)
+      }
+
+      // --- Shatter: staggered crack bursts — ONLY for rocks that split ---
+      // A large rock throws 4 tumbling chunks, a medium throws 2; a small
+      // rock just vaporizes with no shatter, so the ear hears at once
+      // whether the rock broke apart or simply popped out of existence.
+      const cracks = big ? 4 : med ? 2 : 0
+      for (let k = 0; k < cracks; k++) {
+        const ct = t0 + 0.04 + k * (big ? 0.085 : 0.11) + Math.random() * 0.02
+        const csrc = noise(0.05, 3)
+        const cbp = reg(c.createBiquadFilter()); cbp.type = 'bandpass'
+        // Chunks tumble downward in pitch as they fly off.
+        cbp.frequency.value = (big ? 2600 : 3200) * Math.pow(0.78, k) * (0.9 + Math.random() * 0.2)
+        cbp.Q.value = 3.5
+        const cg = reg(c.createGain()); cg.gain.value = 0
+        csrc.connect(cbp).connect(cg).connect(mix)
+        adsr(cg.gain, ct, 0.001, 0.006, 0.06, big ? 0.34 : 0.28)
+        csrc.start(ct)
+      }
+
+      // --- Shimmer tail: airy ringing for the spacey wash (large/medium) ---
+      if (!sml) {
+        const sh = reg(c.createOscillator()); sh.type = 'triangle'
+        sh.frequency.setValueAtTime(big ? 520 : 760, t0 + 0.02)
+        sh.frequency.exponentialRampToValueAtTime(big ? 180 : 320, t0 + dur)
+        const shLp = reg(c.createBiquadFilter()); shLp.type = 'lowpass'
+        shLp.frequency.value = 3000
+        const shG = reg(c.createGain()); shG.gain.value = 0
+        sh.connect(shLp).connect(shG).connect(mix)
+        adsr(shG.gain, t0 + 0.02, 0.02, 0.05, dur, big ? 0.14 : 0.11)
+        sh.start(t0 + 0.02); sh.stop(t0 + dur + 0.18)
+      }
+    }
+
     setTimeout(() => {
-      try { src.disconnect() } catch (e) {}
-      try { lp.disconnect() } catch (e) {}
-      try { g.disconnect() } catch (e) {}
+      nodes.forEach(n => { try { n.disconnect() } catch (e) {} })
       try { binaural.destroy() } catch (e) {}
-    }, (dur + 0.3) * 1000)
+    }, (isUfo ? 0.9 : 1.5) * 1000)
   }
 
   function emitHyperspace(success) {
@@ -1015,10 +1153,128 @@ content.audio = (() => {
     }
   }
 
-  function emitDeath() {
+  // Ship destroyed. Every death plays the same descending dirge (the
+  // "ship destroyed" identity), but a short CAUSE STING is layered on
+  // the front so the player hears *why* they died as well as being told
+  // by the announcer. `reason` mirrors the value game.js passes to
+  // _onShipKilled: 'rock-large' | 'rock-medium' | 'rock-small' | 'ufo' |
+  // 'ufoBullet' | 'hyperspace' | 'collision' (generic fallback).
+  function emitDeath(reason) {
     ensureStarted()
     const c = ctxFn()
     const t0 = now()
+    _emitDeathCause(c, t0, reason || 'collision')
+    _emitDeathDirge(c, t0)
+  }
+
+  // Short percussive sting describing the cause of death — plays over
+  // the soft-attack first note of the dirge. All centred (the ship is
+  // at the listener) so it goes straight to the sfx bus.
+  function _emitDeathCause(c, t0, reason) {
+    const kill = (arr, ms) => setTimeout(() => {
+      arr.forEach(n => { try { n.disconnect() } catch (e) {} })
+    }, ms)
+
+    if (reason === 'ufoBullet') {
+      // Searing laser hit — a fast bright sawtooth zap plus a hiss sizzle.
+      const o = c.createOscillator(); o.type = 'sawtooth'
+      o.frequency.setValueAtTime(2600, t0)
+      o.frequency.exponentialRampToValueAtTime(280, t0 + 0.18)
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'
+      lp.frequency.setValueAtTime(5000, t0)
+      lp.frequency.exponentialRampToValueAtTime(700, t0 + 0.2)
+      lp.Q.value = 6
+      const g = c.createGain(); g.gain.value = 0
+      o.connect(lp).connect(g).connect(_state.sfxBus)
+      adsr(g.gain, t0, 0.002, 0.02, 0.2, 0.4)
+      o.start(t0); o.stop(t0 + 0.3)
+      const nlen = Math.floor(c.sampleRate * 0.22)
+      const nbuf = c.createBuffer(1, nlen, c.sampleRate)
+      const nch = nbuf.getChannelData(0)
+      for (let i = 0; i < nch.length; i++) nch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / nch.length, 2)
+      const nsrc = c.createBufferSource(); nsrc.buffer = nbuf
+      const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2400
+      const ng = c.createGain(); ng.gain.value = 0
+      nsrc.connect(hp).connect(ng).connect(_state.sfxBus)
+      adsr(ng.gain, t0, 0.002, 0.02, 0.18, 0.26)
+      nsrc.start(t0)
+      kill([o, lp, g, nsrc, hp, ng], 600)
+      return
+    }
+
+    if (reason === 'ufo') {
+      // Hull clang — a metallic square ring with a resonant body, the
+      // ship slamming into the saucer.
+      const o = c.createOscillator(); o.type = 'square'
+      o.frequency.setValueAtTime(540, t0)
+      o.frequency.exponentialRampToValueAtTime(150, t0 + 0.3)
+      const bp = c.createBiquadFilter(); bp.type = 'bandpass'
+      bp.frequency.value = 900; bp.Q.value = 5
+      const g = c.createGain(); g.gain.value = 0
+      o.connect(bp).connect(g).connect(_state.sfxBus)
+      adsr(g.gain, t0, 0.002, 0.03, 0.3, 0.3)
+      o.start(t0); o.stop(t0 + 0.4)
+      const o2 = c.createOscillator(); o2.type = 'triangle'
+      o2.frequency.setValueAtTime(1600, t0)
+      o2.frequency.exponentialRampToValueAtTime(620, t0 + 0.22)
+      const g2 = c.createGain(); g2.gain.value = 0
+      o2.connect(g2).connect(_state.sfxBus)
+      adsr(g2.gain, t0, 0.002, 0.02, 0.2, 0.16)
+      o2.start(t0); o2.stop(t0 + 0.3)
+      kill([o, bp, g, o2, g2], 700)
+      return
+    }
+
+    if (reason === 'hyperspace') {
+      // Scrambled disintegration — a glitchy stepped warble, the jump
+      // tearing the ship apart instead of teleporting it.
+      const o = c.createOscillator(); o.type = 'square'
+      const steps = 9
+      for (let i = 0; i < steps; i++) {
+        const f = 200 + Math.random() * 1600
+        o.frequency.setValueAtTime(f, t0 + i * 0.035)
+      }
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'
+      lp.frequency.value = 2600; lp.Q.value = 3
+      const g = c.createGain(); g.gain.value = 0
+      o.connect(lp).connect(g).connect(_state.sfxBus)
+      adsr(g.gain, t0, 0.003, 0.16, 0.18, 0.3)
+      o.start(t0); o.stop(t0 + 0.42)
+      kill([o, lp, g], 700)
+      return
+    }
+
+    // Rock crash (rock-large / rock-medium / rock-small) and the generic
+    // 'collision' fallback — a heavy crunch, deep + dark for a big rock,
+    // sharper + brighter for a small one.
+    const big = reason === 'rock-large'
+    const small = reason === 'rock-small'
+    const lpHz   = big ? 600 : small ? 2200 : 1200
+    const boomHi = big ? 160 : small ? 520 : 280
+    const boomLo = big ? 40  : small ? 170 : 80
+    const cdur   = big ? 0.4 : small ? 0.2 : 0.3
+    const cpeak  = big ? 0.5 : small ? 0.34 : 0.42
+    const nlen = Math.floor(c.sampleRate * cdur)
+    const nbuf = c.createBuffer(1, nlen, c.sampleRate)
+    const nch = nbuf.getChannelData(0)
+    for (let i = 0; i < nch.length; i++) nch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / nch.length, 1.8)
+    const nsrc = c.createBufferSource(); nsrc.buffer = nbuf
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = lpHz
+    const ng = c.createGain(); ng.gain.value = 0
+    nsrc.connect(lp).connect(ng).connect(_state.sfxBus)
+    adsr(ng.gain, t0, 0.002, 0.03, cdur - 0.03, cpeak)
+    nsrc.start(t0)
+    const o = c.createOscillator(); o.type = 'sine'
+    o.frequency.setValueAtTime(boomHi, t0)
+    o.frequency.exponentialRampToValueAtTime(boomLo, t0 + cdur * 0.8)
+    const g = c.createGain(); g.gain.value = 0
+    o.connect(g).connect(_state.sfxBus)
+    adsr(g.gain, t0, 0.003, 0.04, cdur, big ? 0.5 : small ? 0.3 : 0.4)
+    o.start(t0); o.stop(t0 + cdur + 0.1)
+    kill([nsrc, lp, ng, o, g], (cdur + 0.4) * 1000)
+  }
+
+  function _emitDeathDirge(c, t0) {
     // Slow descending dirge — C4 → A3 → F3, with sub.
     const notes = [
       {f: 261.63, t: 0.00, dur: 0.55, peak: 0.32},
@@ -1129,15 +1385,17 @@ content.audio = (() => {
         lp: 2600,
       },
       // Bell-shimmer — twin sines with light vibrato. Coin-up vibe.
+      // Pitched down an octave from the original (1320/1976) — pure
+      // sines that high looped continuously read as piercing/shrill.
       scoreBonus: {
         kind: 'osc',
         types: ['sine', 'sine'],
-        freqs: [1320, 1976],
+        freqs: [660, 990],
         detuneC: [0, 0],
         wobbleHz: 7,
         wobbleDepth: 0.30,
         fmHz: 4.5, fmDepth: 7,
-        lp: 8500,
+        lp: 4500,
       },
       // Tactical alarm — detuned saw+triangle fifth, slow menacing FM.
       // "Buy me and the field gets WORSE." Pushed up out of throb range.
@@ -1150,6 +1408,55 @@ content.audio = (() => {
         wobbleDepth: 0.40,
         fmHz: 0.55, fmDepth: 14,       // slow ominous sweep
         lp: 3000,
+      },
+      // Triumphant bright bell — sine+triangle, quick FM sparkle.
+      // "Buy me, your points multiply." Kept an octave below the
+      // first draft (1568/2349) — that high it was shrill on a loop.
+      scoreMultiplier: {
+        kind: 'osc',
+        types: ['sine', 'triangle'],
+        freqs: [784, 1175],            // G5 / D6
+        detuneC: [0, 6],
+        wobbleHz: 8,
+        wobbleDepth: 0.28,
+        fmHz: 5.5, fmDepth: 10,
+        lp: 5000,
+      },
+      // Warm heartbeat glow — round triangle pair, slow gentle wobble.
+      // "Buy me, I am life." Reassuring, never metallic.
+      extraLife: {
+        kind: 'osc',
+        types: ['triangle', 'sine'],
+        freqs: [523, 784],             // C5 / G5 — warm major fifth
+        detuneC: [0, 0],
+        wobbleHz: 2.4,
+        wobbleDepth: 0.35,
+        fmHz: 3.0, fmDepth: 5,
+        lp: 4200,
+      },
+      // Dangerous low pulse — detuned saw+sine, slow ominous FM heave.
+      // "Buy me, I am a weapon." Low and menacing.
+      protonBomb: {
+        kind: 'osc',
+        types: ['sawtooth', 'sine'],
+        freqs: [196, 262],             // G3 / C4
+        detuneC: [-10, 8],
+        wobbleHz: 3.2,
+        wobbleDepth: 0.42,
+        fmHz: 0.6, fmDepth: 12,
+        lp: 2400,
+      },
+      // Airy protective hum — pure glassy sines, light shimmer.
+      // "Buy me, I keep you safe." Calm, mid-high.
+      shield: {
+        kind: 'osc',
+        types: ['sine', 'sine'],
+        freqs: [659, 988],             // E5 / B5 — open fifth
+        detuneC: [-4, 5],
+        wobbleHz: 5.5,
+        wobbleDepth: 0.30,
+        fmHz: 3.8, fmDepth: 6,
+        lp: 7000,
       },
     }
   }
@@ -1283,6 +1590,12 @@ content.audio = (() => {
   // is "yours", not a world object), so they don't fight with rock voices.
   function _buffStingProfile(id) {
     // Each profile: ascending pair of oscs; mirror it for the end sting.
+    if (id === 'scoreMultiplier') return {
+      types: ['triangle', 'sine'],
+      f0: [523, 784], f1: [1046, 1568],  // up an octave — "score stacking"
+      dur: 0.34, peak: 0.28, lp: 8000,
+      fmHz: 5, fmDepth: 9,
+    }
     return id === 'bigShots' ? {
       types: ['sine', 'triangle'],
       f0: [165, 247], f1: [330, 495],   // up an octave — "charging up"
@@ -1372,8 +1685,17 @@ content.audio = (() => {
       // Lifted out of bass mud (was 73-147 Hz, pure fart). Mid-range
       // triangle now reads as "energy weapon arming" instead.
       bigShots:   {notes: [220, 330, 440],         step: 0.085, type: 'triangle', peak: 0.36},
-      scoreBonus: {notes: [1046.5, 1318.5, 1567.98, 2093], step: 0.060, type: 'sine', peak: 0.32},
+      scoreBonus: {notes: [659.25, 830.61, 987.77, 1318.5], step: 0.060, type: 'sine', peak: 0.30},
       rockSpawn:  {notes: [440, 330, 247, 196],    step: 0.075, type: 'sawtooth', peak: 0.32},
+      // Stacked climb — "your score is multiplying". Kept below ~1320
+      // Hz so the rising figure doesn't turn shrill at the top.
+      scoreMultiplier: {notes: [523.25, 698.46, 880, 1046.5, 1318.5], step: 0.055, type: 'triangle', peak: 0.32},
+      // Warm major arpeggio resolving up an octave — "one more life".
+      extraLife:  {notes: [523.25, 659.25, 783.99, 1046.5], step: 0.11, type: 'triangle', peak: 0.38},
+      // Low menacing two-step then a leap — "a weapon is armed".
+      protonBomb: {notes: [196, 262, 196, 392],    step: 0.07, type: 'sawtooth', peak: 0.34},
+      // Glassy rising chime — "a shield is up".
+      shield:     {notes: [659.25, 987.77, 1318.5], step: 0.085, type: 'sine', peak: 0.30},
     }
     const m = motifs[id] || motifs.rapidFire
     m.notes.forEach((f, i) => {
@@ -1493,6 +1815,153 @@ content.audio = (() => {
       try { o.disconnect() } catch (e) {}
       try { og.disconnect() } catch (e) {}
     }, 1300)
+  }
+
+  // Proton bomb detonation — a huge, room-filling blast. Far bigger than
+  // any rock explosion: a deep sub drop, a wide noise body, a bright
+  // descending shockwave sweep, and staggered shockwave cracks. Played
+  // binaurally at the ship's world position.
+  function emitProtonBomb(x, y) {
+    ensureStarted()
+    const c = ctxFn()
+    const t0 = now()
+    const dur = 1.4
+
+    const mix = c.createGain(); mix.gain.value = 1
+    const binaural = engine.ear.binaural.create({
+      gainModel: engine.ear.gainModel.exponential.instantiate(),
+      filterModel: engine.ear.filterModel.head.instantiate(),
+    }).from(mix).to(_state.sfxBus)
+    try { binaural.update(relativeVector(x, y)) } catch (e) {}
+    const nodes = [mix]
+    const reg = (n) => { nodes.push(n); return n }
+
+    // --- Deep sub drop — the gut-punch ---
+    const sub = reg(c.createOscillator()); sub.type = 'sine'
+    sub.frequency.setValueAtTime(140, t0)
+    sub.frequency.exponentialRampToValueAtTime(22, t0 + 0.9)
+    const subG = reg(c.createGain()); subG.gain.value = 0
+    sub.connect(subG).connect(mix)
+    adsr(subG.gain, t0, 0.005, 0.12, 1.0, 0.85)
+    sub.start(t0); sub.stop(t0 + dur)
+
+    // --- Bright descending shockwave sweep ---
+    const sweep = reg(c.createOscillator()); sweep.type = 'sawtooth'
+    sweep.frequency.setValueAtTime(900, t0)
+    sweep.frequency.exponentialRampToValueAtTime(60, t0 + 0.7)
+    const swlp = reg(c.createBiquadFilter()); swlp.type = 'lowpass'
+    swlp.frequency.setValueAtTime(5000, t0)
+    swlp.frequency.exponentialRampToValueAtTime(300, t0 + dur)
+    swlp.Q.value = 4
+    const swG = reg(c.createGain()); swG.gain.value = 0
+    sweep.connect(swlp).connect(swG).connect(mix)
+    adsr(swG.gain, t0, 0.004, 0.06, dur * 0.8, 0.5)
+    sweep.start(t0); sweep.stop(t0 + dur)
+
+    // --- Wide noise body ---
+    const len = Math.max(1, Math.floor(c.sampleRate * dur))
+    const buf = c.createBuffer(1, len, c.sampleRate)
+    const ch = buf.getChannelData(0)
+    for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / ch.length, 1.4)
+    const nsrc = reg(c.createBufferSource()); nsrc.buffer = buf
+    const nlp = reg(c.createBiquadFilter()); nlp.type = 'lowpass'
+    nlp.frequency.setValueAtTime(4200, t0)
+    nlp.frequency.exponentialRampToValueAtTime(280, t0 + dur)
+    const nG = reg(c.createGain()); nG.gain.value = 0
+    nsrc.connect(nlp).connect(nG).connect(mix)
+    adsr(nG.gain, t0, 0.003, 0.05, dur - 0.05, 0.6)
+    nsrc.start(t0)
+
+    // --- Staggered shockwave cracks tumbling outward ---
+    for (let k = 0; k < 6; k++) {
+      const ct = t0 + 0.03 + k * 0.07 + Math.random() * 0.03
+      const clen = Math.max(1, Math.floor(c.sampleRate * 0.06))
+      const cbuf = c.createBuffer(1, clen, c.sampleRate)
+      const cch = cbuf.getChannelData(0)
+      for (let i = 0; i < cch.length; i++) cch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / cch.length, 3)
+      const csrc = reg(c.createBufferSource()); csrc.buffer = cbuf
+      const cbp = reg(c.createBiquadFilter()); cbp.type = 'bandpass'
+      cbp.frequency.value = 2800 * Math.pow(0.8, k) * (0.9 + Math.random() * 0.2)
+      cbp.Q.value = 3
+      const cg = reg(c.createGain()); cg.gain.value = 0
+      csrc.connect(cbp).connect(cg).connect(mix)
+      adsr(cg.gain, ct, 0.001, 0.008, 0.07, 0.4)
+      csrc.start(ct)
+    }
+
+    setTimeout(() => {
+      nodes.forEach(n => { try { n.disconnect() } catch (e) {} })
+      try { binaural.destroy() } catch (e) {}
+    }, (dur + 0.3) * 1000)
+  }
+
+  // Shield absorbs a hit — an energy-forcefield absorption. The incoming
+  // impact meets the field, the field flexes (a resonant "whoomp" that
+  // dips and springs back), and the energy disperses as a bright shimmer
+  // sweeping across the surface. NOT a musical fanfare — no notes, no
+  // chord; it's a contained impact event. Centred on the sfx bus (the
+  // shield is "yours"). Reassuring, but unmistakably an absorbed hit.
+  function emitShieldBlock() {
+    ensureStarted()
+    const c = ctxFn()
+    const t0 = now()
+    const cleanup = []
+    const reg = (n) => { cleanup.push(n); return n }
+
+    // --- Contact transient — the instant the hit meets the field ---
+    const ilen = Math.max(1, Math.floor(c.sampleRate * 0.07))
+    const ibuf = c.createBuffer(1, ilen, c.sampleRate)
+    const ich = ibuf.getChannelData(0)
+    for (let i = 0; i < ich.length; i++) ich[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / ich.length, 2.5)
+    const isrc = reg(c.createBufferSource()); isrc.buffer = ibuf
+    const ibp = reg(c.createBiquadFilter()); ibp.type = 'bandpass'
+    ibp.frequency.value = 2200; ibp.Q.value = 1.2
+    const ig = reg(c.createGain()); ig.gain.value = 0
+    isrc.connect(ibp).connect(ig).connect(_state.sfxBus)
+    adsr(ig.gain, t0, 0.001, 0.02, 0.05, 0.3)
+    isrc.start(t0)
+
+    // --- Field flex "whoomp" — a resonant sawtooth that dips in pitch
+    // then springs back, through a high-Q resonant lowpass: the shield
+    // bending under the impact. A fast AM tremolo gives the energy hum.
+    const flex = reg(c.createOscillator()); flex.type = 'sawtooth'
+    flex.frequency.setValueAtTime(520, t0)
+    flex.frequency.exponentialRampToValueAtTime(110, t0 + 0.18)
+    flex.frequency.exponentialRampToValueAtTime(150, t0 + 0.34)   // spring back
+    const flp = reg(c.createBiquadFilter()); flp.type = 'lowpass'
+    flp.Q.value = 11
+    flp.frequency.setValueAtTime(1600, t0)
+    flp.frequency.exponentialRampToValueAtTime(220, t0 + 0.4)
+    const amBase = reg(c.createGain()); amBase.gain.value = 1
+    const am = reg(c.createOscillator()); am.type = 'sine'
+    am.frequency.value = 34
+    const amDepth = reg(c.createGain()); amDepth.gain.value = 0.4
+    am.connect(amDepth).connect(amBase.gain)
+    const fg = reg(c.createGain()); fg.gain.value = 0
+    flex.connect(flp).connect(amBase).connect(fg).connect(_state.sfxBus)
+    adsr(fg.gain, t0, 0.004, 0.05, 0.45, 0.4)
+    flex.start(t0); flex.stop(t0 + 0.6)
+    am.start(t0); am.stop(t0 + 0.6)
+
+    // --- Dispersal shimmer — bright filtered noise sweeping upward and
+    // fading: the absorbed energy spreading across the field surface.
+    const dlen = Math.max(1, Math.floor(c.sampleRate * 0.5))
+    const dbuf = c.createBuffer(1, dlen, c.sampleRate)
+    const dch = dbuf.getChannelData(0)
+    for (let i = 0; i < dch.length; i++) dch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / dch.length, 1.8)
+    const dsrc = reg(c.createBufferSource()); dsrc.buffer = dbuf
+    const dbp = reg(c.createBiquadFilter()); dbp.type = 'bandpass'
+    dbp.Q.value = 1.6
+    dbp.frequency.setValueAtTime(900, t0 + 0.04)
+    dbp.frequency.exponentialRampToValueAtTime(5200, t0 + 0.4)
+    const dg = reg(c.createGain()); dg.gain.value = 0
+    dsrc.connect(dbp).connect(dg).connect(_state.sfxBus)
+    adsr(dg.gain, t0 + 0.04, 0.02, 0.08, 0.32, 0.16)
+    dsrc.start(t0 + 0.04)
+
+    setTimeout(() => {
+      cleanup.forEach(n => { try { n.disconnect() } catch (e) {} })
+    }, 900)
   }
 
   // -------------- frame --------------
@@ -1674,6 +2143,8 @@ content.audio = (() => {
       // After ~1 s, schedule the pickup motif so the player hears both.
       if (step === 10) emitPowerupPickup(fake.x, fake.y, def)
       if (id === 'rockSpawn' && step === 14) emitRockSpawn()
+      if (id === 'protonBomb' && step === 14) emitProtonBomb(fake.x, fake.y)
+      if (id === 'shield' && step === 14) emitShieldBlock()
       updatePowerupVoice({...fake, expiresAt: engine.time() + 30})
       if (step >= total) {
         clearInterval(timer)
@@ -1779,6 +2250,8 @@ content.audio = (() => {
     emitTick,
     emitPowerupPickup,
     emitRockSpawn,
+    emitProtonBomb,
+    emitShieldBlock,
     emitUfoBulletFire,
     // Learn previews
     previewAsteroid,

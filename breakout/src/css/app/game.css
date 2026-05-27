@@ -1,0 +1,112 @@
+.a-game {
+  align-items: center;
+  gap: 1rem;
+  justify-content: center;
+  max-width: 72rem;
+}
+
+.a-game--hud {
+  display: flex;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  gap: 1rem;
+  justify-content: space-between;
+  max-width: min(92vw, 44rem);
+  opacity: 0.9;
+  text-transform: uppercase;
+  width: 100%;
+}
+
+.a-game--field {
+  aspect-ratio: 5 / 6;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.06), transparent 12%, transparent 88%, rgba(255,255,255,0.06)),
+    radial-gradient(circle at 50% 106%, rgba(255,255,255,0.12), transparent 28%),
+    #090909;
+  border: 0.35rem solid #d3d3d3;
+  border-bottom-color: #8d8d8d;
+  box-shadow: inset 0 0 1.5rem rgba(255,255,255,0.08), 0 1rem 2rem rgba(0,0,0,0.35);
+  max-height: 78vh;
+  max-width: min(92vw, 44rem);
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.a-game--bricks,
+.a-game--powerups {
+  inset: 0;
+  position: absolute;
+}
+
+.a-game--brick {
+  background: linear-gradient(#f0f0f0, #949494);
+  border: 1px solid rgba(0,0,0,0.65);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -2px 0 rgba(0,0,0,0.25);
+  position: absolute;
+}
+
+.a-game--brick-hard {
+  background: linear-gradient(#b5dcff, #417799);
+}
+
+.a-game--brick-damaged {
+  background: linear-gradient(#dec58a, #8b6a30);
+}
+
+.a-game--paddle {
+  background: linear-gradient(90deg, #f4f4f4, #888 20%, #f8f8f8 50%, #888 80%, #f4f4f4);
+  border-radius: 0.25rem;
+  box-shadow: 0 0.15rem 0 #4d4d4d, 0 0 0.5rem rgba(255,255,255,0.24);
+  left: 0;
+  position: absolute;
+  top: 0;
+}
+
+.a-game--ball {
+  background: radial-gradient(circle at 35% 30%, #fff, #bbb 45%, #555 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 0.45rem rgba(255,255,255,0.35);
+  left: 0;
+  position: absolute;
+  top: 0;
+}
+
+.a-game--powerup {
+  border-radius: 50%;
+  box-shadow: 0 0 0.5rem currentColor;
+  height: 0.75rem;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 0.75rem;
+}
+
+.a-game--powerup-wide { color: #9fffb2; background: #9fffb2; }
+.a-game--powerup-slow { color: #a8d9ff; background: #a8d9ff; }
+.a-game--powerup-catch { color: #ffd27d; background: #ffd27d; }
+.a-game--powerup-laser { color: #ff8b8b; background: #ff8b8b; }
+.a-game--powerup-multi { color: #d0a3ff; background: #d0a3ff; }
+.a-game--powerup-life { color: #ffffff; background: #ffffff; }
+
+.a-game--shot {
+  background: #ffeded;
+  box-shadow: 0 0 0.5rem #ff4242;
+  height: 1rem;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 0.15rem;
+}
+
+.a-help--list {
+  max-width: 46rem;
+  text-align: left;
+}
+
+.a-help kbd {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  padding: 0 0.35em;
+}

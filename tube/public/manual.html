@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Tempest Tube Documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <style>
+      *, *::after, *::before {
+        background: transparent;
+        border: 0;
+        box-sizing: border-box;
+        color: inherit;
+        font: inherit;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        background-color: #FFFFFF;
+        font-family: sans-serif;
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.5;
+      }
+
+      main ::selection {
+        background-color: #FF0069;
+        color: #FFFFFF;
+        text-decoration-color: #FFFFFF;
+      }
+
+      a {
+        color: #FF0069;
+        cursor: pointer;
+        text-decoration: underline;
+      }
+
+      code {
+        font-family: monospace;
+      }
+
+      details > * + * {
+        margin-top: 1.25em;
+      }
+
+      em {
+        font-family: sans-serif;
+        font-style: italic;
+      }
+
+      h2 {
+        font-size: 2em;
+      }
+
+      h3 {
+        font-size: 1.5em;
+        margin-top: 3rem;
+      }
+
+      h4 {
+        font-size: 1.25em;
+        margin-top: 3rem;
+      }
+
+      kbd {
+        border: 1px solid #FF0069;
+        border-radius: 0.25em;
+        display: inline-block;
+        font-family: monospace;
+        padding: 0 0.5em;
+      }
+
+      strong, th {
+        font-family: sans-serif;
+        font-weight: 700;
+      }
+
+      section {
+        margin: 0 auto;
+        max-width: calc(60ch + 4em);
+        padding: 3em 1em;
+      }
+
+      section + section {
+        border-top: 1px dotted #CCCCCC;
+      }
+
+      section > * + *:not(h3):not(h4) {
+        margin-top: 1.25em;
+      }
+
+      section > h2 + *,
+      section > h3 + *,
+      section > h4 + * {
+        margin-top: 0.75em !important;
+      }
+
+      table, td, th {
+        border: 1px solid #000000;
+        border-collapse: collapse;
+      }
+
+      td, th {
+        padding: 0.25em 0.5em;
+      }
+
+      th {
+        text-align: left;
+      }
+
+      ul {
+        list-style-position: inside;
+        padding-left: 1.5em;
+      }
+
+      .hero {
+        align-items: center;
+        background-color: #000000;
+        color: #FFFFFF;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        line-height: 1.25;
+        padding: 4em 1em;
+        text-align: center;
+      }
+        .hero--author {
+          font-family: monospace;
+          margin-top: 2em;
+        }
+        .hero--logo {
+          font-family: monospace;
+          font-size: 3em;
+          text-transform: uppercase;
+        }
+
+      .scrollable {
+        max-width: 100%;
+        overflow: auto;
+        white-space: nowrap;
+      }
+
+      @media (min-width: 20rem) {
+        :root {
+          font-size: 18px;
+        }
+      }
+
+      @media (min-width: 48rem) {
+        section {
+          padding-left: 2em;
+          padding-right: 2em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <h1>
+        <div class="hero--lockup">
+          <div class="hero--logo">Tempest Tube</div>
+          <div class="hero--author">audio-first electric tube shooter</div>
+        </div>
+      </h1>
+    </header>
+
+    <main>
+      <section>
+        <h2>Introduction</h2>
+        <p>Tempest Tube is an audio-first arcade shooter inspired by classic tube shooters. You ride the rim of a 16-lane tube, move left or right around the edge, and fire inward at enemies before they reach you.</p>
+        <p>The audio listener is camera-locked: front is always down the tube. Enemy lane audio rides your rim position: same-lane threats are centered, left/right tells you which way to move, and the fast radar ping confirms a clear shot. Tankers still need two hits.</p>
+      </section>
+
+      <section>
+        <h2>System Requirements</h2>
+        <p>This is best experienced with headphones and a gamepad.</p>
+        <p>Real-time synthesis is an <em>extremely</em> CPU-intensive process. It will attempt to run on any machine that meets its minimum requirements; however, you may experience stuttering or drop-outs when running below the recommended requirements.</p>
+
+        <h3>Minimum System Requirements</h3>
+        <table>
+          <tr>
+            <th>CPU</th>
+            <td>SSE2 capable (64-bit)</td>
+          </tr>
+          <tr>
+            <th>RAM</th>
+            <td>2 GB</td>
+          </tr>
+        </table>
+
+        <h3>Recommended System Requirements</h3>
+        <table>
+          <tr>
+            <th>CPU</th>
+            <td>3.5 GHz Quad-Core (64-bit)</td>
+          </tr>
+          <tr>
+            <th>RAM</th>
+            <td>4 GB</td>
+          </tr>
+        </table>
+
+        <h3>Browser Support</h3>
+        <p>The HTML5 build is intended to be played in a recent version of a Chromium-based browser, such as Google Chrome, Microsoft Edge, or Opera. Browser extensions that alter page behavior are not recommended. Other browsers must support modern JavaScript features and the current Web Audio API specification.</p>
+      </section>
+
+      <section>
+        <h2>How to Play</h2>
+        <p>Move around the rim and line up with a threat's lane. Fire inward to destroy it. Tankers take two hits and split into sparks in the two adjacent lanes; sparks are fast one-hit fragments. Spikers build lane spikes; clear spikes by shooting down that lane. Fuseballs jump lanes and become more common in later sectors.</p>
+        <p>Scoring rewards early shots: enemies destroyed deeper in the tube pay more. Destroy enemies within three seconds of each other to build combo multipliers from x2 up to x8. Tankers remember the farthest hit before they die, so an early long-range hit still helps the final score.</p>
+        <p>The run is an endless score chase. Your sector rises as your score increases, and higher sectors spawn faster, more varied threats. At game over, you can post your score to the world leaderboard; if the network is unavailable, local top-10 scores still work.</p>
+      </section>
+
+      <section>
+        <h2>Controls</h2>
+        <div class="scrollable">
+          <table>
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Button</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Move lane</td>
+                <td><kbd>Left</kbd>/<kbd>Right</kbd>, <kbd>A</kbd>/<kbd>D</kbd>, gamepad D-pad, or left stick</td>
+              </tr>
+              <tr>
+                <td>Fire inward</td>
+                <td><kbd>Space</kbd>, <kbd>Enter</kbd>, <kbd>F</kbd>, or gamepad confirm</td>
+              </tr>
+              <tr>
+                <td>Pause / back</td>
+                <td><kbd>Esc</kbd>, <kbd>Backspace</kbd>, or gamepad Start</td>
+              </tr>
+              <tr>
+                <td>Read score</td>
+                <td><kbd>F1</kbd></td>
+              </tr>
+              <tr>
+                <td>Read sector</td>
+                <td><kbd>F2</kbd></td>
+              </tr>
+              <tr>
+                <td>Read lane</td>
+                <td><kbd>F3</kbd></td>
+              </tr>
+              <tr>
+                <td>Read nearest threat</td>
+                <td><kbd>F4</kbd></td>
+              </tr>
+              <tr>
+                <td>Read current-lane spike danger</td>
+                <td><kbd>F5</kbd></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

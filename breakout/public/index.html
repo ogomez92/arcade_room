@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Audio Breakout</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div aria-live="polite" class="a-app--announce" role="status"></div>
+      <div aria-live="assertive" class="a-app--announce a-app--announce-assertive" role="alert"></div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <div class="a-game--hud" aria-hidden="true">
+            <span class="a-game--score"></span>
+            <span class="a-game--status"></span>
+            <span class="a-game--lives"></span>
+          </div>
+          <div class="a-game--field" aria-hidden="true">
+            <div class="a-game--bricks"></div>
+            <div class="a-game--paddle"></div>
+            <div class="a-game--ball"></div>
+            <div class="a-game--powerups"></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Game Over</h1>
+          <p class="c-menu--subtitle a-gameover--summary"></p>
+          <form class="a-gameover--scoreForm">
+            <label class="c-menu--label" for="gameover-score-name" data-i18n="gameover.nameLabel">Name</label>
+            <input
+              autocapitalize="words"
+              autocomplete="nickname"
+              class="c-menu--input a-gameover--scoreName"
+              id="gameover-score-name"
+              maxlength="100"
+              spellcheck="false"
+              type="text"
+              data-i18n-attr="placeholder:gameover.namePlaceholder;aria-label:gameover.nameLabel"
+            />
+            <p class="c-menu--status a-gameover--scoreStatus" aria-live="polite"></p>
+            <button class="c-menu--button a-gameover--scoreSubmit" type="submit" data-i18n="gameover.submitScore">Post Online Score</button>
+          </form>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="again" data-i18n="gameover.again">Play Again</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="gameover.menu">Main Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to Play</h1>
+          <ul class="c-menu--list a-help--list">
+            <li data-i18n-html="help.move"><kbd>Left</kbd>/<kbd>Right</kbd> or <kbd>A</kbd>/<kbd>D</kbd>: move the paddle.</li>
+            <li data-i18n-html="help.launch"><kbd>Space</kbd> or <kbd>Enter</kbd>: launch the ball or release a caught ball.</li>
+            <li data-i18n-html="help.ping"><kbd>Tab</kbd>: announce the ball and paddle alignment.</li>
+            <li data-i18n-html="help.audio">The paddle is a low panned body tone, the ball is a moving rolling/air sound, and falling powerups have their own panned flutter.</li>
+            <li data-i18n-html="help.goal">Clear every brick. Catch falling powerups for wide paddle, slow ball, catch, laser, multiball, or extra life.</li>
+          </ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen c-menu a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 class="c-menu--title" data-i18n="learn.title">Learn Sounds</h1>
+          <p class="c-menu--subtitle" data-i18n="learn.subtitle">Press a button to hear each cue on its own.</p>
+          <ul class="c-menu--list a-learn--nav"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="learn.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Audio Breakout</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">A wood-and-glass arcade wall you can play by ear.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="start" data-i18n="menu.start">Start Game</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn Sounds</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to Play</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

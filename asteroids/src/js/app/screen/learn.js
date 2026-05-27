@@ -69,6 +69,10 @@ app.screen.learn = app.screenManager.invent({
       case 'pwrBigShots':   return A.previewPowerup('bigShots')
       case 'pwrScoreBonus': return A.previewPowerup('scoreBonus')
       case 'pwrRockSpawn':  return A.previewPowerup('rockSpawn')
+      case 'pwrScoreMultiplier': return A.previewPowerup('scoreMultiplier')
+      case 'pwrExtraLife':  return A.previewPowerup('extraLife')
+      case 'pwrProtonBomb': return A.previewPowerup('protonBomb')
+      case 'pwrShield':     return A.previewPowerup('shield')
       case 'ufoBullet':     return A.previewUfoBullet()
     }
   },

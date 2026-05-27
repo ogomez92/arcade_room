@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Tempest Tube</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div class="a-app--announce" aria-live="polite" aria-atomic="true"></div>
+      <div class="a-app--announce-assertive" aria-live="assertive" aria-atomic="true"></div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <canvas class="a-game--canvas" aria-hidden="true"></canvas>
+          <div class="a-game--hud" aria-hidden="true">
+            <span class="a-game--score"></span>
+            <span class="a-game--lives"></span>
+            <span class="a-game--sector"></span>
+            <span class="a-game--threats"></span>
+          </div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Game Over</h1>
+          <p class="c-menu--subtitle a-gameover--subtitle"></p>
+          <div class="a-gameover--scoreEntry" hidden>
+            <p data-i18n="gameover.namePrompt">Enter your name to post your score:</p>
+            <input class="a-gameover--name" type="text" maxlength="100" autocomplete="name" />
+            <ul class="c-menu--list">
+              <li><button class="c-menu--button" data-action="submit" data-i18n="gameover.submit">Post Score</button></li>
+              <li><button class="c-menu--button" data-action="skip" data-i18n="gameover.skip">Skip</button></li>
+            </ul>
+          </div>
+          <p class="a-gameover--online-status" role="status" aria-live="polite" hidden></p>
+          <p class="a-gameover--online-link-wrap"><a class="a-gameover--online-link" href="https://scores.oriolgomez.com" target="_blank" rel="noopener" hidden></a></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="again" data-i18n="gameover.again">Play Again</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="menu.highscores">High Scores</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="gameover.menu">Main Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen c-menu a-highscores" tabindex="-1" data-i18n-attr="aria-label:highscores.aria">
+          <h1 class="c-menu--title" data-i18n="highscores.title">High Scores</h1>
+          <p class="c-menu--subtitle a-highscores--subtitle" data-i18n="highscores.subtitle">Top 10 runs on this device.</p>
+          <ul class="c-menu--list a-highscores--list"></ul>
+          <p class="a-highscores--online-link-wrap"><a class="a-highscores--online-link" href="https://scores.oriolgomez.com" target="_blank" rel="noopener" data-i18n="online.viewBoard">View the world leaderboard</a></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="highscores.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to Play</h1>
+          <p class="c-menu--subtitle" data-i18n="help.intro"></p>
+          <ul class="c-menu--list c-menu--prose">
+            <li data-i18n-html="help.controlMove"></li>
+            <li data-i18n-html="help.controlFire"></li>
+            <li data-i18n-html="help.scoring"></li>
+            <li data-i18n-html="help.controlPause"></li>
+            <li data-i18n-html="help.statusKeys"></li>
+          </ul>
+          <p data-i18n="help.audioIntro"></p>
+          <ul class="c-menu--list c-menu--prose">
+            <li data-i18n="help.audioFlipper"></li>
+            <li data-i18n="help.audioTanker"></li>
+            <li data-i18n="help.audioSpark"></li>
+            <li data-i18n="help.audioSpiker"></li>
+            <li data-i18n="help.audioFuseball"></li>
+            <li data-i18n="help.audioSpike"></li>
+            <li data-i18n="help.audioRadar"></li>
+          </ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen c-menu a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 class="c-menu--title" data-i18n="learn.title">Learn the Sounds</h1>
+          <p class="c-menu--subtitle" data-i18n="learn.subtitle">Audition each cue before you play.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-sound="lane" data-i18n="learn.lane">Lane step</button></li>
+            <li><button class="c-menu--button" data-sound="lineup" data-i18n="learn.lineup">Fire-now radar ping</button></li>
+            <li><button class="c-menu--button" data-sound="shot" data-i18n="learn.shot">Inward shot</button></li>
+            <li><button class="c-menu--button" data-sound="combo" data-i18n="learn.combo">Combo fanfare</button></li>
+            <li><button class="c-menu--button" data-sound="flipper" data-i18n="learn.flipper">Flipper</button></li>
+            <li><button class="c-menu--button" data-sound="tanker" data-i18n="learn.tanker">Tanker</button></li>
+            <li><button class="c-menu--button" data-sound="spark" data-i18n="learn.spark">Spark</button></li>
+            <li><button class="c-menu--button" data-sound="spiker" data-i18n="learn.spiker">Spiker</button></li>
+            <li><button class="c-menu--button" data-sound="fuseball" data-i18n="learn.fuseball">Fuseball</button></li>
+            <li><button class="c-menu--button" data-sound="spike" data-i18n="learn.spike">Spike hazard</button></li>
+            <li><button class="c-menu--button" data-sound="destroy" data-i18n="learn.destroy">Enemy destroyed</button></li>
+            <li><button class="c-menu--button" data-sound="death" data-i18n="learn.death">Life lost</button></li>
+          </ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="learn.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Tempest Tube</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle"></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="start" data-i18n="menu.start">Start</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="menu.highscores">High Scores</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to Play</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn Sounds</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+            <li><button class="c-menu--button" data-action="quit" data-i18n="menu.quit">Quit</button></li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

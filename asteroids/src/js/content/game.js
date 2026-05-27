@@ -21,7 +21,11 @@ content.game = (() => {
     _fireHeld: false,            // set by the game screen while a fire key is held (arcade rapid-fire)
     _fireHeldSide: 'center',     // 'left' | 'center' | 'right' — which key is held
     _hyperspaceRequested: false,
+    _deathReason: null,     // 'rock-<size>' | 'ufo' | 'ufoBullet' | 'hyperspace'
     fireCooldownUntil: 0,
+    _waveClearing: false,   // guards the wave-clear block against per-frame re-fires
+    bombs: 0,               // proton-bomb inventory (arcade) — stackable, fired with Space
+    shields: 0,             // shield inventory (arcade) — stackable; each absorbs one ship destroy
   }
 
   function setMode(mode) { state.mode = (mode === 'arcade' ? 'arcade' : 'classic') }
@@ -39,7 +43,11 @@ content.game = (() => {
     state._fireHeld = false
     state._fireHeldSide = 'center'
     state._hyperspaceRequested = false
+    state._deathReason = null
     state.fireCooldownUntil = 0
+    state._waveClearing = false
+    state.bombs = 0
+    state.shields = 0
     content.audio.start()
     content.audio.silenceAll()
     content.asteroids.clear()
@@ -66,6 +74,7 @@ content.game = (() => {
     content.asteroids.spawnWave(n)
     content.bullets.clear()
     state.waveStartedAt = engine.time()
+    state._waveClearing = false
     content.events.emit('wave-start', {wave: state.wave, count: n})
   }
 
@@ -85,6 +94,76 @@ content.game = (() => {
   // Public: power-up code awards score through this so the extra-life
   // pickup still fires.
   function awardPoints(points) { _award(points) }
+
+  // --- arcade inventory: extra life, proton bombs, shield ---
+
+  // Extra-life powerup — grants a life outright (separate from the
+  // score-threshold bonus lives awarded in _award()).
+  function grantExtraLife() {
+    state.lives += 1
+    content.events.emit('extra-life', {lives: state.lives})
+  }
+
+  // Proton-bomb powerup — adds one bomb to the stackable inventory.
+  // Returns the new inventory count (used by the pickup ctx).
+  function addBomb() {
+    state.bombs += 1
+    content.events.emit('bomb-collected', {bombs: state.bombs})
+    return state.bombs
+  }
+  function bombCount() { return state.bombs }
+
+  // Shield powerup — adds one shield to the stackable inventory. Each
+  // shield absorbs one ship destroy. Returns the new shield count.
+  function grantShield() {
+    state.shields += 1
+    content.events.emit('shield-up', {shields: state.shields})
+    return state.shields
+  }
+  function shieldCount() { return state.shields }
+  function hasShield() { return state.shields > 0 }
+
+  // Fire a proton bomb (Space). Vaporises every rock — and the UFO and
+  // its bullets — within PROTON_BOMB_RADIUS of the ship, awarding each
+  // body's score. Emits 'bomb-empty' if the inventory is empty.
+  function fireBomb() {
+    if (state.phase !== 'playing' || !content.ship.state.alive) return
+    if (state.bombs <= 0) {
+      content.events.emit('bomb-empty', {})
+      return
+    }
+    state.bombs -= 1
+    const ship = content.ship.getPosition()
+    const R = K().PROTON_BOMB_RADIUS
+    let cleared = 0
+    // Rocks — vaporise (no split) anything inside the blast radius.
+    for (let i = content.asteroids.list.length - 1; i >= 0; i--) {
+      const r = content.asteroids.list[i]
+      const wd = P().wrapDelta(r.x, r.y, ship.x, ship.y)
+      if (wd.dx * wd.dx + wd.dy * wd.dy <= R * R) {
+        _award(K().SCORE[r.size])
+        content.asteroids.remove(r)
+        cleared++
+      }
+    }
+    // UFO inside the blast.
+    const u = content.ufo.active()
+    if (u) {
+      const wd = P().wrapDelta(u.x, u.y, ship.x, ship.y)
+      if (wd.dx * wd.dx + wd.dy * wd.dy <= R * R) {
+        _award(u.kind === 'big' ? K().SCORE.bigUfo : K().SCORE.smallUfo)
+        content.ufo.kill()
+        cleared++
+      }
+    }
+    // UFO bullets inside the blast — expired so the next ufo.frame() drops them.
+    for (const bb of content.ufo.bullets()) {
+      const wd = P().wrapDelta(bb.x, bb.y, ship.x, ship.y)
+      if (wd.dx * wd.dx + wd.dy * wd.dy <= R * R) bb.life = 0
+    }
+    try { content.audio.emitProtonBomb(ship.x, ship.y) } catch (e) {}
+    content.events.emit('bomb-fired', {cleared, bombs: state.bombs})
+  }
 
   // --- per-frame sim ---
   function tick(dt) {
@@ -134,8 +213,16 @@ content.game = (() => {
         state._hyperspaceRequested = false
         const died = content.ship.hyperspace()
         if (died) {
-          content.audio.emitHyperspace(false)
-          _onShipKilled('hyperspace')
+          if (state.shields > 0) {
+            // Shield absorbs the bad jump — revive the ship in place.
+            state.shields -= 1
+            content.ship.spawn()
+            try { content.audio.emitShieldBlock() } catch (e) {}
+            content.events.emit('shield-block', {reason: 'hyperspace'})
+          } else {
+            content.audio.emitHyperspace(false)
+            _onShipKilled('hyperspace')
+          }
         } else {
           content.audio.emitHyperspace(true)
         }
@@ -171,7 +258,7 @@ content.game = (() => {
         if (P().circleHit(b, u, _bulletSlack(b, K().UFO_AIM_SLACK[u.kind]))) {
           content.bullets.list.splice(i, 1)
           const kind = u.kind
-          content.audio.emitExplosion(u.x, u.y, kind === 'big' ? 'medium' : 'small')
+          content.audio.emitExplosion(u.x, u.y, kind === 'big' ? 'medium' : 'small', 'ufo')
           content.ufo.kill()
           _award(kind === 'big' ? K().SCORE.bigUfo : K().SCORE.smallUfo)
           break
@@ -181,19 +268,31 @@ content.game = (() => {
 
     // Ship ↔ asteroid / UFO / UFO-bullet
     if (state.phase === 'playing' && content.ship.state.alive && !content.ship.isInvulnerable()) {
-      let killed = false
+      // Track *what* killed the ship so the death cue + announcement
+      // can name the cause ('rock-<size>' | 'ufo' | 'ufoBullet').
+      let killReason = null
       for (const r of content.asteroids.list) {
-        if (P().circleHit(content.ship.state, r)) { killed = true; break }
+        if (P().circleHit(content.ship.state, r)) { killReason = 'rock-' + r.size; break }
       }
-      if (!killed && u && P().circleHit(content.ship.state, u)) killed = true
-      if (!killed) {
+      if (!killReason && u && P().circleHit(content.ship.state, u)) killReason = 'ufo'
+      if (!killReason) {
         for (const bb of content.ufo.bullets()) {
-          if (P().circleHit(content.ship.state, bb)) { killed = true; break }
+          if (P().circleHit(content.ship.state, bb)) { killReason = 'ufoBullet'; break }
         }
       }
-      if (killed) {
-        content.ship.kill()
-        _onShipKilled('collision')
+      if (killReason) {
+        if (state.shields > 0) {
+          // Shield absorbs the hit — no life lost, one shield spent.
+          // Grant a brief invulnerability so the same rock can't
+          // re-trigger next frame.
+          state.shields -= 1
+          content.ship.state.invulUntil = t + K().RESPAWN_INVUL
+          try { content.audio.emitShieldBlock() } catch (e) {}
+          content.events.emit('shield-block', {reason: killReason})
+        } else {
+          content.ship.kill()
+          _onShipKilled(killReason)
+        }
       }
     }
 
@@ -203,7 +302,7 @@ content.game = (() => {
     if (state.phase === 'dying') {
       if (!state._handledDeath) {
         state._handledDeath = true
-        content.audio.emitDeath()
+        content.audio.emitDeath(state._deathReason)
         content.events.emit('ship-killed', {})
       }
       if (state.lives > 0) {
@@ -220,20 +319,20 @@ content.game = (() => {
       }
     }
 
-    // Wave clear
-    if (state.phase === 'playing' && content.asteroids.count() === 0) {
+    // Wave clear. The _waveClearing flag makes this a one-shot — without it
+    // the block re-fires every frame for the whole 1.5s timeout window
+    // (count() stays 0 until the spawn), queuing ~90 _startNextWave() calls.
+    if (state.phase === 'playing' && content.asteroids.count() === 0 && !state._waveClearing) {
+      state._waveClearing = true
       content.events.emit('wave-clear', {wave: state.wave})
       content.audio.emitWaveClear()
+      state.waveStartedAt = Infinity
       // Small pause before next wave so the wave-clear sting plays clean.
       setTimeout(() => {
         if (state.phase === 'playing' || state.phase === 'dying') {
           _startNextWave()
         }
       }, 1500)
-      // Set phase to a "between-waves" marker by clearing asteroids — but
-      // we keep playing. Spawn moved into the timeout to delay.
-      // Mark waveStartedAt = Infinity so we don't fire this again immediately.
-      state.waveStartedAt = Infinity
     }
 
     // Proximity beep: per-frame list of "things relevant to the player".
@@ -251,6 +350,7 @@ content.game = (() => {
 
   function _onShipKilled(reason) {
     state.lives -= 1
+    state._deathReason = reason
     state.phase = 'dying'
     state.diedAt = engine.time()
     state.respawnAt = state.diedAt + K().RESPAWN_DELAY
@@ -276,6 +376,11 @@ content.game = (() => {
   }
 
   function _award(points) {
+    // Score-multiplier buff (arcade): every gain is multiplied by the
+    // current wave number while the buff is active.
+    if (isArcade() && content.powerups && content.powerups.isActive('scoreMultiplier')) {
+      points = Math.round(points * Math.max(1, state.wave))
+    }
     state.score += points
     content.events.emit('score-change', {score: state.score})
     if (state.score >= state.nextExtendAt) {
@@ -291,9 +396,9 @@ content.game = (() => {
   // Per-frame list of {kind, x, y, tti, positive} sources for the
   // proximity-beep audio path. A target is "imminent" if its current
   // relative velocity will close to within (ship.r + target.r + slack)
-  // in at most IMPACT_TTI_MAX seconds. Powerups are always included as
-  // positive sources (regardless of trajectory) when a pickup exists
-  // in arcade mode — the player should always know one is available.
+  // in at most IMPACT_TTI_MAX seconds. The arcade powerup is gated by
+  // the same collision-course test (flagged positive) — it beeps only
+  // while the ship is on an intercept course with the pickup.
   function findProximitySources() {
     const ship = content.ship.state
     if (state.phase !== 'playing' || !ship.alive) return []
@@ -314,9 +419,9 @@ content.game = (() => {
       if (closing <= 0.05) return Infinity
       return effDist / closing
     }
-    function pushIfImminent(t, kind) {
+    function pushIfImminent(t, kind, positive) {
       const tti = timeToImpact(t)
-      if (tti <= IMPACT_TTI_MAX) out.push({kind, x: t.x, y: t.y, tti})
+      if (tti <= IMPACT_TTI_MAX) out.push({kind, x: t.x, y: t.y, tti, positive: !!positive})
     }
 
     for (const r of content.asteroids.list) pushIfImminent(r, r.size)
@@ -324,14 +429,16 @@ content.game = (() => {
     if (u) pushIfImminent(u, 'ufo-' + u.kind)
     for (const bb of content.ufo.bullets()) pushIfImminent(bb, 'ufo-bullet')
 
-    // Always include the current powerup as a positive source (no
-    // collision-course gating — the player should always be able to
-    // hear where it is).
+    // The current powerup is gated by the SAME collision-course test as
+    // a threat (just flagged positive, so the audio side keeps the
+    // powerup pitch/timbre). It beeps only while the ship is actually
+    // closing on it and would reach it within IMPACT_TTI_MAX — the beep
+    // fades out if the player drifts past or turns away. The continuous
+    // looping world voice still locates the pickup at any range; this
+    // beep is the "you're on an intercept course" cue.
     if (isArcade() && content.powerups) {
       const pw = content.powerups.current()
-      if (pw) {
-        out.push({kind: pw.kind, x: pw.x, y: pw.y, positive: true, tti: 1.5})
-      }
+      if (pw) pushIfImminent(pw, pw.kind, true)
     }
 
     // Sort by urgency (lowest tti first) so the highest-priority
@@ -436,5 +543,12 @@ content.game = (() => {
     setMode,
     isArcade,
     awardPoints,
+    grantExtraLife,
+    addBomb,
+    bombCount,
+    grantShield,
+    shieldCount,
+    hasShield,
+    fireBomb,
   }
 })()
