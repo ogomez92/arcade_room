@@ -67,6 +67,10 @@ app.controls.keyboard = {
       }
     }
 
+    if (keys.Digit0 || keys.Numpad0) {
+      state.debugPowerup = true
+    }
+
     // Focus keys
     ;[
       'Digit1',

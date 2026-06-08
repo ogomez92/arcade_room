@@ -1,0 +1,153 @@
+.a-game {
+  gap: 1rem;
+  justify-content: center;
+  max-width: 72rem;
+}
+
+.a-game--hud {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: min(60rem, 100%);
+}
+
+.a-game--hud-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.24);
+  min-width: 0;
+  padding: 0.35rem 0;
+}
+
+.a-game--hud-item span {
+  color: #9fd7ff;
+  display: block;
+  font-size: 0.78rem;
+}
+
+.a-game--hud-item strong {
+  color: #ffffff;
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.a-game--board {
+  aspect-ratio: 1 / 1;
+  display: grid;
+  gap: 0.18rem;
+  max-height: min(62vh, 42rem);
+  width: min(76vmin, 42rem);
+}
+
+.a-game--cell {
+  align-items: center;
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 0;
+  min-width: 0;
+}
+
+.a-game--cell-wall {
+  background: #17222d;
+  border-color: #314456;
+}
+
+.a-game--cell-floor {
+  background: #07100d;
+}
+
+.a-game--cell-goal {
+  background: #17240d;
+  border-color: #b6ef67;
+  color: #d3ff8a;
+}
+
+.a-game--cell-crate {
+  background: #5c3f26;
+  border-color: #d9954d;
+  color: #ffd39c;
+}
+
+.a-game--cell-crate-goal {
+  background: #2f5d33;
+  border-color: #7ff0a0;
+  color: #ffffff;
+}
+
+.a-game--cell-player {
+  background: #0f5f73;
+  border-color: #68e6ff;
+  color: #ffffff;
+}
+
+.a-game--cell-target {
+  box-shadow: inset 0 0 0 3px #ffffff;
+}
+
+.a-game--status {
+  color: #d9f8ff;
+  font-size: 0.95rem;
+  margin: 0;
+  min-height: 1.5rem;
+  text-align: center;
+}
+
+.a-levelclear--metrics {
+  display: grid;
+  gap: 0.45rem 1.2rem;
+  grid-template-columns: auto auto;
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.a-levelclear--metrics dt {
+  color: #9fd7ff;
+}
+
+.a-levelclear--metrics dd {
+  font-weight: 700;
+  margin: 0;
+}
+
+.a-levels--button {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: left;
+}
+
+.a-levels--button-title {
+  font-weight: 700;
+}
+
+.a-levels--button-meta {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 42rem) {
+  .a-game {
+    padding: 1rem;
+  }
+
+  .a-game--hud {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .a-game--board {
+    max-height: 58vh;
+    width: min(92vw, 34rem);
+  }
+
+  .a-game--cell {
+    font-size: 0.8rem;
+  }
+}

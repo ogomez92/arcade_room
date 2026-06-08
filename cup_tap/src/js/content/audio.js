@@ -16,13 +16,16 @@
  *   - Per-customer footstep voice: amplitude pulses at walk rate,
  *     panned by customer x.
  *   - Per-mug slide voice: continuous, loud, panned by mug x. Pitch
- *     is FIXED at lane base × 1.0 (same family as the lane drone /
- *     customer footstep) — full vs empty is differentiated by timbre
+ *     is FIXED at the lane voice octave (laneVoice = base × 2) for the
+ *     mug's whole life — full vs empty is differentiated by timbre
  *     (sawtooth vs square) and filter character, not by pitch. Voices
  *     created on enter, destroyed on exit (id-keyed maps).
- *   - Player presence voice: square wave at lane_base × 2, panned by
- *     player.x. Pulses as fast footsteps when walking, slow heartbeat
- *     when idle. Always audible so the player can locate themselves.
+ *   - Player presence voice (the "cursor"): square wave at the lane voice
+ *     octave (laneVoice = base × 2), panned by player.x. Pulses as fast
+ *     footsteps when walking, slow heartbeat when idle. Always audible so
+ *     the player can locate themselves. This octave is the canonical one —
+ *     every lane-pitched voice (customers, mugs, lane-relative one-shots)
+ *     is anchored to it so the whole game agrees on one octave per lane.
  *   - Pour voice: rising tone while the player holds at the kegs.
  *   - Floor-show ditty: 2-second per-theme musical fragment.
  *
@@ -78,6 +81,18 @@ content.audio = (() => {
     return content.levels.LANE_BASE_HZ[lane] || 440
   }
 
+  // Canonical "voice octave" — one octave above the lane base. This is the
+  // pitch the player's own presence voice (the cursor) sings at, and EVERY
+  // lane-pitched voice (customers, mugs, lane-relative one-shots) is anchored
+  // here so the whole game agrees on one octave per lane. Ornaments stay
+  // within roughly [×0.5, ×1.6] of this anchor so nothing ever reads a full
+  // octave off the cursor. The lane drone bed sits an octave below as quiet
+  // ambience; lane identity is the *voice* pitch, not the drone.
+  const LANE_VOICE_OCT = 2
+  function laneVoice(lane) {
+    return laneBase(lane) * LANE_VOICE_OCT
+  }
+
   // ----------------------------- bus setup -----------------------------
   function ensureStarted() {
     if (_state.started) return
@@ -88,7 +103,7 @@ content.audio = (() => {
     _state.masterBus.connect(engine.mixer.input())
 
     _state.droneBus = c.createGain()
-    _state.droneBus.gain.value = 0.45
+    _state.droneBus.gain.value = 0.22
     _state.droneBus.connect(_state.masterBus)
 
     _state.sfxBus = c.createGain()
@@ -160,25 +175,27 @@ content.audio = (() => {
 
   // ----------------------------- mug voices ----------------------------
   // Continuous slide voice — loud, with LFO shimmer — panned by mug x.
-  // Pitch is FIXED at lane base × 1.0 for the mug's whole life so the
-  // mug audibly belongs to its lane (same family as the lane drone and
-  // customer footstep). Full vs empty is differentiated by timbre
-  // (sawtooth vs square) + filter character, NOT by pitch. Never ramp
+  // Pitch is FIXED at the lane voice octave (laneVoice = base × 2) for the
+  // mug's whole life so the mug audibly belongs to its lane (same octave as
+  // the cursor and the customer voice). Full vs empty is differentiated by
+  // timbre (sawtooth vs square) + filter character, NOT by pitch. Never ramp
   // frequency with proximity — that wrecks lane identification.
   function ensureMugVoice(mug, lane, laneLen) {
     let v = _state.mugVoices.get(mug.id)
     if (v) return v
     const c = ctx()
     const t0 = now()
-    const base = laneBase(lane)
+    const voice = laneVoice(lane)
     const isFull = mug.kind === 'full'
 
     const osc = c.createOscillator()
     osc.type = isFull ? 'sawtooth' : 'square'
-    osc.frequency.value = base
+    osc.frequency.value = voice
     const lp = c.createBiquadFilter()
     lp.type = 'lowpass'
-    lp.frequency.value = isFull ? base * 4 : base * 7
+    // Cutoffs keep the same ratio to the fundamental as before, so the timbre
+    // is unchanged — just the whole voice shifted up to the cursor octave.
+    lp.frequency.value = isFull ? voice * 4 : voice * 7
     lp.Q.value = isFull ? 1.4 : 4
     const lfo = c.createOscillator()
     lfo.type = isFull ? 'sine' : 'square'
@@ -223,23 +240,24 @@ content.audio = (() => {
     if (v) return v
     const c = ctx()
     const t0 = now()
-    const base = laneBase(lane)
+    const voice = laneVoice(lane)
 
     const osc = c.createOscillator()
     osc.type = 'triangle'
-    // Unison with the lane drone fundamental so the customer audibly
-    // belongs to this lane. The previous × 0.66 ratio (a fifth below)
-    // landed near the adjacent lane's base — lane 0 customers at ~436 Hz
-    // sounded like lane 1, lane 2 customers at ~218 Hz sounded like
-    // lane 3 — actively confusing the lane identification. The footstep
-    // ADSR pulse keeps it from blending into the sustained drone.
-    osc.frequency.value = base
+    // Sung at the canonical lane voice octave (laneVoice = base × 2), the
+    // same octave as the player's cursor, so a customer on your lane reads
+    // as "your pitch" and lanes stay separated by base. (An earlier build
+    // used the bare base, and before that a × 0.66 fifth that sat near the
+    // adjacent lane's pitch and muddied lane identification — don't
+    // reintroduce either.) The footstep ADSR pulse keeps it from blending
+    // into the sustained drone.
+    osc.frequency.value = voice
     // Per-customer detune so multiple customers on the same lane don't
     // collapse into one rhythmic blob.
     osc.detune.value = (Math.random() - 0.5) * 30 // ±15 cents
     const lp = c.createBiquadFilter()
     lp.type = 'lowpass'
-    lp.frequency.value = base * 2.5
+    lp.frequency.value = voice * 2.5
     const gain = c.createGain()
     gain.gain.setValueAtTime(0, t0)
     const pan = c.createStereoPanner()
@@ -275,10 +293,10 @@ content.audio = (() => {
     const base = laneBase(playerLane)
     const osc = c.createOscillator()
     osc.type = 'sawtooth'
-    osc.frequency.setValueAtTime(base * 0.5, t0)
+    osc.frequency.setValueAtTime(base, t0)
     const lp = c.createBiquadFilter()
     lp.type = 'lowpass'
-    lp.frequency.setValueAtTime(base * 1.5, t0)
+    lp.frequency.setValueAtTime(base * 2, t0)
     lp.Q.value = 2
     const gain = c.createGain()
     gain.gain.setValueAtTime(0.0001, t0)
@@ -304,10 +322,12 @@ content.audio = (() => {
     const v = _state.pourVoice
     const base = laneBase(playerLane)
     const t = now()
-    const f = base * (0.5 + charge * 1.0)
+    // Rises from the lane fundamental up to the cursor octave (base × 2 =
+    // laneVoice) as the pour fills, so a full pour lands on the lane voice.
+    const f = base * (1.0 + charge * 1.0)
     try {
       v.osc.frequency.setTargetAtTime(f, t, 0.05)
-      v.lp.frequency.setTargetAtTime(base * (1.5 + charge * 4), t, 0.05)
+      v.lp.frequency.setTargetAtTime(base * (2 + charge * 4), t, 0.05)
     } catch (e) {}
   }
 
@@ -323,7 +343,7 @@ content.audio = (() => {
     const t0 = now()
     const osc = c.createOscillator()
     osc.type = 'square'
-    osc.frequency.value = laneBase(1) * 2
+    osc.frequency.value = laneVoice(1)
     const lp = c.createBiquadFilter()
     lp.type = 'lowpass'
     lp.frequency.value = 4000
@@ -354,12 +374,12 @@ content.audio = (() => {
     const lane = snap.player.lane
     const x = snap.player.x
     const laneLen = snap.lanes[lane].length
-    const base = laneBase(lane)
+    const voice = laneVoice(lane)
     const t = now()
     try {
-      v.osc.frequency.setTargetAtTime(base * 2, t, 0.02)
+      v.osc.frequency.setTargetAtTime(voice, t, 0.02)
       v.pan.pan.setTargetAtTime(panForX(x, laneLen), t, 0.02)
-      v.lp.frequency.setTargetAtTime(base * 5, t, 0.05)
+      v.lp.frequency.setTargetAtTime(voice * 2.5, t, 0.05)
     } catch (e) {}
 
     // Detect walking by x-change between frames (ignore lane swaps which
@@ -539,19 +559,19 @@ content.audio = (() => {
     const lane = ev.snap.player.lane
     const prev = (_state.prevPlayerLane != null && _state.prevPlayerLane !== lane)
       ? _state.prevPlayerLane : lane
-    const fromBase = laneBase(prev)
-    const toBase = laneBase(lane)
-    // Glissando from old lane base → new lane base. Direction (up/down)
-    // tells the player whether they moved to a higher or lower lane,
-    // and the landing pitch confirms which lane they're on.
+    const fromVoice = laneVoice(prev)
+    const toVoice = laneVoice(lane)
+    // Glissando from old lane voice → new lane voice (both at the cursor
+    // octave). Direction (up/down) tells the player whether they moved to a
+    // higher or lower lane, and the landing pitch confirms which lane.
     tone({
-      freq: fromBase * 1.5, sweepTo: toBase * 1.5, sweepTime: 0.10,
+      freq: fromVoice, sweepTo: toVoice, sweepTime: 0.10,
       type: 'triangle', pan: 0, peak: 0.13,
       attack: 0.005, hold: 0.02, release: 0.10,
     })
-    // Confirmation tap at the new lane's base pitch.
+    // Confirmation tap at the new lane's voice pitch.
     tone({
-      freq: toBase, type: 'sine', pan: 0, peak: 0.10,
+      freq: toVoice, type: 'sine', pan: 0, peak: 0.10,
       attack: 0.005, hold: 0.05, release: 0.14, when: 0.10,
     })
   }
@@ -560,9 +580,11 @@ content.audio = (() => {
   }
   function playSling(ev) {
     const charge = ev.charge != null ? ev.charge : 1
-    const lane = ev.lane
+    const v = laneVoice(ev.lane)
     noiseBurst({pan: -0.85, hp: 600, lp: 4000, peak: 0.25 * charge, dur: 0.18})
-    tone({freq: laneBase(lane) * 1.8, sweepTo: laneBase(lane) * 0.9, sweepTime: 0.2, type: 'sawtooth', pan: -0.7, peak: 0.16, hold: 0.04, release: 0.18})
+    // Quick downward chirp anchored at the lane voice — reads as "launched"
+    // without dropping a full octave below the cursor.
+    tone({freq: v, sweepTo: v * 0.7, sweepTime: 0.2, type: 'sawtooth', pan: -0.7, peak: 0.16, hold: 0.04, release: 0.18})
   }
   function playFizzle() {
     tone({freq: 180, sweepTo: 90, sweepTime: 0.18, type: 'square', pan: -0.7, peak: 0.05, hold: 0.02, release: 0.12})
@@ -570,30 +592,33 @@ content.audio = (() => {
   function playCatch(ev) {
     const ln = ev.snap.lanes[ev.lane]
     const pan = panForX(ev.x, ln.length)
-    tone({freq: laneBase(ev.lane) * 0.7, sweepTo: laneBase(ev.lane) * 0.4, sweepTime: 0.15, type: 'triangle', pan, peak: 0.18, hold: 0.06, release: 0.18})
+    const v = laneVoice(ev.lane)
+    tone({freq: v, sweepTo: v * 0.6, sweepTime: 0.15, type: 'triangle', pan, peak: 0.18, hold: 0.06, release: 0.18})
     noiseBurst({pan, hp: 100, lp: 600, peak: 0.18, dur: 0.12})
     if (ev.exit) {
-      // Bonus chime — customer pushed out
-      tone({freq: laneBase(ev.lane) * 2, type: 'triangle', pan, peak: 0.15, hold: 0.06, release: 0.25, when: 0.04})
-      tone({freq: laneBase(ev.lane) * 3, type: 'triangle', pan, peak: 0.10, hold: 0.06, release: 0.25, when: 0.10})
+      // Bonus chime — customer pushed out (rooted at the lane voice).
+      tone({freq: v, type: 'triangle', pan, peak: 0.15, hold: 0.06, release: 0.25, when: 0.04})
+      tone({freq: v * 1.5, type: 'triangle', pan, peak: 0.10, hold: 0.06, release: 0.25, when: 0.10})
     }
   }
   function playCatchEmpty(ev) {
     const ln = ev.snap.lanes[ev.lane]
     const pan = panForX(ev.x, ln.length)
-    tone({freq: laneBase(ev.lane) * 2.4, type: 'sine', pan, peak: 0.15, hold: 0.02, release: 0.10})
+    tone({freq: laneVoice(ev.lane) * 1.2, type: 'sine', pan, peak: 0.15, hold: 0.02, release: 0.10})
     noiseBurst({pan, hp: 1500, lp: 6000, peak: 0.10, dur: 0.06})
   }
   function playEmptyFling(ev) {
     const ln = ev.snap.lanes[ev.lane]
     const pan = panForX(ev.x, ln.length)
-    tone({freq: laneBase(ev.lane) * 2.0, sweepTo: laneBase(ev.lane) * 1.3, sweepTime: 0.18, type: 'square', pan, peak: 0.12, hold: 0.02, release: 0.10})
+    const v = laneVoice(ev.lane)
+    tone({freq: v, sweepTo: v * 0.65, sweepTime: 0.18, type: 'square', pan, peak: 0.12, hold: 0.02, release: 0.10})
   }
   function playSpawn(ev) {
     const pan = 1 // door is on the right
-    // Door creak + footstep
+    // Door creak + footstep. Footstep thud sits just below the lane voice
+    // (a sixth down) — low and door-like, but not a full octave off.
     noiseBurst({pan, hp: 200, lp: 1500, peak: 0.10, dur: 0.18})
-    tone({freq: laneBase(ev.lane) * 0.5, type: 'triangle', pan, peak: 0.08, hold: 0.04, release: 0.12, when: 0.06})
+    tone({freq: laneVoice(ev.lane) * 0.6, type: 'triangle', pan, peak: 0.08, hold: 0.04, release: 0.12, when: 0.06})
   }
   function playTipDrop(ev) {
     const ln = ev.snap.lanes[ev.lane]
@@ -648,12 +673,13 @@ content.audio = (() => {
       tone({freq: 2400, type: 'square', pan, peak: 0.12, hold: 0.05, release: 0.20, when: 0.06})
     } else if (ev.reason === 'waste') {
       const pan = 1
-      tone({freq: laneBase(lane) * 1.5, sweepTo: laneBase(lane) * 0.4, sweepTime: 0.6, type: 'sawtooth', pan, peak: 0.22, hold: 0.05, release: 0.5})
+      // Sad descend from the lane voice down an octave to the fundamental.
+      tone({freq: laneVoice(lane), sweepTo: laneVoice(lane) * 0.5, sweepTime: 0.6, type: 'sawtooth', pan, peak: 0.22, hold: 0.05, release: 0.5})
       noiseBurst({pan, hp: 200, lp: 1200, peak: 0.20, dur: 0.20, when: 0.10})
     }
   }
   function playLevelClear(ev) {
-    const root = laneBase(ev.snap.player.lane)
+    const root = laneVoice(ev.snap.player.lane)
     const chord = [root, root * 1.25, root * 1.5, root * 2]
     chord.forEach((f, i) => {
       tone({freq: f, type: 'triangle', pan: 0, peak: 0.16, attack: 0.02, hold: 0.10, release: 0.45, when: i * 0.06})
@@ -668,7 +694,7 @@ content.audio = (() => {
     tone({freq: 60, type: 'sine', pan: 0, peak: 0.15, attack: 0.05, hold: 0.20, release: 0.80, when: 0.6})
   }
   function playLevelStart(ev) {
-    const root = laneBase(ev.snap.player.lane)
+    const root = laneVoice(ev.snap.player.lane)
     tone({freq: root, type: 'triangle', pan: 0, peak: 0.12, hold: 0.05, release: 0.15})
     tone({freq: root * 1.5, type: 'triangle', pan: 0, peak: 0.10, hold: 0.05, release: 0.20, when: 0.10})
   }

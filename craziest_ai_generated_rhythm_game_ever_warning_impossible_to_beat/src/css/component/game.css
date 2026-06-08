@@ -1,0 +1,87 @@
+/* CADENCE game HUD (aria-hidden; audio + announcements are the real interface).
+   Kept readable for sighted / low-vision players. The "incoming" panel shows a
+   coarse glyph of the next threat — purely cosmetic. */
+.a-game {
+  align-items: center;
+  text-align: center;
+}
+  .a-game--hud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em 1.4em;
+    justify-content: center;
+    font-size: 1.05em;
+    margin-bottom: 1.4rem;
+  }
+    .a-game--stat b { color: #7fd4ff; }
+
+  .a-game--incoming {
+    min-height: 3em;
+    font-size: 2.2em;
+    letter-spacing: 0.15em;
+    opacity: 0.85;
+    color: #cfe9ff;
+  }
+    .a-game--incoming[data-kind="enemy"],
+    .a-game--incoming[data-kind="grunt"] { color: #ff8c8c; }
+    .a-game--incoming[data-kind="drone"] { color: #ffd479; }
+    .a-game--incoming[data-kind="hurdle"] { color: #9be36b; }
+    .a-game--incoming[data-kind="beam"] { color: #7fd4ff; }
+
+/* Briefing / victory prose */
+.a-briefing--story,
+.a-briefing--tut,
+.a-victory--ending {
+  max-width: 44em;
+  margin: 0.4rem auto;
+  line-height: 1.5;
+}
+  .a-briefing--tut { opacity: 0.95; color: #cfe9ff; }
+
+/* Help / lists */
+.a-help--text {
+  max-width: 44em;
+  margin-left: auto;
+  margin-right: auto;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+.a-help--list {
+  list-style: none;
+  margin: 0.5rem auto;
+  padding: 0;
+  max-width: 44em;
+  text-align: left;
+}
+  .a-help--list li {
+    margin: 0.4em 0;
+    line-height: 1.45;
+  }
+  .a-help--list kbd {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    padding: 0.05em 0.4em;
+    font-family: inherit;
+  }
+
+/* High scores */
+.a-highscores--list {
+  list-style: none;
+  margin: 0.5rem auto 1rem;
+  padding: 0;
+  max-width: 40em;
+  text-align: left;
+}
+  .a-highscores--entry,
+  .a-highscores--empty {
+    margin: 0.3em 0;
+    padding: 0.2em 0;
+  }
+
+/* Game over / victory online status */
+.a-gameover--online-status[data-state="ok"],
+.a-victory--online-status[data-state="ok"] { color: #5ad17a; }
+.a-gameover--online-status[data-state="error"],
+.a-victory--online-status[data-state="error"] { color: #ff8c8c; }
+.a-gameover--online-link,
+.a-victory--online-link { color: #7fd4ff; }

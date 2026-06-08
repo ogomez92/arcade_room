@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Super Deekout</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div class="a-app--announce" aria-live="polite" aria-atomic="true" data-app-announce-polite></div>
+      <div class="a-app--announce" aria-live="assertive" aria-atomic="true" data-app-announce-assertive></div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Super Deekout</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">A fast, audio-first arcade chase.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="start" data-i18n="menu.start">Start game</button></li>
+            <li><button class="c-menu--button" data-action="difficulty" data-i18n="menu.difficulty">Difficulty</button></li>
+            <li><button class="c-menu--button" data-action="options" data-i18n="menu.options">Options</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="menu.highscores">High scores</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn game sounds</button></li>
+            <li><button class="c-menu--button" data-action="test" data-i18n="menu.test">Test speaker orientation</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to play</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+            <li><button class="c-menu--button" data-action="quit" data-i18n="menu.quit" hidden>Quit</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--difficulty">
+        <section class="c-screen c-menu a-difficulty" tabindex="-1" data-i18n-attr="aria-label:difficulty.aria">
+          <h1 class="c-menu--title" data-i18n="difficulty.title">Choose difficulty</h1>
+          <p class="c-menu--subtitle" data-i18n="difficulty.subtitle">Higher difficulties mean smarter, faster enemies.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="easy" data-i18n="difficulty.easy">Easy</button></li>
+            <li><button class="c-menu--button" data-action="normal" data-i18n="difficulty.normal">Normal</button></li>
+            <li><button class="c-menu--button" data-action="crazy" data-i18n="difficulty.crazy">Crazy</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="difficulty.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--options">
+        <section class="c-screen c-menu a-options" tabindex="-1" data-i18n-attr="aria-label:options.aria">
+          <h1 class="c-menu--title" data-i18n="options.title">Options</h1>
+          <ul class="c-menu--list">
+            <li class="c-menu--row">
+              <label class="c-menu--label" for="a-options-musicVolume" data-i18n="options.musicVolume">Music volume</label>
+              <input class="a-options--musicVolume" id="a-options-musicVolume" type="range" min="0" max="100" step="5" value="80" data-i18n-attr="aria-label:options.musicVolume">
+              <span class="a-options--musicVolumeValue" aria-hidden="true">80%</span>
+            </li>
+            <li><button class="c-menu--button a-options--tts" data-action="tts" aria-pressed="false" data-i18n="options.tts">Speak with built-in voice</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="options.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen c-menu a-highscores" tabindex="-1" data-i18n-attr="aria-label:highscores.aria">
+          <h1 class="c-menu--title" data-i18n="highscores.title">High scores</h1>
+          <p class="c-menu--subtitle a-highscores--subtitle" data-i18n="highscores.subtitle">Local leaderboard.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button a-highscores--diff" data-action="cycle" data-i18n="highscores.difficulty">Difficulty</button></li>
+          </ul>
+          <ol class="c-menu--list a-highscores--list"></ol>
+          <ul class="c-menu--list">
+            <li><a class="c-menu--button a-highscores--online" target="_blank" rel="noopener noreferrer" data-i18n="highscores.online" hidden>View online leaderboard</a></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="highscores.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen c-menu a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 class="c-menu--title" data-i18n="learn.title">Learn game sounds</h1>
+          <p class="c-menu--subtitle" data-i18n="learn.subtitle">Audition each cue with a fixed listener facing north.</p>
+          <ul class="c-menu--list a-learn--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="learn.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--test">
+        <section class="c-screen a-test" tabindex="-1" data-i18n-attr="aria-label:test.aria">
+          <h1 class="c-menu--title" data-i18n="test.title">Orientation test</h1>
+          <p class="c-menu--subtitle" data-i18n="test.subtitle">Ticks fire at front (north), right (east), behind (south), left (west) in sequence.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="test.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to play</h1>
+          <ul class="c-menu--list a-help--list">
+            <li data-i18n-html="help.goal"><strong>Goal:</strong> collect every coin to clear the level.</li>
+            <li data-i18n-html="help.move"><kbd>Arrow keys</kbd> roll the robot. Hold two for a diagonal.</li>
+            <li data-i18n-html="help.collect">Centre a coin's sound left-to-right to line up its column, then move until it is loudest to grab it.</li>
+            <li data-i18n-html="help.behind">Sounds behind you (south) are muffled and lower.</li>
+            <li data-i18n-html="help.enemies">Avoid 1O1 bot and the rocket. A centred, loud enemy is right on top of you.</li>
+            <li data-i18n-html="help.space"><kbd>Space</kbd> ends a level early when two or fewer coins remain.</li>
+            <li data-i18n-html="help.inv"><kbd>E</kbd> neutralizer, <kbd>C</kbd> collector, <kbd>W</kbd> wall fusion, <kbd>S</kbd> oil slick.</li>
+            <li data-i18n-html="help.status"><kbd>Enter</kbd> coins and health, <kbd>Shift</kbd> score and level, <kbd>I</kbd> inventory, <kbd>T</kbd> time, <kbd>H</kbd> high score.</li>
+            <li data-i18n-html="help.modes"><kbd>M</kbd> toggles hearing one coin or all. <kbd>1</kbd>-<kbd>5</kbd> set how many coins to track. <kbd>P</kbd> pauses.</li>
+          </ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <h1 class="u-screenReader" data-i18n="game.title">Super Deekout</h1>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Game over</h1>
+          <p class="c-menu--subtitle a-gameover--summary"></p>
+          <ol class="c-menu--list a-gameover--scores"></ol>
+          <form class="a-gameover--form" hidden>
+            <ul class="c-menu--list">
+              <li>
+                <label class="c-menu--button" style="display:flex;align-items:center;gap:1rem">
+                  <span data-i18n="gameover.nameLabel">Name</span>
+                  <input type="text" maxlength="20" class="a-gameover--name" style="flex:1;background:transparent;border:none;color:inherit;font:inherit;outline:1px solid currentColor;padding:0.25rem 0.5rem" />
+                </label>
+              </li>
+              <li><button type="submit" class="c-menu--button" data-i18n="gameover.submit">Save score</button></li>
+            </ul>
+          </form>
+          <p class="a-gameover--online" data-state="" hidden></p>
+          <a class="c-menu--button a-gameover--onlineLink" target="_blank" rel="noopener noreferrer" hidden></a>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="again" data-i18n="gameover.again">Play again</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="gameover.menu">Main menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

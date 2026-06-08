@@ -1,0 +1,97 @@
+/* Etch game HUD + visual nonogram grid (aria-hidden; the audio + announcements
+   are the real interface). Kept readable for sighted / low-vision players. */
+.a-game {
+  align-items: center;
+  text-align: center;
+}
+  .a-game--hud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em 1.4em;
+    justify-content: center;
+    font-size: 1.05em;
+    margin-bottom: 1.2rem;
+  }
+    .a-game--stat b { color: #ffd479; }
+
+  .a-game--grid {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0.5em;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.4rem;
+    margin: 0 auto;
+  }
+  .a-game--row {
+    display: flex;
+    gap: 2px;
+  }
+  .a-game--cell {
+    border-radius: 2px;
+    display: inline-block;
+    height: 1.8em;
+    width: 1.8em;
+    background: rgba(255, 255, 255, 0.08);
+    position: relative;
+  }
+    /* filled = solid ink; unknown = faint; crossed = a small dot mark */
+    .a-game--cell.is-filled { background: #ffd479; }
+    .a-game--cell.is-unknown { background: rgba(255, 255, 255, 0.10); }
+    .a-game--cell.is-crossed { background: rgba(255, 255, 255, 0.03); }
+    .a-game--cell.is-crossed::after {
+      content: '';
+      position: absolute;
+      left: 50%; top: 50%;
+      width: 0.3em; height: 0.3em;
+      margin: -0.15em 0 0 -0.15em;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .a-game--cell.is-given { box-shadow: inset 0 0 0 2px rgba(127, 178, 255, 0.7); }
+    .a-game--cell.is-cursor {
+      outline: 3px solid #ffffff;
+      outline-offset: -1px;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+    }
+
+/* Help / lists */
+.a-help--text {
+  max-width: 44em;
+  margin-left: auto;
+  margin-right: auto;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+.a-help--list {
+  list-style: none;
+  margin: 0.5rem auto;
+  padding: 0;
+  max-width: 44em;
+  text-align: left;
+}
+  .a-help--list li {
+    margin: 0.4em 0;
+    line-height: 1.4;
+  }
+.a-help--list kbd {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 0.25em;
+  padding: 0.05em 0.4em;
+  font-family: inherit;
+}
+
+.a-highscores--list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 40em;
+}
+  .a-highscores--entry,
+  .a-highscores--empty {
+    padding: 0.35em 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+.a-gameover--online-status[data-state="error"] { color: #ff9a8a; }
+.a-gameover--online-status[data-state="ok"] { color: #7fe0a0; }

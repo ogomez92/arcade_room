@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Plane Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <!-- screen-reader announcement regions -->
+      <div class="a-app--announce u-screenReader" aria-live="polite" aria-atomic="true" data-app-announce-polite></div>
+      <div class="a-app--announce u-screenReader" aria-live="assertive" aria-atomic="true" data-app-announce-assertive></div>
+
+      <!-- game / radar control -->
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <h1 class="u-screenReader" data-i18n="menu.title">Plane Control</h1>
+        </section>
+      </div>
+
+      <!-- language picker -->
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- difficulty -->
+      <div class="a-app--screen a-app--difficulty">
+        <section class="c-screen c-menu a-difficulty" tabindex="-1" data-i18n-attr="aria-label:difficulty.aria">
+          <h1 class="c-menu--title" data-i18n="difficulty.title">Choose difficulty</h1>
+          <p class="c-menu--subtitle" data-i18n="difficulty.subtitle">Higher tiers mean faster planes, less fuel, and busier skies.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="cadet" data-i18n="difficulty.cadet">Cadet</button></li>
+            <li><button class="c-menu--button" data-action="controller" data-i18n="difficulty.controller">Controller</button></li>
+            <li><button class="c-menu--button" data-action="nightmare" data-i18n="difficulty.nightmare">Nightmare</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="difficulty.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- options -->
+      <div class="a-app--screen a-app--options">
+        <section class="c-screen c-menu a-options" tabindex="-1" data-i18n-attr="aria-label:options.aria">
+          <h1 class="c-menu--title" data-i18n="options.title">Options</h1>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button a-options--music" data-action="music" data-i18n="options.music">Ambient sound bed</button></li>
+            <li><button class="c-menu--button a-options--tts" data-action="tts" data-i18n="options.tts">Speak with built-in voice</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="options.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- high scores -->
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen c-menu a-highscores" tabindex="-1" data-i18n-attr="aria-label:highscores.aria">
+          <h1 class="c-menu--title" data-i18n="highscores.title">High scores</h1>
+          <p class="c-menu--subtitle a-highscores--subtitle"></p>
+          <ol class="a-highscores--list"></ol>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button a-highscores--diff" data-action="cycle" data-i18n="highscores.cycle">Change difficulty</button></li>
+            <li><a class="c-menu--button a-highscores--online" target="_blank" rel="noopener" hidden data-i18n="highscores.online">View online leaderboard</a></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="highscores.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- help -->
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to play</h1>
+          <p class="c-menu--subtitle" data-i18n="help.intro"></p>
+          <ul class="c-menu--list">
+            <li data-i18n-html="help.select"></li>
+            <li data-i18n-html="help.turn"></li>
+            <li data-i18n-html="help.direct"></li>
+            <li data-i18n-html="help.land"></li>
+            <li data-i18n-html="help.hold"></li>
+            <li data-i18n-html="help.describe"></li>
+            <li data-i18n-html="help.status"></li>
+            <li data-i18n-html="help.pause"></li>
+          </ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- orientation test -->
+      <div class="a-app--screen a-app--test">
+        <section class="c-screen c-menu a-test" tabindex="-1" data-i18n-attr="aria-label:test.aria">
+          <h1 class="c-menu--title" data-i18n="test.title">Speaker orientation test</h1>
+          <p class="c-menu--subtitle" data-i18n="test.subtitle">A tone circles around you. Confirm it matches the spoken direction.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="test.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- game over -->
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Shift over</h1>
+          <p class="c-menu--subtitle a-gameover--summary"></p>
+          <form class="a-gameover--form" hidden>
+            <label class="a-gameover--namePrompt" for="a-gameover--name" data-i18n="gameover.namePrompt">New high score! Enter your name:</label>
+            <input class="a-gameover--name" id="a-gameover--name" type="text" maxlength="20" autocomplete="off" data-i18n-attr="aria-label:gameover.nameLabel" />
+            <button class="c-menu--button" type="submit" data-i18n="gameover.save">Save score</button>
+          </form>
+          <p class="a-gameover--online" hidden></p>
+          <a class="a-gameover--onlineLink" target="_blank" rel="noopener" hidden></a>
+          <ol class="a-gameover--scores"></ol>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="again" data-i18n="gameover.again">Play again</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="gameover.menu">Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- main menu -->
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Plane Control</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">Air-traffic control by ear.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="start" data-i18n="menu.start">Start shift</button></li>
+            <li><button class="c-menu--button" data-action="difficulty" data-i18n="menu.difficulty">Difficulty</button></li>
+            <li><button class="c-menu--button" data-action="options" data-i18n="menu.options">Options</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="menu.highscores">High scores</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to play</button></li>
+            <li><button class="c-menu--button" data-action="test" data-i18n="menu.test">Test speaker orientation</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+            <li><button class="c-menu--button" data-action="quit" hidden data-i18n="menu.quit">Quit</button></li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

@@ -1,0 +1,50 @@
+app.screen.menu = app.screenManager.invent({
+  id: 'menu',
+  parentSelector: '.a-app--menu',
+  rootSelector: '.a-menu',
+  transitions: {
+    start: function () { this.change('game') },
+    difficulty: function () { this.change('difficulty') },
+    options: function () { this.change('options') },
+    highscores: function () { this.change('highscores') },
+    help: function () { this.change('help') },
+    test: function () { this.change('test') },
+    language: function () { this.change('language') },
+    quit: function () { app.quit() },
+  },
+  state: {
+    entryFrames: 0,
+  },
+  onReady: function () {
+    const root = this.rootElement
+    const quitBtn = root.querySelector('button[data-action="quit"]')
+    if (quitBtn && app.isElectron()) quitBtn.hidden = false
+    root.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action]')
+      if (btn) app.screenManager.dispatch(btn.dataset.action)
+    })
+  },
+  onEnter: function () {
+    this.state.entryFrames = 6
+    app.utility.focus.setWithin(this.rootElement)
+    const hash = (window.location.hash || '').replace('#', '')
+    if (hash === 'test') app.screenManager.dispatch('test')
+    else if (hash === 'help') app.screenManager.dispatch('help')
+  },
+  onFrame: function () {
+    try {
+      if (this.state.entryFrames > 0) {
+        this.state.entryFrames--
+        app.controls.ui()
+        return
+      }
+      const ui = app.controls.ui()
+      if (ui.up) app.utility.focus.setPreviousFocusable(this.rootElement)
+      if (ui.down) app.utility.focus.setNextFocusable(this.rootElement)
+      if (ui.enter || ui.space || ui.confirm) {
+        const f = app.utility.focus.get(this.rootElement)
+        if (f && f.dataset.action) app.screenManager.dispatch(f.dataset.action)
+      }
+    } catch (e) { console.error(e) }
+  },
+})

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Etch — Manual</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <style>
+      *, *::after, *::before {
+        background: transparent;
+        border: 0;
+        box-sizing: border-box;
+        color: inherit;
+        font: inherit;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        background-color: #FFFFFF;
+        font-family: sans-serif;
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.5;
+      }
+
+      main ::selection {
+        background-color: #FF0069;
+        color: #FFFFFF;
+        text-decoration-color: #FFFFFF;
+      }
+
+      a {
+        color: #FF0069;
+        cursor: pointer;
+        text-decoration: underline;
+      }
+
+      code {
+        font-family: monospace;
+      }
+
+      details > * + * {
+        margin-top: 1.25em;
+      }
+
+      em {
+        font-family: sans-serif;
+        font-style: italic;
+      }
+
+      h2 {
+        font-size: 2em;
+      }
+
+      h3 {
+        font-size: 1.5em;
+        margin-top: 3rem;
+      }
+
+      h4 {
+        font-size: 1.25em;
+        margin-top: 3rem;
+      }
+
+      kbd {
+        border: 1px solid #FF0069;
+        border-radius: 0.25em;
+        display: inline-block;
+        font-family: monospace;
+        padding: 0 0.5em;
+      }
+
+      strong, th {
+        font-family: sans-serif;
+        font-weight: 700;
+      }
+
+      section {
+        margin: 0 auto;
+        max-width: calc(60ch + 4em);
+        padding: 3em 1em;
+      }
+
+      section + section {
+        border-top: 1px dotted #CCCCCC;
+      }
+
+      section > * + *:not(h3):not(h4) {
+        margin-top: 1.25em;
+      }
+
+      section > h2 + *,
+      section > h3 + *,
+      section > h4 + * {
+        margin-top: 0.75em !important;
+      }
+
+      table, td, th {
+        border: 1px solid #000000;
+        border-collapse: collapse;
+      }
+
+      td, th {
+        padding: 0.25em 0.5em;
+      }
+
+      th {
+        text-align: left;
+      }
+
+      ul {
+        list-style-position: inside;
+        padding-left: 1.5em;
+      }
+
+      .hero {
+        align-items: center;
+        background-color: #000000;
+        color: #FFFFFF;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        line-height: 1.25;
+        padding: 4em 1em;
+        text-align: center;
+      }
+        .hero--author {
+          font-family: monospace;
+          margin-top: 2em;
+        }
+        .hero--logo {
+          font-family: monospace;
+          font-size: 3em;
+          text-transform: uppercase;
+        }
+
+      .scrollable {
+        max-width: 100%;
+        overflow: auto;
+        white-space: nowrap;
+      }
+
+      @media (min-width: 20rem) {
+        :root {
+          font-size: calc(1rem + ((1vw - 0.2rem) * 0.25));
+        }
+      }
+
+      @media (min-width: 48rem) {
+        section {
+          padding-left: 2em;
+          padding-right: 2em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <h1>
+        <div class="hero--lockup">
+          <div class="hero--logo">Etch</div>
+          <div class="hero--author">audio nonogram</div>
+        </div>
+      </h1>
+    </header>
+
+    <main>
+      <section>
+        <h2>Introduction</h2>
+        <p><strong>Etch</strong> is an audio-first, blind-accessible nonogram (picross). Every row and every column carries a clue — a list of numbers giving, in order, the lengths of the runs of filled cells, with at least one gap between runs. A clue of "3, 1" means a run of three filled cells, then a gap, then a single filled cell. From the clues alone you can deduce exactly which cells are filled.</p>
+        <p>It is a pure <em>logic</em> puzzle: every board is generated so that it can be solved by reasoning alone — no guessing is ever required. Because of that, a wrong fill is a genuine mistake; it is marked empty for you and costs one of three lives. Fill in the whole hidden picture to clear the level and climb to a bigger grid.</p>
+        <p>Etch reads by ear. The cursor pans to its column — the leftmost column in your left ear, the rightmost in your right — and rises in pitch toward the top row. When you read a line you hear its clue spoken, then a scan of its current cells: a filled cell is a warm tone, a crossed-off cell a short tick, an undecided cell a soft pip.</p>
+      </section>
+
+      <section>
+        <h2>System Requirements</h2>
+        <p>This is best experienced with headphones and a gamepad.</p>
+        <p>Real-time synthesis is an <em>extremely</em> CPU-intensive process. It will attempt to run on any machine that meets its minimum requirements; however, you may experience stuttering or drop-outs when running below the recommended requirements.</p>
+
+        <h3>Minimum System Requirements</h3>
+        <table>
+          <tr>
+            <th>CPU</th>
+            <td>SSE2 capable (64-bit)</td>
+          </tr>
+          <tr>
+            <th>RAM</th>
+            <td>2 GB</td>
+          </tr>
+        </table>
+
+        <h3>Recommended System Requirements</h3>
+        <table>
+          <tr>
+            <th>CPU</th>
+            <td>3.5 GHz Quad-Core (64-bit)</td>
+          </tr>
+          <tr>
+            <th>RAM</th>
+            <td>4 GB</td>
+          </tr>
+        </table>
+
+        <h3>Browser Support</h3>
+        <p>The HTML5 build is intended to be played in a recent version of a Chromium-based browser, such as Google Chrome, Microsoft Edge, or Opera. Browser extensions that alter page behavior are not recommended. Other browsers must support modern JavaScript features and the current Web Audio API specification.</p>
+      </section>
+
+      <section>
+        <h2>How to Play</h2>
+        <p>Move the cursor around the grid with the arrow keys; each cell is named as you pass — filled, empty, or undecided. To work out a cell, read its row and its column: press <kbd>Space</kbd> to hear the current row's clue and a left-to-right scan of its cells, and <kbd>C</kbd> to hear the current column's clue and a top-to-bottom scan. Combine the two constraints to deduce whether the cell must be filled.</p>
+        <p>Press <kbd>Enter</kbd> to fill a cell once you're sure. If the cell is actually empty it's a mistake — it's marked empty for you and you lose a life, so only fill what you've deduced. Press <kbd>X</kbd> to mark a cell empty; that's a free note (no penalty) to track cells you've reasoned must be blank.</p>
+        <p>For a quick refresher you can replay just the clue rhythm of the current row (<kbd>F3</kbd>) or column (<kbd>F4</kbd>): each run plays as that many quick beats, separated by a low tick. <kbd>F1</kbd> reads your score and lives; <kbd>F2</kbd> reads how much of the picture and how many full lines you've completed.</p>
+        <p>Fill every cell the clues demand to complete the picture and clear the level; mistake-free solves and bigger boards score more. Lose all three lives and the run ends — enter your name to save your score.</p>
+      </section>
+
+      <section>
+        <h2>Controls</h2>
+        <div class="scrollable">
+          <table>
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Keyboard</th>
+                <th>Gamepad</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Move the cursor</td><td><kbd>Arrows</kbd>, <kbd>WASD</kbd>, numpad</td><td>D-pad</td></tr>
+              <tr><td>Fill the current cell</td><td><kbd>Enter</kbd></td><td>A</td></tr>
+              <tr><td>Mark empty (free note)</td><td><kbd>X</kbd></td><td>Y</td></tr>
+              <tr><td>Read row: clue + scan</td><td><kbd>Space</kbd></td><td>X</td></tr>
+              <tr><td>Read column: clue + scan</td><td><kbd>C</kbd></td><td>B</td></tr>
+              <tr><td>Status: score, lives, filled</td><td><kbd>F1</kbd></td><td>—</td></tr>
+              <tr><td>Progress + completed lines</td><td><kbd>F2</kbd></td><td>—</td></tr>
+              <tr><td>Row clue rhythm</td><td><kbd>F3</kbd></td><td>—</td></tr>
+              <tr><td>Column clue rhythm</td><td><kbd>F4</kbd></td><td>—</td></tr>
+              <tr><td>Pause</td><td><kbd>Escape</kbd></td><td>Start</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

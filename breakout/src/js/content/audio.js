@@ -4,6 +4,7 @@ content.audio = (() => {
     master: null,
     ball: null,
     paddle: null,
+    listenerX: 50,
     powerups: new Map(),
     oneShots: new Set(),
   }
@@ -12,8 +13,12 @@ content.audio = (() => {
   function now() { return ctx().currentTime }
   function clamp(v, min, max) { return Math.max(min, Math.min(max, v)) }
 
-  function panFromX(x) {
-    return clamp((x - content.game.WIDTH / 2) / (content.game.WIDTH / 2), -1, 1)
+  function setListenerX(x) {
+    state.listenerX = clamp(Number(x) || content.game.WIDTH / 2, 0, content.game.WIDTH)
+  }
+
+  function panFromX(x, width = 26) {
+    return clamp((x - state.listenerX) / Math.max(1, width), -1, 1)
   }
 
   function ensure() {
@@ -117,7 +122,7 @@ content.audio = (() => {
     startBall()
     const b = state.ball
     const t = now()
-    const speed = Math.hypot(ball.vx, ball.vy)
+    const speed = Math.hypot(ball.vx || 0, ball.vy || 0)
     const speedT = clamp((speed - 30) / 60, 0, 1)
     const bottomT = clamp(ball.y / content.game.HEIGHT, 0, 1)
     b.pan.pan.setTargetAtTime(panFromX(ball.x), t, 0.025)
@@ -148,15 +153,38 @@ content.audio = (() => {
     const motorGain = c.createGain()
     motorGain.gain.value = 0.018
 
+    const scan = c.createOscillator()
+    scan.type = 'sine'
+    scan.frequency.value = 180
+    const scanGain = c.createGain()
+    scanGain.gain.value = 0.0001
+
     const pan = c.createStereoPanner()
     const output = c.createGain()
     output.gain.value = 0.06
     rail.connect(railFilter).connect(railGain).connect(output)
     motor.connect(motorGain).connect(output)
+    scan.connect(scanGain).connect(output)
     output.connect(pan).connect(state.master)
     rail.start()
     motor.start()
-    state.paddle = {rail, railFilter, railGain, motor, motorGain, pan, output}
+    scan.start()
+    state.paddle = {rail, railFilter, railGain, motor, motorGain, scan, scanGain, pan, output}
+  }
+
+  function countBrickRowsAtPaddle(snapshot) {
+    const rows = new Set()
+    const x = snapshot.paddleX
+    for (const brick of snapshot.bricks || []) {
+      const center = brick.x + brick.w / 2
+      const beam = Math.max(0.8, brick.w * 0.24)
+      if (Math.abs(center - x) <= brick.w / 2 + beam) rows.add(brick.row)
+    }
+    return rows.size
+  }
+
+  function hasBallInPlay(snapshot) {
+    return Boolean(snapshot.balls && snapshot.balls.some((b) => !b.stuck))
   }
 
   function updatePaddle(snapshot, input) {
@@ -164,15 +192,16 @@ content.audio = (() => {
     const p = state.paddle
     const t = now()
     const moving = input && (Math.abs(input.y || 0) > 0.1 || Math.abs(input.rotate || 0) > 0.1)
-    const ball = snapshot.balls && snapshot.balls[0]
-    const ballDelta = ball ? Math.abs(ball.x - snapshot.paddleX) / Math.max(1, snapshot.paddleW / 2) : 1
-    const aligned = clamp(1 - ballDelta, 0, 1)
-    p.pan.pan.setTargetAtTime(panFromX(snapshot.paddleX), t, 0.03)
-    p.output.gain.setTargetAtTime(moving ? 0.19 : 0.075 + aligned * 0.032, t, 0.045)
-    p.railGain.gain.setTargetAtTime(moving ? 0.09 : 0.026 + aligned * 0.012, t, 0.04)
-    p.railFilter.frequency.setTargetAtTime(moving ? 1180 : 420 + aligned * 120, t, 0.035)
-    p.railFilter.Q.setTargetAtTime(moving ? 1.1 : 1.9, t, 0.04)
-    p.motor.frequency.setTargetAtTime(58 + aligned * 9 + (moving ? 18 : 0), t, 0.05)
+    const ballInPlay = hasBallInPlay(snapshot)
+    const brickRows = countBrickRowsAtPaddle(snapshot)
+    p.pan.pan.setTargetAtTime(0, t, 0.03)
+    p.output.gain.setTargetAtTime(moving ? 0.19 : 0.075, t, 0.045)
+    p.railGain.gain.setTargetAtTime(moving ? (ballInPlay ? 0.044 : 0.09) : 0.026, t, 0.04)
+    p.railFilter.frequency.setTargetAtTime(moving ? (ballInPlay ? 540 : 1180) : 420, t, 0.035)
+    p.railFilter.Q.setTargetAtTime(moving ? (ballInPlay ? 0.62 : 1.1) : 1.9, t, 0.04)
+    p.motor.frequency.setTargetAtTime(58 + (moving ? (ballInPlay ? 5 : 18) : 0), t, 0.05)
+    p.scan.frequency.setTargetAtTime(165 + brickRows * 46, t, 0.06)
+    p.scanGain.gain.setTargetAtTime(moving ? (ballInPlay ? 0.024 : 0.07) : 0.0001, t, 0.06)
   }
 
   function stopPaddle() {
@@ -184,60 +213,50 @@ content.audio = (() => {
     window.setTimeout(() => {
       try { p.rail.stop() } catch (e) {}
       try { p.motor.stop() } catch (e) {}
+      try { p.scan.stop() } catch (e) {}
       try { p.output.disconnect() } catch (e) {}
       try { p.pan.disconnect() } catch (e) {}
     }, 180)
   }
 
-  function powerupFreq(kind) {
-    return {
-      wide: 185,
-      slow: 245,
-      catch: 165,
-      laser: 330,
-      multi: 275,
-      life: 392,
-    }[kind] || 220
-  }
-
   const POWERUP_VOICES = {
     wide: {
-      carrier: 'square', freq: 150, gain: 0.035,
+      carrier: 'square', freq: 150, gain: 0.04,
       filter: 'lowpass', filterFreq: 620, filterQ: 0.8,
-      lfo: 'sine', lfoFreq: 2.2, lfoGain: 0.034,
+      lfo: 'sine', lfoFreq: 2.2, lfoGain: 0.018,
       glide: -0.08,
     },
     slow: {
-      carrier: 'sine', freq: 470, gain: 0.05,
+      carrier: 'sine', freq: 470, gain: 0.048,
       filter: 'lowpass', filterFreq: 900, filterQ: 1.1,
-      lfo: 'sine', lfoFreq: 0.7, lfoGain: 0.022,
+      lfo: 'sine', lfoFreq: 0.7, lfoGain: 0.012,
       glide: -0.42,
     },
     catch: {
-      carrier: 'square', freq: 238, gain: 0.072,
-      second: 'triangle', secondRatio: 0.5, secondGain: 0.035,
+      carrier: 'square', freq: 238, gain: 0.062,
+      second: 'triangle', secondRatio: 0.5, secondGain: 0.03,
       filter: 'bandpass', filterFreq: 760, filterQ: 6.2,
-      lfo: 'triangle', lfoFreq: 7.2, lfoGain: 0.07,
+      lfo: 'triangle', lfoFreq: 7.2, lfoGain: 0.032,
       glide: 0.04,
     },
     laser: {
-      carrier: 'sawtooth', freq: 330, gain: 0.06,
+      carrier: 'sawtooth', freq: 330, gain: 0.052,
       filter: 'lowpass', filterFreq: 2600, filterQ: 0.7,
-      lfo: 'sine', lfoFreq: 8.5, lfoGain: 0.022,
+      lfo: 'sine', lfoFreq: 8.5, lfoGain: 0.014,
       glide: 0.16,
     },
     multi: {
-      carrier: 'triangle', freq: 310, gain: 0.064,
-      second: 'sine', secondRatio: 1.498, secondGain: 0.052,
+      carrier: 'triangle', freq: 310, gain: 0.054,
+      second: 'sine', secondRatio: 1.498, secondGain: 0.04,
       filter: 'bandpass', filterFreq: 1150, filterQ: 2.4,
-      lfo: 'sine', lfoFreq: 5.8, lfoGain: 0.046,
+      lfo: 'sine', lfoFreq: 5.8, lfoGain: 0.024,
       glide: 0.18,
     },
     life: {
-      carrier: 'sine', freq: 523.25, gain: 0.055,
-      second: 'triangle', secondRatio: 1.5, secondGain: 0.038,
+      carrier: 'sine', freq: 523.25, gain: 0.052,
+      second: 'triangle', secondRatio: 1.5, secondGain: 0.034,
       filter: 'highpass', filterFreq: 420, filterQ: 0.7,
-      lfo: 'sine', lfoFreq: 3.8, lfoGain: 0.032,
+      lfo: 'sine', lfoFreq: 3.8, lfoGain: 0.018,
       glide: 0.28,
     },
   }
@@ -263,6 +282,16 @@ content.audio = (() => {
     filter.frequency.value = spec.filterFreq
     filter.Q.value = spec.filterQ
 
+    const noise = c.createBufferSource()
+    noise.buffer = engine.buffer.whiteNoise({channels: 1, duration: 1})
+    noise.loop = true
+    const noiseFilter = c.createBiquadFilter()
+    noiseFilter.type = 'bandpass'
+    noiseFilter.frequency.value = Math.max(740, spec.filterFreq * 1.8)
+    noiseFilter.Q.value = 3.6
+    const noiseGain = c.createGain()
+    noiseGain.gain.value = 0.018
+
     let second = null
     let secondGain = null
     if (spec.second) {
@@ -278,12 +307,14 @@ content.audio = (() => {
     const output = c.createGain()
     output.gain.value = 0.0001
     carrier.connect(toneGain).connect(filter).connect(output)
+    noise.connect(noiseFilter).connect(noiseGain).connect(output)
     flutter.connect(flutterGain).connect(output.gain)
     output.connect(pan).connect(state.master)
     carrier.start()
     if (second) second.start()
+    noise.start()
     flutter.start()
-    const voice = {kind: powerup.kind, spec, carrier, toneGain, second, secondGain, filter, flutter, flutterGain, pan, output}
+    const voice = {kind: powerup.kind, spec, carrier, toneGain, second, secondGain, filter, noise, noiseFilter, noiseGain, flutter, flutterGain, pan, output}
     state.powerups.set(powerup.id, voice)
     return voice
   }
@@ -296,14 +327,16 @@ content.audio = (() => {
       const t = now()
       const nearPaddle = clamp(p.y / content.game.HEIGHT, 0, 1)
       voice.pan.pan.setTargetAtTime(panFromX(p.x), t, 0.03)
-      const gainBoost = (p.kind === 'catch' || p.kind === 'multi') ? 1.32 : p.kind === 'life' ? 1.2 : 1
-      voice.output.gain.setTargetAtTime((0.045 + 0.13 * nearPaddle) * gainBoost, t, 0.05)
+      const gainBoost = (p.kind === 'catch' || p.kind === 'multi') ? 1.12 : p.kind === 'life' ? 1.08 : 1
+      voice.output.gain.setTargetAtTime((0.04 + 0.095 * nearPaddle) * gainBoost, t, 0.05)
       const glide = 1 + voice.spec.glide * nearPaddle
       voice.carrier.frequency.setTargetAtTime(voice.spec.freq * glide, t, 0.06)
       if (voice.second) {
         voice.second.frequency.setTargetAtTime(voice.spec.freq * voice.spec.secondRatio * glide, t, 0.06)
       }
       voice.filter.frequency.setTargetAtTime(voice.spec.filterFreq * (0.86 + 0.32 * nearPaddle), t, 0.05)
+      voice.noiseFilter.frequency.setTargetAtTime(Math.max(740, voice.spec.filterFreq * (1.45 + nearPaddle)), t, 0.05)
+      voice.noiseGain.gain.setTargetAtTime(0.014 + 0.018 * nearPaddle, t, 0.05)
       voice.flutter.frequency.setTargetAtTime(voice.spec.lfoFreq * (0.9 + 1.2 * nearPaddle), t, 0.05)
     }
     for (const [id, voice] of state.powerups) {
@@ -313,6 +346,7 @@ content.audio = (() => {
       window.setTimeout(() => {
         try { voice.carrier.stop() } catch (e) {}
         try { voice.second && voice.second.stop() } catch (e) {}
+        try { voice.noise.stop() } catch (e) {}
         try { voice.flutter.stop() } catch (e) {}
         try { voice.output.disconnect() } catch (e) {}
         try { voice.pan.disconnect() } catch (e) {}
@@ -323,6 +357,7 @@ content.audio = (() => {
 
   function updateFrame(snapshot, input) {
     if (!snapshot || !snapshot.active) return
+    setListenerX(snapshot.paddleX)
     updatePaddle(snapshot, input)
     const ball = snapshot.balls && snapshot.balls.find((b) => !b.stuck)
     updateBall(ball || null)
@@ -570,7 +605,7 @@ content.audio = (() => {
   }
 
   function lifeLost() {
-    oneShot(content.game.WIDTH / 2, (out, t0) => {
+    oneShot(state.listenerX, (out, t0) => {
       const c = ctx()
       const o = c.createOscillator()
       o.type = 'triangle'
@@ -699,6 +734,7 @@ content.audio = (() => {
 
   return {
     updateFrame,
+    setListenerX,
     updateBall,
     stopBall,
     wall,

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Vault — Manual</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <style>
+      *, *::after, *::before {
+        background: transparent;
+        border: 0;
+        box-sizing: border-box;
+        color: inherit;
+        font: inherit;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        background-color: #FFFFFF;
+        font-family: sans-serif;
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.5;
+      }
+
+      main ::selection {
+        background-color: #FF0069;
+        color: #FFFFFF;
+        text-decoration-color: #FFFFFF;
+      }
+
+      a {
+        color: #FF0069;
+        cursor: pointer;
+        text-decoration: underline;
+      }
+
+      code {
+        font-family: monospace;
+      }
+
+      details > * + * {
+        margin-top: 1.25em;
+      }
+
+      em {
+        font-family: sans-serif;
+        font-style: italic;
+      }
+
+      h2 {
+        font-size: 2em;
+      }
+
+      h3 {
+        font-size: 1.5em;
+        margin-top: 3rem;
+      }
+
+      h4 {
+        font-size: 1.25em;
+        margin-top: 3rem;
+      }
+
+      kbd {
+        border: 1px solid #FF0069;
+        border-radius: 0.25em;
+        display: inline-block;
+        font-family: monospace;
+        padding: 0 0.5em;
+      }
+
+      strong, th {
+        font-family: sans-serif;
+        font-weight: 700;
+      }
+
+      section {
+        margin: 0 auto;
+        max-width: calc(60ch + 4em);
+        padding: 3em 1em;
+      }
+
+      section + section {
+        border-top: 1px dotted #CCCCCC;
+      }
+
+      section > * + *:not(h3):not(h4) {
+        margin-top: 1.25em;
+      }
+
+      section > h2 + *,
+      section > h3 + *,
+      section > h4 + * {
+        margin-top: 0.75em !important;
+      }
+
+      table, td, th {
+        border: 1px solid #000000;
+        border-collapse: collapse;
+      }
+
+      td, th {
+        padding: 0.25em 0.5em;
+      }
+
+      th {
+        text-align: left;
+      }
+
+      ul {
+        list-style-position: inside;
+        padding-left: 1.5em;
+      }
+
+      .hero {
+        align-items: center;
+        background-color: #000000;
+        color: #FFFFFF;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        line-height: 1.25;
+        padding: 4em 1em;
+        text-align: center;
+      }
+        .hero--author {
+          font-family: monospace;
+          margin-top: 2em;
+        }
+        .hero--logo {
+          font-family: monospace;
+          font-size: 3em;
+          text-transform: uppercase;
+        }
+
+      .scrollable {
+        max-width: 100%;
+        overflow: auto;
+        white-space: nowrap;
+      }
+
+      @media (min-width: 20rem) {
+        :root {
+          font-size: calc(1rem + ((1vw - 0.2rem) * 0.25));
+        }
+      }
+
+      @media (min-width: 48rem) {
+        section {
+          padding-left: 2em;
+          padding-right: 2em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <h1>
+        <div class="hero--lockup">
+          <div class="hero--logo">Vault</div>
+          <div class="hero--author">audio peg solitaire</div>
+        </div>
+      </h1>
+    </header>
+
+    <main>
+      <section>
+        <h2>Introduction</h2>
+        <p><strong>Vault</strong> is an audio-first, blind-accessible take on peg solitaire. A board holds pegs and empty holes. A peg can <em>vault</em> over an orthogonally-adjacent peg into the empty hole two cells beyond — north, east, south, or west — and the peg it jumps over is removed. Keep jumping to thin the board, and reduce it to a single peg to clear the level.</p>
+        <p>It is a pure <em>thinking</em> puzzle: nothing happens until you move, and every board is generated to be solvable. Clear a board to climb to a larger, fuller one. Undo is limited — run out of undos with no jumps left and the board is failed, costing one of three lives. Land the final peg dead centre for a bonus.</p>
+        <p>Vault is built for the ear, and the listener never turns: north is always in front of you, south behind, east to your right, west to your left. Because every move is a jump in one of those four directions, the scan and the hop of a jump come from their true compass bearing. A peg is a warm, rounded tone; an empty hole a soft pip.</p>
+      </section>
+
+      <section>
+        <h2>System Requirements</h2>
+        <p>This is best experienced with headphones and a gamepad.</p>
+        <p>Real-time synthesis is an <em>extremely</em> CPU-intensive process. It will attempt to run on any machine that meets its minimum requirements; however, you may experience stuttering or drop-outs when running below the recommended requirements.</p>
+
+        <h3>Minimum System Requirements</h3>
+        <table>
+          <tr>
+            <th>CPU</th>
+            <td>SSE2 capable (64-bit)</td>
+          </tr>
+          <tr>
+            <th>RAM</th>
+            <td>2 GB</td>
+          </tr>
+        </table>
+
+        <h3>Recommended System Requirements</h3>
+        <table>
+          <tr>
+            <th>CPU</th>
+            <td>3.5 GHz Quad-Core (64-bit)</td>
+          </tr>
+          <tr>
+            <th>RAM</th>
+            <td>4 GB</td>
+          </tr>
+        </table>
+
+        <h3>Browser Support</h3>
+        <p>The HTML5 build is intended to be played in a recent version of a Chromium-based browser, such as Google Chrome, Microsoft Edge, or Opera. Browser extensions that alter page behavior are not recommended. Other browsers must support modern JavaScript features and the current Web Audio API specification.</p>
+      </section>
+
+      <section>
+        <h2>How to Play</h2>
+        <p>Move the cursor around the board with the arrow keys. Its position tone pans to the cursor's column and rises in pitch toward the north (top); as you pass over each cell it is named — a peg (and which directions it can jump) or an empty hole.</p>
+        <p>To make a move, put the cursor on a peg and press <kbd>Enter</kbd> to select it — you'll hear which directions it can jump — then press a <kbd>direction</kbd> to vault that way. The cursor follows the peg to its landing hole. As a shortcut you can hold <kbd>Shift</kbd> and press a direction to jump the cursor's peg in one step, without selecting first.</p>
+        <p>Press <kbd>Space</kbd> to scan the four neighbours: each plays from its true compass direction — a warm tone is a peg, a soft pip an empty hole, a dull thud the board edge, and a bright ping means you can jump that way. Press <kbd>C</kbd> to describe the current cell, or <kbd>F2</kbd> to hear every legal jump on the board.</p>
+        <p>If you paint yourself into a corner, <kbd>U</kbd> undoes the last jump — but your undo budget is limited. Reduce the board to one peg to clear the level and climb to a bigger one; the fewer undos you spent (and a centred last peg) score more. If you get stuck with no undos left, the board is failed and you lose a life. Out of lives ends the run — enter your name to save your score.</p>
+      </section>
+
+      <section>
+        <h2>Controls</h2>
+        <div class="scrollable">
+          <table>
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Keyboard</th>
+                <th>Gamepad</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Move the cursor</td><td><kbd>Arrows</kbd>, <kbd>WASD</kbd>, numpad</td><td>D-pad</td></tr>
+              <tr><td>Select a peg / cancel</td><td><kbd>Enter</kbd></td><td>A</td></tr>
+              <tr><td>Jump (after selecting)</td><td>a <kbd>direction</kbd></td><td>D-pad</td></tr>
+              <tr><td>Jump shortcut</td><td><kbd>Shift</kbd> + <kbd>direction</kbd></td><td>—</td></tr>
+              <tr><td>Scan the four neighbours</td><td><kbd>Space</kbd></td><td>X</td></tr>
+              <tr><td>Undo last jump</td><td><kbd>U</kbd></td><td>Y</td></tr>
+              <tr><td>Describe the current cell</td><td><kbd>C</kbd></td><td>B</td></tr>
+              <tr><td>Status: score, lives, pegs, undos</td><td><kbd>F1</kbd></td><td>—</td></tr>
+              <tr><td>List every legal jump</td><td><kbd>F2</kbd></td><td>—</td></tr>
+              <tr><td>Pegs + undos remaining</td><td><kbd>F3</kbd></td><td>—</td></tr>
+              <tr><td>Last jump played</td><td><kbd>F4</kbd></td><td>—</td></tr>
+              <tr><td>Pause</td><td><kbd>Escape</kbd></td><td>Start</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

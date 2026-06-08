@@ -16,6 +16,8 @@ app.screen.game = app.screenManager.invent({
     ball: null,
     powerups: null,
     brickEls: new Map(),
+    debugPowerupTaps: 0,
+    debugPowerupTapAt: 0,
   },
   onReady: function () {
     const root = this.rootElement
@@ -32,6 +34,8 @@ app.screen.game = app.screenManager.invent({
     this.state.brickEls.clear()
     this.state.bricks.textContent = ''
     this.state.powerups.textContent = ''
+    this.state.debugPowerupTaps = 0
+    this.state.debugPowerupTapAt = 0
     content.game.start()
     app.scores.openSession().catch((err) => console.warn('online score session failed:', err.body || err.message))
     this.render(content.game.snapshot())
@@ -51,6 +55,7 @@ app.screen.game = app.screenManager.invent({
       }
       if (ui.space || ui.enter || ui.confirm) content.game.launch()
       if (ui.tab) content.game.ping()
+      if (ui.debugPowerup) this.handleDebugPowerup()
 
       content.game.tick(e.delta, app.controls.game())
       const snap = content.game.snapshot()
@@ -58,6 +63,17 @@ app.screen.game = app.screenManager.invent({
       this.render(snap)
       if (content.game.isGameOver()) app.screenManager.dispatch('gameover')
     } catch (err) { console.error(err) }
+  },
+  handleDebugPowerup: function () {
+    const now = performance.now()
+    if (now - this.state.debugPowerupTapAt > 900) {
+      this.state.debugPowerupTaps = 0
+    }
+    this.state.debugPowerupTapAt = now
+    this.state.debugPowerupTaps += 1
+    if (this.state.debugPowerupTaps < 3) return
+    this.state.debugPowerupTaps = 0
+    content.game.debugSpawnPowerup()
   },
   render: function (snap) {
     this.state.score.textContent = app.i18n.t('game.status', {level: snap.level, score: snap.score})

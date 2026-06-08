@@ -132,42 +132,57 @@ player can place every event in the 4×length grid by ear. Don't reach
 for binaural — the listener never moves and the lane is encoded by
 pitch, not by 3D position.
 
-- **Lane drone** — continuous low sine + triangle at the lane's base
-  pitch. Active lane is *much* louder; other lanes audible at reduced
-  gain so customers walking on bars you aren't standing on are still
-  heard. Each lane's drone gain is also pulsed by an LFO at a
-  distinctive rate — `LANE_DRONE_LFO_HZ = [3.4, 2.1, 1.3, 0.85]` —
-  so the active lane reads as fast/slow heartbeat as well as
-  high/low pitch. `LANE_BASE_HZ = [660, 440, 330, 220]`.
-- **Player presence voice** — square wave at `LANE_BASE_HZ[lane] × 2`
-  (octave above the lane drone, distinct from customers/mugs), panned
-  by `player.x`. Pulses as **footsteps** when the player is walking
-  (~5/s) and as a slow **heartbeat** when idle (~1.25/s). The player
-  is otherwise audio-invisible; this voice is what tells them where
-  they are along the bar and which lane they're on.
-- **Customer voice** — triangle at `LANE_BASE_HZ[lane]` (unison with
-  the lane drone fundamental, so the customer audibly belongs to this
-  lane), panned by customer.x; an ADSR footstep pulse fires per "step"
-  at walk rate. Each customer gets a small random detune (±15 cents)
-  so multiple customers on a lane don't collapse into one tap rhythm.
-  Earlier the customer was at `× 0.66` (a fifth below the base) — that
-  put lane 0's customers near lane 1's base and lane 2's near lane 3's,
-  actively confusing lane identification. Don't reintroduce that.
-- **Mug slide (full)** — sawtooth at lane-base × 1.0, continuous, loud,
-  with a soft sine LFO shimmer. Pans rightward as it heads to the door.
-- **Mug slide (empty)** — square at lane-base × 1.0 (same pitch family
-  as the customer footstep — that's what tells you which tap it's on),
-  brighter filter + faster LFO than the full mug, so the timbre is the
-  distinction. Pans leftward as it slides back to the kegs. Pitch is
-  **fixed** for the mug's whole life — never ramp it with proximity,
-  that wrecks lane identification.
-- **Pour voice** — sawtooth held at the kegs; freq sweeps with `charge`.
+**The canonical octave.** Every lane-pitched voice sings at the **lane
+voice octave** = `laneVoice(lane) = LANE_BASE_HZ[lane] × 2` — the same
+octave as the player's cursor (`LANE_VOICE_OCT = 2` in `audio.js`).
+Customers, mugs, the pour's full-charge target, and the lane-relative
+one-shots are all anchored here; ornaments stay within ~`[×0.5, ×1.6]`
+of the anchor so **nothing ever reads a full octave off the cursor**
+(that was the "sometimes a sound plays an octave higher/lower" bug). The
+lane drone bed sits an octave below as quiet ambience — lane identity is
+the *voice* pitch, not the drone. Re-octave the whole game by changing
+`LANE_VOICE_OCT`, not by editing call sites.
+
+- **Lane drone** (ambience) — continuous low sine + triangle at the
+  lane's base pitch, on a deliberately **quiet** `droneBus` (gain 0.22).
+  Active lane is *much* louder; other lanes audible at reduced gain so
+  customers walking on bars you aren't standing on are still heard. Each
+  lane's drone gain is also pulsed by an LFO at a distinctive rate —
+  `LANE_DRONE_LFO_HZ = [3.4, 2.1, 1.3, 0.85]` — so the active lane reads
+  as fast/slow heartbeat as well as high/low pitch.
+  `LANE_BASE_HZ = [660, 440, 330, 220]`.
+- **Player presence voice (the cursor)** — square wave at the lane voice
+  octave (`laneVoice(lane)` = `LANE_BASE_HZ[lane] × 2`), panned by
+  `player.x`. Pulses as **footsteps** when the player is walking (~5/s)
+  and as a slow **heartbeat** when idle (~1.25/s). The player is
+  otherwise audio-invisible; this voice is what tells them where they
+  are along the bar and which lane they're on. Its octave is the
+  reference everything else matches.
+- **Customer voice** — triangle at the lane voice octave
+  (`laneVoice(lane)`, so the customer is the same octave as your cursor
+  and lanes stay separated by base), panned by customer.x; an ADSR
+  footstep pulse fires per "step" at walk rate. Each customer gets a
+  small random detune (±15 cents) so multiple customers on a lane don't
+  collapse into one tap rhythm. Earlier builds put the customer at the
+  bare base, and before that at `× 0.66` (a fifth below) which landed
+  near the adjacent lane's pitch — don't reintroduce either.
+- **Mug slide (full)** — sawtooth at the lane voice octave, continuous,
+  loud, with a soft sine LFO shimmer. Pans rightward as it heads to the
+  door.
+- **Mug slide (empty)** — square at the lane voice octave (same octave/
+  pitch family as the customer voice — that's what tells you which tap
+  it's on), brighter filter + faster LFO than the full mug, so the
+  timbre is the distinction. Pans leftward as it slides back to the
+  kegs. Pitch is **fixed** for the mug's whole life — never ramp it with
+  proximity, that wrecks lane identification.
+- **Pour voice** — sawtooth held at the kegs; freq rises with `charge`
+  from the lane fundamental to the lane voice octave at full charge.
 - **One-shot SFX** — `sling`, `catch`, `catchEmpty`, `emptyFling`,
   `spawn` (door creak, pan = +1), `tipDrop`, `tipPickup` (centred chime
   + per-theme floor-show motif), and reason-specific loss stings:
   `breach` (low alarm at pan = -1), `shatter` (glass break, bright HP
   noise), `waste` (descending sawtooth at pan = +1).
-- **Level clear** — ascending chord on lane root.
+- **Level clear** — ascending chord rooted on the lane voice octave.
 - **Game over** — descending dirge guarded by `pendingGameOver` flag.
 
 ## Input handling (the non-obvious part)
@@ -264,9 +279,13 @@ server's safe-charset (`app.scores.isValidName`) before any save.
   probability `returnEmptyChance` an empty is spawned at the customer's
   current x. The mug spawns where the customer is, not at the door,
   so the player can't camp the door for empties.
-- **Lane-pitch consistency** — every voice on a lane reads its base
-  pitch from `content.levels.LANE_BASE_HZ[lane]`. Re-tuning lane 0
-  from 660 → 720 should make every cue on that lane follow.
+- **Lane-pitch consistency** — every voice on a lane reads its pitch
+  from `content.levels.LANE_BASE_HZ[lane]`, almost always via the
+  `laneVoice(lane)` helper (= base × `LANE_VOICE_OCT`, the cursor
+  octave). Re-tuning lane 0 from 660 → 720 makes every cue on that lane
+  follow; changing `LANE_VOICE_OCT` re-octaves the whole game at once.
+  Don't hand-write per-call octave multipliers off the bare base — that
+  is how cues drift an octave apart.
 - **Pan is computed from each entity's *own* lane length** —
   `pan = (x / (LANE_LEN[lane] - 1)) * 2 - 1`. The top bar is shorter
   than the bottom; x = 5 maps to a different pan on lane 0 vs lane 3.

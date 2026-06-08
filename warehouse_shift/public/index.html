@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Warehouse Shift</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+      <div class="u-screenReaderOnly a-app--announce" aria-live="polite" aria-atomic="true"></div>
+      <div class="u-screenReaderOnly a-app--announce-assertive" aria-live="assertive" aria-atomic="true"></div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <div class="a-game--hud" aria-hidden="true">
+            <div class="a-game--hud-item">
+              <span data-i18n="hud.level">Level</span>
+              <strong class="a-game--level">1. Receiving Bay</strong>
+            </div>
+            <div class="a-game--hud-item">
+              <span data-i18n="hud.moves">Moves</span>
+              <strong class="a-game--moves">0</strong>
+            </div>
+            <div class="a-game--hud-item">
+              <span data-i18n="hud.pushes">Pushes</span>
+              <strong class="a-game--pushes">0</strong>
+            </div>
+            <div class="a-game--hud-item">
+              <span data-i18n="hud.placed">Placed</span>
+              <strong class="a-game--placed">0/0</strong>
+            </div>
+            <div class="a-game--hud-item">
+              <span data-i18n="hud.time">Time</span>
+              <strong class="a-game--time">0:00</strong>
+            </div>
+          </div>
+          <div class="a-game--board" aria-hidden="true"></div>
+          <p class="a-game--status" aria-hidden="true"></p>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to Play</h1>
+          <p class="c-menu--subtitle" data-i18n="help.subtitle">A hard, audio-first warehouse puzzle about planning pushes before you move.</p>
+          <div class="c-menu--prose">
+            <h2 data-i18n="help.headingGoal">Goal</h2>
+            <p data-i18n="help.goal1">Push every crate onto a goal pad. A level is solved only when every crate is seated on a goal.</p>
+            <p data-i18n="help.goal2">The challenge is planning. A crate pushed into a wall corner can become impossible to recover unless that corner is a goal.</p>
+            <h2 data-i18n="help.headingAudio">Audio map</h2>
+            <p data-i18n="help.audio1">The listener is screen-locked. North is always in front, east is always right, south is behind, and west is left.</p>
+            <p data-i18n="help.audio2">A procedural warehouse rumble runs while you play: floor vibration, ventilation, distant compressors, pallet shifts, and soft electrical hum evolve over time. Crates have a darker wooden synth tone. Empty goals ring brighter. Blocked movement hits from the blocked tile.</p>
+            <p data-i18n="help.audio3">The current target pings every few seconds. Press Tab or F2 to cycle the target between unsolved crates and empty goals.</p>
+            <h2 data-i18n="help.headingControls">Controls</h2>
+            <p data-i18n-html="help.controls1"><kbd>Arrow keys</kbd> or gamepad D-pad move one tile. Walk into a crate to push it if the space beyond is clear.</p>
+            <p data-i18n-html="help.controls2"><kbd>Space</kbd> scans north, east, south, and west. <kbd>F1</kbd> reads status. <kbd>F3</kbd> repeats the scan. <kbd>F4</kbd> reads the map summary.</p>
+            <p data-i18n-html="help.controls3"><kbd>U</kbd> or <kbd>Z</kbd> undo. <kbd>R</kbd> restarts the level. <kbd>Escape</kbd> pauses.</p>
+          </div>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--levelclear">
+        <section class="c-screen c-menu a-levelclear" tabindex="-1">
+          <h1 class="c-menu--title" data-i18n="clear.title">Shift Complete</h1>
+          <p class="c-menu--subtitle a-levelclear--result">Solved</p>
+          <dl class="a-levelclear--metrics"></dl>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="next" data-i18n="ui.next">Next Level</button></li>
+            <li><button class="c-menu--button" data-action="retry" data-i18n="ui.retry">Retry</button></li>
+            <li><button class="c-menu--button" data-action="levels" data-i18n="ui.levels">Level Select</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="ui.menu">Main Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--levels">
+        <section class="c-screen c-menu a-levels" tabindex="-1" data-i18n-attr="aria-label:levels.aria">
+          <h1 class="c-menu--title" data-i18n="levels.title">Level Select</h1>
+          <p class="c-menu--subtitle" data-i18n="levels.subtitle">Solved levels unlock the next shift. Best scores favor fewer moves, then fewer pushes.</p>
+          <ul class="c-menu--list a-levels--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="levels.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Warehouse Shift</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">Audio-first Sokoban in a synth warehouse.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="start" data-i18n="menu.start">Start Shift</button></li>
+            <li><button class="c-menu--button" data-action="levels" data-i18n="levels.button">Levels</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to Play</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--pause">
+        <section class="c-screen c-menu a-pause" tabindex="-1" data-i18n-attr="aria-label:pause.aria">
+          <h1 class="c-menu--title" data-i18n="pause.title">Paused</h1>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="resume" data-i18n="pause.resume">Resume</button></li>
+            <li><button class="c-menu--button" data-action="restart" data-i18n="pause.restart">Restart Level</button></li>
+            <li><button class="c-menu--button" data-action="levels" data-i18n="pause.levels">Level Select</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="pause.menu">Main Menu</button></li>
+          </ul>
+        </section>
+      </div>
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

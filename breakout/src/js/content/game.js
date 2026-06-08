@@ -16,6 +16,7 @@ content.game = (() => {
   const PADDLE_SPEED = 72
   const POWERUP_VY = 18
   const POWERUP_DURATION = 13
+  const SLOW_SCALE = 0.72
 
   const POWERUPS = ['wide', 'slow', 'catch', 'laser', 'multi', 'life']
   const POWERUP_LABEL = {
@@ -25,6 +26,14 @@ content.game = (() => {
     laser: 'ann.power.laser',
     multi: 'ann.power.multi',
     life: 'ann.power.life',
+  }
+  const POWERUP_NAME = {
+    wide: 'ann.power.name.wide',
+    slow: 'ann.power.name.slow',
+    catch: 'ann.power.name.catch',
+    laser: 'ann.power.name.laser',
+    multi: 'ann.power.name.multi',
+    life: 'ann.power.name.life',
   }
   const POWERUP_END = {
     wide: 'ann.power.end.wide',
@@ -55,9 +64,10 @@ content.game = (() => {
   function paddleWidth() { return state.effects.wide ? 27 : 17 }
   function activeBall() { return state.balls.find((b) => !b.lost) || null }
   function speedForLevel() { return Math.min(MAX_SPEED, BASE_SPEED + (state.level - 1) * 4) }
+  function slowScale() { return state.effects.slow ? SLOW_SCALE : 1 }
 
   function makeBall(stuck = true, angle = -Math.PI / 2) {
-    const speed = speedForLevel() * (state.effects.slow ? 0.72 : 1)
+    const speed = speedForLevel() * slowScale()
     return {
       x: state.paddleX,
       y: PADDLE_Y - PADDLE_H / 2 - BALL_R,
@@ -101,8 +111,10 @@ content.game = (() => {
     state.nextPowerupId = 1
     state.powerups = []
     state.shots = []
+    state._laserCooldown = 0
     state.bricks = makeBricks()
     state.balls = [makeBall(true)]
+    content.audio.setListenerX(state.paddleX)
     app.announce.polite(app.i18n.t('ann.start', {level: state.level}))
   }
 
@@ -112,9 +124,11 @@ content.game = (() => {
     state.powerups = []
     state.shots = []
     state.effects = {}
+    state._laserCooldown = 0
     state.levelCleared = false
     state.bricks = makeBricks()
     state.balls = [makeBall(true)]
+    content.audio.setListenerX(state.paddleX)
     content.audio.stopBall()
     app.announce.assertive(app.i18n.t('ann.level', {level: state.level}))
   }
@@ -139,28 +153,40 @@ content.game = (() => {
     state.mode = 'ready'
     state.powerups = []
     state.shots = []
+    state._laserCooldown = 0
     state.balls = [makeBall(true)]
+    content.audio.setListenerX(state.paddleX)
     app.announce.assertive(app.i18n.t('ann.life', {lives: state.lives}))
   }
 
   function launch() {
     if (state.mode !== 'ready') {
-      if (state.effects.catch) {
-        for (const b of state.balls) {
-          if (b.stuck) {
-            b.stuck = false
-            b.vx = 0
-            b.vy = -speedForLevel() * (state.effects.slow ? 0.72 : 1)
-          }
-        }
-      }
+      releaseStuckBalls()
       return
     }
     state.mode = 'playing'
     const angle = -Math.PI / 2 + (Math.random() < 0.5 ? -0.28 : 0.28)
     state.balls[0] = makeBall(false, angle)
+    content.audio.setListenerX(state.paddleX)
     content.audio.updateBall(state.balls[0])
     app.announce.polite(app.i18n.t('ann.launch'))
+  }
+
+  function releaseStuckBalls() {
+    let released = false
+    for (const b of state.balls) {
+      if (!b.stuck) continue
+      b.stuck = false
+      b.stuckOffset = 0
+      b.vx = 0
+      b.vy = -speedForLevel() * slowScale()
+      released = true
+    }
+    if (released) {
+      state.mode = 'playing'
+      content.audio.updateBall(activeBall())
+      app.announce.polite(app.i18n.t('ann.launch'))
+    }
   }
 
   function activatePowerup(kind, x) {
@@ -194,23 +220,45 @@ content.game = (() => {
     }
     if (kind === 'slow' && !state.effects.slow) {
       for (const b of state.balls) {
-        b.vx *= 0.72
-        b.vy *= 0.72
+        b.vx *= SLOW_SCALE
+        b.vy *= SLOW_SCALE
       }
     }
+    if (kind === 'laser' && !state.effects.laser) {
+      state._laserCooldown = 0
+    }
     state.effects[kind] = POWERUP_DURATION
+  }
+
+  function announcePowerupAppearance(kind) {
+    const key = POWERUP_NAME[kind]
+    if (!key) return
+    app.announce.polite(app.i18n.t('ann.power.appear', {
+      power: app.i18n.t(key),
+    }))
+  }
+
+  function spawnPowerup(kind, x, y) {
+    const chosen = kind || randomChoice(POWERUPS)
+    state.powerups.push({
+      id: state.nextPowerupId++,
+      kind: chosen,
+      x: clamp(x == null ? state.paddleX : x, 4, WIDTH - 4),
+      y: clamp(y == null ? BRICK_TOP + ROWS * (BRICK_H + BRICK_GAP) : y, 6, PADDLE_Y - 8),
+      vy: POWERUP_VY,
+    })
+    announcePowerupAppearance(chosen)
   }
 
   function maybeSpawnPowerup(brick) {
     const chance = 0.16
     if (Math.random() > chance) return
-    state.powerups.push({
-      id: state.nextPowerupId++,
-      kind: randomChoice(POWERUPS),
-      x: brick.x + brick.w / 2,
-      y: brick.y + brick.h / 2,
-      vy: POWERUP_VY,
-    })
+    spawnPowerup(randomChoice(POWERUPS), brick.x + brick.w / 2, brick.y + brick.h / 2)
+  }
+
+  function debugSpawnPowerup() {
+    if (!state.active) return
+    spawnPowerup(randomChoice(POWERUPS), state.paddleX, BRICK_TOP + ROWS * (BRICK_H + BRICK_GAP) + 4)
   }
 
   function brickAtHit(ball, previous) {
@@ -260,7 +308,8 @@ content.game = (() => {
   function reflectFromPaddle(ball) {
     const halfW = paddleWidth() / 2
     const offset = clamp((ball.x - state.paddleX) / halfW, -1, 1)
-    const speed = clamp(Math.hypot(ball.vx, ball.vy) * 1.018, speedForLevel(), MAX_SPEED)
+    const scale = slowScale()
+    const speed = clamp(Math.hypot(ball.vx, ball.vy) * 1.018, speedForLevel() * scale, MAX_SPEED * scale)
     const maxAngle = Math.PI * 0.39
     const angle = -Math.PI / 2 + offset * maxAngle
     ball.vx = Math.cos(angle) * speed
@@ -348,9 +397,13 @@ content.game = (() => {
         delete state.effects[kind]
         if (kind === 'slow') {
           for (const b of state.balls) {
-            b.vx = clamp(b.vx / 0.72, -MAX_SPEED, MAX_SPEED)
-            b.vy = clamp(b.vy / 0.72, -MAX_SPEED, MAX_SPEED)
+            b.vx = clamp(b.vx / SLOW_SCALE, -MAX_SPEED, MAX_SPEED)
+            b.vy = clamp(b.vy / SLOW_SCALE, -MAX_SPEED, MAX_SPEED)
           }
+        } else if (kind === 'catch') {
+          releaseStuckBalls()
+        } else if (kind === 'laser') {
+          state._laserCooldown = 0
         }
         if (POWERUP_END[kind]) app.announce.polite(app.i18n.t(POWERUP_END[kind]))
       }
@@ -385,6 +438,7 @@ content.game = (() => {
     if (!state.active) return
     dt = Math.min(0.05, Math.max(0, dt || 0))
     updatePaddle(input || {}, dt)
+    content.audio.setListenerX(state.paddleX)
     updateEffects(dt)
     updatePowerups(dt)
     updateShots(dt)
@@ -421,7 +475,7 @@ content.game = (() => {
       lives: state.lives,
       paddleX: state.paddleX,
       paddleW: paddleWidth(),
-      balls: state.balls.map((b) => ({x: b.x, y: b.y, stuck: b.stuck})),
+      balls: state.balls.map((b) => ({x: b.x, y: b.y, vx: b.vx, vy: b.vy, stuck: b.stuck})),
       bricks: state.bricks.map((b) => ({id: b.id, x: b.x, y: b.y, w: b.w, h: b.h, hp: b.hp, hard: b.hard, row: b.row})),
       powerups: state.powerups.map((p) => ({id: p.id, x: p.x, y: p.y, kind: p.kind})),
       shots: state.shots.map((s) => ({x: s.x, y: s.y})),
@@ -455,6 +509,7 @@ content.game = (() => {
     tick,
     snapshot,
     ping,
+    debugSpawnPowerup,
     summary: () => state.lastSummary,
     isGameOver: () => state.mode === 'gameover',
   }

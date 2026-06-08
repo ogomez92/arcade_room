@@ -1,0 +1,105 @@
+/* AIRLIFT game HUD + visual rescue strip (aria-hidden; the audio + announcements
+   are the real interface). Kept readable for sighted / low-vision players: a
+   horizontal strip — base at the left, the chopper, survivors waving, and tanks
+   in their columns (brighter while aiming/firing). */
+.a-game {
+  align-items: center;
+  text-align: center;
+}
+  .a-game--hud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em 1.4em;
+    justify-content: center;
+    font-size: 1.05em;
+    margin-bottom: 1.2rem;
+  }
+    .a-game--stat b { color: #ffd479; }
+
+  .a-game--strip {
+    position: relative;
+    width: min(94vw, 46em);
+    height: 8em;
+    margin: 0 auto;
+    border-bottom: 3px solid #4a5d4a;
+    background: linear-gradient(180deg, rgba(120,160,210,0.08) 0%, rgba(120,160,210,0.02) 70%, rgba(90,110,90,0.1) 70%, rgba(90,110,90,0.16) 100%);
+    overflow: hidden;
+  }
+  .a-game--base {
+    position: absolute;
+    left: 0; bottom: 0;
+    width: 7%;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(107,208,255,0.3), transparent);
+    border-right: 2px solid #6bd0ff;
+  }
+  .a-game--chopper {
+    position: absolute;
+    top: 1.4em;
+    width: 1.6em; height: 0.9em;
+    transform: translateX(-50%);
+    border-radius: 40%;
+    background: #ffd479;
+    box-shadow: 0 0 8px rgba(255, 212, 121, 0.9);
+  }
+    .a-game--chopper[data-inv="1"] { opacity: 0.5; }
+  .a-game--surv {
+    position: absolute;
+    bottom: 0;
+    width: 0.8em; height: 1.4em;
+    transform: translateX(-50%);
+    border-radius: 40% 40% 0 0;
+    background: #7CFC9A;
+    box-shadow: 0 0 6px rgba(124, 252, 154, 0.8);
+  }
+  .a-game--tank {
+    position: absolute;
+    bottom: 0;
+    width: 1.6em; height: 0.8em;
+    transform: translateX(-50%);
+    border-radius: 3px 3px 0 0;
+    background: #b06a4a;
+  }
+    .a-game--tank[data-ph="aim"]   { background: #ff8a3b; box-shadow: 0 0 8px rgba(255, 138, 59, 0.8); }
+    .a-game--tank[data-ph="shell"] { background: #ff3b3b; box-shadow: 0 -10px 12px rgba(255, 59, 59, 0.7); }
+
+/* Help / lists */
+.a-help--text {
+  max-width: 44em;
+  margin-left: auto;
+  margin-right: auto;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+.a-help--list {
+  list-style: none;
+  margin: 0.5rem auto;
+  padding: 0;
+  max-width: 44em;
+  text-align: left;
+}
+  .a-help--list li {
+    margin: 0.4em 0;
+    line-height: 1.4;
+  }
+.a-help--list kbd {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 0.25em;
+  padding: 0.05em 0.4em;
+  font-family: inherit;
+}
+
+.a-highscores--list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 40em;
+}
+  .a-highscores--entry,
+  .a-highscores--empty {
+    padding: 0.35em 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+.a-gameover--online-status[data-state="error"] { color: #ff9a8a; }
+.a-gameover--online-status[data-state="ok"] { color: #7fe0a0; }
