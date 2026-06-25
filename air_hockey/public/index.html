@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Air Hockey</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div class="a-app--announce a-live" aria-live="polite" aria-atomic="true"></div>
+      <div class="a-app--announce-assertive a-live" aria-live="assertive" aria-atomic="true"></div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria"></section>
+      </div>
+
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen c-menu a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 class="c-menu--title" data-i18n="learn.title">Learn the sounds</h1>
+          <p class="c-menu--subtitle" data-i18n="learn.subtitle">Press a button to hear each cue.</p>
+          <ul class="c-menu--list a-learn--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="learn.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--test">
+        <section class="c-screen c-menu a-test" tabindex="-1" data-i18n-attr="aria-label:test.aria">
+          <h1 class="c-menu--title" data-i18n="test.title">Orientation test</h1>
+          <p class="c-menu--subtitle" data-i18n="test.subtitle">A tick plays in front, right, behind, then left.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="replay" data-i18n="test.replay">Replay</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="test.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Air Hockey</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">Defend your goal, score in theirs. First to 7.</p>
+
+          <h2 class="c-menu--subtitle" data-i18n="menu.difficulty">Difficulty</h2>
+          <ul class="c-menu--list a-menu--difficulty" data-i18n-attr="aria-label:menu.difficulty">
+            <li><button class="c-menu--button" data-action="difficulty" data-value="easy" data-i18n="diff.easy">Easy</button></li>
+            <li><button class="c-menu--button" data-action="difficulty" data-value="medium" data-i18n="diff.medium">Medium</button></li>
+            <li><button class="c-menu--button" data-action="difficulty" data-value="hard" data-i18n="diff.hard">Hard</button></li>
+          </ul>
+
+          <h2 class="c-menu--subtitle" data-i18n="menu.firstTo">Match length</h2>
+          <ul class="c-menu--list a-menu--target" data-i18n-attr="aria-label:menu.firstTo">
+            <li><button class="c-menu--button" data-action="target" data-value="7" data-i18n="target.7">First to 7</button></li>
+            <li><button class="c-menu--button" data-action="target" data-value="11" data-i18n="target.11">First to 11</button></li>
+            <li><button class="c-menu--button" data-action="target" data-value="15" data-i18n="target.15">First to 15</button></li>
+          </ul>
+
+          <p class="a-menu--records" aria-live="off"></p>
+
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="start" data-i18n="menu.start">Start</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn the sounds</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to play</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:over.aria">
+          <h1 class="c-menu--title a-gameover--title"></h1>
+          <p class="c-menu--subtitle a-gameover--score"></p>
+          <p class="a-gameover--records" aria-live="off"></p>
+          <p class="a-gameover--online" aria-live="polite" hidden></p>
+          <a class="a-gameover--online-link" target="_blank" rel="noopener" hidden></a>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="rematch" data-i18n="over.rematch">Rematch</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="over.menu">Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to play</h1>
+          <p data-i18n-html="help.move">Move your mallet with the <kbd>Arrow keys</kbd>, a gamepad stick, or by dragging on a touch screen. You are confined to your half.</p>
+          <p data-i18n-html="help.hit">There is no hit button. <strong>Drive your mallet through the puck</strong> to add pace. Aim is pure physics — you learn shot lines by ear.</p>
+          <p data-i18n-html="help.audio">Up-table is in front of you; your goal is behind. The puck hisses; a ping marks the opponent goal; a rising alarm warns when a shot is heading for your net.</p>
+          <p data-i18n-html="help.keys">Status keys: <kbd>F1</kbd> score, <kbd>F2</kbd> puck bearing, <kbd>F3</kbd> your position, <kbd>F4</kbd> match state. <kbd>Esc</kbd> leaves the match.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

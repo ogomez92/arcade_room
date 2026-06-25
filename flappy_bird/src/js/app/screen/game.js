@@ -21,6 +21,13 @@ app.screen.game = app.screenManager.invent({
     this.state.bestEl = root.querySelector('.a-game--best-value')
     this.state.altEl = root.querySelector('.a-game--altitude-value')
 
+    // Supplementary visuals for sighted players (decorative; the game is
+    // fully playable by ear without it).
+    try {
+      const canvas = this.parentElement.querySelector('.a-game--canvas')
+      if (canvas && content.render) content.render.mount(canvas)
+    } catch (e) { console.error(e) }
+
     // Capture-phase preventDefault on F-keys so the browser doesn't hijack
     // F1 (Help), F3 (Find), F5 (Reload). F11 is not captured — let the user
     // toggle fullscreen.
@@ -51,6 +58,7 @@ app.screen.game = app.screenManager.invent({
     } catch (e) { console.error(e) }
     this.state.entryFrames = 4
     this.state.f1 = this.state.f2 = this.state.f3 = this.state.f4 = false
+    try { if (content.render) content.render.reset() } catch (e) { console.error(e) }
     this.refreshHud()
     app.announce.polite(app.i18n.t('ann.gameStart'))
     content.sfx.ready()
@@ -64,6 +72,7 @@ app.screen.game = app.screenManager.invent({
       if (this.state.entryFrames > 0) {
         this.state.entryFrames--
         app.controls.ui()
+        if (content.render) content.render.frame((e && e.delta) || 1 / 60)
         return
       }
 
@@ -94,6 +103,7 @@ app.screen.game = app.screenManager.invent({
       const delta = (e && e.delta) || 1 / 60
       content.game.update(delta)
       content.audio.frame()
+      if (content.render) content.render.frame(delta)
 
       this.refreshHud()
     } catch (err) { console.error(err) }

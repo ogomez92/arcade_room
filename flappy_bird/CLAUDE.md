@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## This game: Audio Flappy (`/home/games/_fb`)
+## This game: Audio Flappy (`/home/games/flappy_bird`)
 
 `flappy` (package.json `name`) — an audio-first Flappy Bird built on top of the syngen-template. No visuals are required to play; the screen-readable HUD is supplementary. **HTML5 only** — there is no `electron/` directory and no Electron task in `Gulpfile.js`, despite the template README mentioning Electron. Don't try `gulp electron*`.
 

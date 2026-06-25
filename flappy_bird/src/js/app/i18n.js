@@ -74,6 +74,8 @@ app.i18n = (() => {
       'game.scoreLabel': 'Score',
       'game.bestLabel': 'Best',
       'game.altitudeLabel': 'Altitude',
+      'game.getReady': 'Get ready',
+      'game.flapToStart': 'Flap to start!',
 
       // Help
       'help.aria': 'How to play',
@@ -230,6 +232,8 @@ app.i18n = (() => {
       'game.scoreLabel': 'Puntos',
       'game.bestLabel': 'Récord',
       'game.altitudeLabel': 'Altitud',
+      'game.getReady': 'Preparado',
+      'game.flapToStart': '¡Aletea para empezar!',
 
       // Help
       'help.aria': 'Cómo se juega',
