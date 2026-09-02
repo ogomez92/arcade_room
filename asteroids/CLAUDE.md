@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `asteroids` — audio-first port of the 1979 arcade game built on the syngen-template. Newtonian flight (rotate / thrust / soft brake), toroidal wraparound field, splitting rocks, UFOs, hyperspace. Listener mode is **player-locked** (audio +x = whatever the ship is facing). Two play modes:
 
 - **Classic** — vanilla Asteroids; online leaderboard id `asteroids`.
-- **Arcade** — Classic plus powerups that spawn near the player and drift across the field; online leaderboard id `asteroids-arcade`. Both boards live on scores.oriolgomez.com.
+- **Arcade** — Classic plus powerups that spawn near the player and drift across the field; online leaderboard id `asteroids-arcade`. Both boards live on scores.gomsen.com.
 
 Ships as both an HTML5 app (served from `public/`) and an Electron desktop app (`electron/main.js`). There is no test suite, no linter, and no `npm` scripts. All tasks run through Gulp.
 
@@ -53,7 +53,7 @@ No other file needs touching — `content.bullets`, `content.game`, the spawn lo
 
 ### Tab targeting override
 
-`content.game.aimAtMostDangerous()` is the Tab handler. In arcade mode, if a world pickup exists, Tab snaps the ship's heading toward the pickup instead of running the danger heuristic. The fallback (closing rocks beat drifting, UFO bullets > UFOs > rocks) is unchanged for classic mode and for arcade-mode-with-no-current-pickup.
+`content.game.aimAtMostDangerous()` is the Tab handler. Priority: arcade world pickup (if one exists) > active UFO (always wins outright — shooting the shooter) > most dangerous rock by the TTI heuristic (closing rocks beat drifting, small > medium > large). **UFO bullets are never Tab targets** — they're too short-lived to be worth turning toward; the user asked for this explicitly, don't re-add them to the candidate list.
 
 ### Rapid-fire input plumbing
 
@@ -126,7 +126,7 @@ UFO bullets had no audio in v0.1 — the player just died invisibly. Three cues 
 - **Continuous in-flight voice** — each UFO bullet carries a stable `id` (assigned in `ufo.js` `_fire`) and gets a continuous spatial voice via `makeSpatialVoice` / `buildUfoBullet`, synced in `audio.frame()` against `content.ufo.bullets()` exactly like the asteroid voices (`ensureUfoBulletVoice` / `dropUfoBulletVoice`, keyed by bullet id). Without it, a bullet that isn't on a collision course is unlocatable — the player can't hear where incoming fire *is*, only that a shot happened. The proximity-beep-only design was tried and the user found it impossible to locate bullets.
 - **Proximity beep** — `setProximityBeep` includes UFO bullets when they're on a collision course (300 Hz pulse at the bullet's position, rate scales with TTI). This adds the collision-course *urgency alarm* on top of the always-on locating voice — same dual role rocks have (continuous voice + proximity beep).
 
-**The in-flight voice that was killed, and why this one is different.** An earlier per-bullet loop (low square + 60 Hz buzz tremolo through a narrow bandpass) was removed for flooding the field and sounding like a fart. `buildUfoBullet` deliberately avoids both failure modes: a *clean* pitched tone (triangle fundamental + a quiet sine shimmer partial + a gentle ~7 Hz AM — no buzz, no narrow bandpass), modest gain that sits between a small and medium rock, and a per-bullet ±4% pitch jitter so two in flight stay distinguishable. Flooding is not a real risk here — one UFO at a time, ~1.5 s fire period, 1.4 s bullet life → only 1–2 voices ever live. If a future change ever does spawn many bullets at once, cap the number of voiced bullets (nearest-N) rather than dropping the voice.
+**Two in-flight voices were killed before this one.** v1 (low square + 60 Hz buzz tremolo through a narrow bandpass) flooded the field and sounded like a fart. v2 (clean triangle + shimmer partial + 7 Hz AM) was locatable but the user found the constant pitched whizz very annoying. The current `buildUfoBullet` is a **whoosh, not a tone**: because a bullet's lifetime is fixed (`UFO_BULLET_LIFE` 1.4 s), the whole sound is scheduled at fire as a 1.35 s downward sweep — brown noise through a Q3 bandpass falling 1100→190 Hz (warm-shaped, swells to a "pass" peak at 0.5 s then decays) plus a pink-noise Q6 sheen falling 2200→430 Hz, through a four-tap delay wash. It still rides `makeSpatialVoice` (position, distance gain, behindness muffle all apply); per-bullet ±5% sweep jitter keeps two in flight distinguishable. Don't replace it with a constant-pitch loop again. Flooding is not a real risk here — one UFO at a time, ~1.5 s fire period, 1.4 s bullet life → only 1–2 voices ever live. If a future change ever does spawn many bullets at once, cap the number of voiced bullets (nearest-N) rather than dropping the voice.
 
 ## Explosion audio
 
@@ -158,7 +158,7 @@ The constants live in `constants.js`, but the *relationships* between them are w
 
 `app/onlineScores.js` keeps a `GAMES` map keyed by mode, each with `{id, secret}`. `app/screen/game.js` calls `app.onlineScores.setMode(content.game.isArcade() ? 'arcade' : 'classic')` before `openSession()`. The session captures the game id at open time, so even if the mode is changed mid-run the submit is signed with the right secret.
 
-Both leaderboards are registered on `scores.oriolgomez.com`. **The admin API doesn't accept a chosen secret** — `adminCreateGame` always calls `randomSecret()`, `/rotate` does the same, and `adminUpdateGame` ignores the `secret` field. To set a specific secret, write directly to `/home/scores/data/scores.db` (the file is on the same VPS):
+Both leaderboards are registered on `scores.gomsen.com`. **The admin API doesn't accept a chosen secret** — `adminCreateGame` always calls `randomSecret()`, `/rotate` does the same, and `adminUpdateGame` ignores the `secret` field. To set a specific secret, write directly to `/home/scores/data/scores.db` (the file is on the same VPS):
 
 ```sh
 sqlite3 /home/scores/data/scores.db \

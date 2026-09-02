@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Basket</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <!-- Screen-reader announce regions -->
+      <div class="a-app--announce u-screenReader" aria-live="polite" aria-atomic="true"></div>
+      <div class="a-app--announce-assertive u-screenReader" aria-live="assertive" aria-atomic="true"></div>
+
+      <!-- Game -->
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <div class="a-game--hud">
+            <span class="a-game--stat"><span data-i18n="hud.round">Round</span>: <b class="a-game--round-value">1</b></span>
+            <span class="a-game--stat"><span data-i18n="hud.score">Score</span>: <b class="a-game--score-value">0</b></span>
+            <span class="a-game--stat"><span data-i18n="hud.held">Holding</span>: <b class="a-game--held-value">-</b></span>
+            <span class="a-game--stat"><span data-i18n="hud.progress">Merges</span>: <b class="a-game--progress-value">0 / 2</b></span>
+            <span class="a-game--stat a-game--lives" hidden><span data-i18n="hud.lives">Lives</span>: <b class="a-game--lives-value">0</b></span>
+          </div>
+          <div class="a-game--field" aria-hidden="true">
+            <div class="a-game--sky"></div>
+            <span class="a-game--heldball" hidden></span>
+            <span class="a-game--player"></span>
+          </div>
+        </section>
+      </div>
+
+      <!-- Pause -->
+      <div class="a-app--screen a-app--pause">
+        <section class="c-screen c-menu a-pause" tabindex="-1" data-i18n-attr="aria-label:pause.aria">
+          <h1 class="c-menu--title" data-i18n="pause.title">Paused</h1>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="resume" data-i18n="pause.resume">Resume</button></li>
+            <li><button class="c-menu--button" data-action="restart" data-i18n="pause.restart">Restart</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="pause.menu">Main menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Game over / victory -->
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title a-gameover--title" data-i18n="gameover.title">Dropped!</h1>
+          <p class="c-menu--subtitle a-gameover--score">Score: 0</p>
+          <p class="c-menu--subtitle a-gameover--rank-msg" data-i18n="gameover.subtitle" hidden>That made the top ten! Enter your name to save it.</p>
+          <form class="a-gameover--form" hidden>
+            <ul class="c-menu--list">
+              <li>
+                <input class="c-menu--button a-gameover--name" type="text" maxlength="24"
+                       autocomplete="off" data-i18n-attr="aria-label:gameover.name;placeholder:gameover.name" />
+              </li>
+              <li><button class="c-menu--button a-gameover--submit" type="submit" data-i18n="gameover.save">Save score</button></li>
+            </ul>
+          </form>
+          <div class="a-gameover--post" hidden>
+            <p class="c-menu--subtitle a-gameover--post-prompt" data-i18n="gameover.postPrompt">Post this score to the online scoreboard?</p>
+            <ul class="c-menu--list">
+              <li><button class="c-menu--button a-gameover--post-yes" data-action="post" data-i18n="gameover.postYes">Post online</button></li>
+              <li><button class="c-menu--button a-gameover--post-no" data-action="declinePost" data-i18n="gameover.postNo">No thanks</button></li>
+            </ul>
+          </div>
+          <p class="a-gameover--online-status" aria-live="polite" hidden></p>
+          <p><a class="a-gameover--online-link" href="#" target="_blank" rel="noopener" hidden></a></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="continue" data-i18n="gameover.continue">Continue</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- How to play -->
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to play</h1>
+          <p class="c-menu--subtitle" data-i18n="help.subtitle">Catch every ball. Crash them together. Never let one touch the ground.</p>
+          <p class="a-help--text" data-i18n="help.intro"></p>
+          <ul class="a-help--list">
+            <li data-i18n-html="help.h.move"></li>
+            <li data-i18n-html="help.h.catch"></li>
+            <li data-i18n-html="help.h.throw"></li>
+            <li data-i18n-html="help.h.merge"></li>
+            <li data-i18n-html="help.h.bump"></li>
+            <li data-i18n-html="help.h.size"></li>
+            <li data-i18n-html="help.h.ticks"></li>
+            <li data-i18n-html="help.h.lock"></li>
+            <li data-i18n-html="help.h.range"></li>
+            <li data-i18n-html="help.h.drift"></li>
+            <li data-i18n-html="help.h.rounds"></li>
+            <li data-i18n-html="help.h.arcade"></li>
+            <li data-i18n-html="help.h.powerups"></li>
+            <li data-i18n-html="help.h.lives"></li>
+            <li data-i18n-html="help.h.status"></li>
+            <li data-i18n-html="help.h.pause"></li>
+          </ul>
+          <p class="a-help--text" data-i18n="help.audio"></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- High scores -->
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen c-menu a-highscores" tabindex="-1" data-i18n-attr="aria-label:highscores.aria">
+          <h1 class="c-menu--title" data-i18n="highscores.title">High scores</h1>
+          <p class="c-menu--subtitle" data-i18n="highscores.subtitle">Your best runs on this device.</p>
+          <h2 class="a-highscores--heading" data-i18n="highscores.classic">Classic mode</h2>
+          <ul class="a-highscores--list" data-mode="classic"></ul>
+          <h2 class="a-highscores--heading" data-i18n="highscores.arcade">Arcade mode</h2>
+          <ul class="a-highscores--list" data-mode="arcade"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="highscores.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Learn the sounds -->
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen c-menu a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 class="c-menu--title" data-i18n="learn.title">Learn the sounds</h1>
+          <p class="c-menu--subtitle" data-i18n="learn.subtitle">Play each cue on its own.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-sound="small" data-i18n="learn.small">A small ball falling</button></li>
+            <li><button class="c-menu--button" data-sound="big" data-i18n="learn.big">A big ball falling (faster)</button></li>
+            <li><button class="c-menu--button" data-sound="left" data-i18n="learn.left">A ball to your left</button></li>
+            <li><button class="c-menu--button" data-sound="right" data-i18n="learn.right">A ball to your right</button></li>
+            <li><button class="c-menu--button" data-sound="lock" data-i18n="learn.lock">A ball straight above you, then caught</button></li>
+            <li><button class="c-menu--button" data-sound="held" data-i18n="learn.held">Holding a ball</button></li>
+            <li><button class="c-menu--button" data-sound="inrange" data-i18n="learn.inrange">Holding a ball, target comes in range</button></li>
+            <li><button class="c-menu--button" data-sound="throw" data-i18n="learn.throw">Throwing</button></li>
+            <li><button class="c-menu--button" data-sound="merge" data-i18n="learn.merge">Two balls merging in the air</button></li>
+            <li><button class="c-menu--button" data-sound="bump" data-i18n="learn.bump">A ball merging on your basket</button></li>
+            <li><button class="c-menu--button" data-sound="wall" data-i18n="learn.wall">A ball bouncing off the walls</button></li>
+            <li><button class="c-menu--button" data-sound="clear" data-i18n="learn.clear">Round clear</button></li>
+            <li><button class="c-menu--button" data-sound="drop" data-i18n="learn.drop">A ball hitting the ground</button></li>
+            <li><button class="c-menu--button" data-sound="puLife" data-i18n="learn.puLife">Power-up: extra life (then collected)</button></li>
+            <li><button class="c-menu--button" data-sound="puBonus" data-i18n="learn.puBonus">Power-up: bonus points (then collected)</button></li>
+            <li><button class="c-menu--button" data-sound="puSlow" data-i18n="learn.puSlow">Power-up: slow time (then collected)</button></li>
+            <li><button class="c-menu--button" data-sound="puWide" data-i18n="learn.puWide">Power-up: wide basket (then collected)</button></li>
+            <li><button class="c-menu--button" data-sound="puGone" data-i18n="learn.puGone">A power-up pulled back up</button></li>
+            <li><button class="c-menu--button" data-sound="lifeLost" data-i18n="learn.lifeLost">Losing a life (arcade)</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="learn.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Stereo test -->
+      <div class="a-app--screen a-app--test">
+        <section class="c-screen c-menu a-test" tabindex="-1" data-i18n-attr="aria-label:test.aria">
+          <h1 class="c-menu--title" data-i18n="test.title">Stereo audio test</h1>
+          <p class="c-menu--subtitle" data-i18n="test.subtitle">Confirm left, right, and pitch.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-dir="left" data-i18n="test.left">Play far left</button></li>
+            <li><button class="c-menu--button" data-dir="center" data-i18n="test.center">Play centre</button></li>
+            <li><button class="c-menu--button" data-dir="right" data-i18n="test.right">Play far right</button></li>
+            <li><button class="c-menu--button" data-dir="small" data-i18n="test.small">Play small ball pitch</button></li>
+            <li><button class="c-menu--button" data-dir="big" data-i18n="test.big">Play big ball pitch</button></li>
+            <li><button class="c-menu--button" data-dir="sweep" data-i18n="test.sweep">Sweep left to right</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="test.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Language -->
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Main menu -->
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Basket</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">Catch falling balls and crash them together. Bigger balls fall faster. Drop one and it's over.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="start" data-i18n="menu.start">Classic mode</button></li>
+            <li><button class="c-menu--button" data-action="arcade" data-i18n="menu.arcade">Arcade mode</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to play</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn the sounds</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="menu.highscores">High scores</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

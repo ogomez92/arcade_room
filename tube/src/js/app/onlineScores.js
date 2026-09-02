@@ -1,5 +1,5 @@
 app.onlineScores = (() => {
-  const BASE = 'https://scores.oriolgomez.com'
+  const BASE = 'https://scores.gomsen.com'
   const GAME_ID = 'tempest'
   const SECRET = 'meLCG4vl6U5Vwf1dZ1UcZvBIsre_BxigVQ-NGI4iySk'
   const DEFAULT_MAX_NAME_LENGTH = 100

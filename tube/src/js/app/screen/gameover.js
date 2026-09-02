@@ -60,7 +60,7 @@ app.screen.gameover = app.screenManager.invent({
     }
     if (this.state.linkEl) {
       this.state.linkEl.hidden = true
-      this.state.linkEl.href = app.onlineScores ? app.onlineScores.listUrl() : 'https://scores.oriolgomez.com'
+      this.state.linkEl.href = app.onlineScores ? app.onlineScores.listUrl() : 'https://scores.gomsen.com'
     }
     this.refreshFields()
     try { app.announce.assertive(app.i18n.t('ann.gameOver')) } catch (e) {}

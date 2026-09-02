@@ -1,5 +1,5 @@
 app.scores = (() => {
-  const BASE_URL = 'https://scores.oriolgomez.com'
+  const BASE_URL = 'https://scores.gomsen.com'
   const GAME_ID = 'breakout'
   const SECRET = 'SzatVUQK2pBg69UQgTc7hZIfZpPEN8C2Kx3rAVnQPRE'
   const NAME_KEY = 'breakout.scoreName'

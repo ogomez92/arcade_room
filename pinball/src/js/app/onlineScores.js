@@ -1,5 +1,5 @@
 app.onlineScores = (() => {
-  const BASE = 'https://scores.oriolgomez.com'
+  const BASE = 'https://scores.gomsen.com'
   const GAME_ID = 'pinball'
   const SECRET = 'I3QN62LBep3Mo_BQJftW7a3FZu1nYOISMe__8BwrmyQ'
 

@@ -1,18 +1,18 @@
 /**
- * Online leaderboard client for scores.oriolgomez.com.
+ * Online leaderboard client for scores.gomsen.com.
  *
  * Opens a session on game start, posts the score with the player's name on
  * game over, returns the server rank. Any network/registration failure throws
  * and the gameover screen falls back to the local leaderboard.
  *
- * Registered as game id `drawing_board` at https://scores.oriolgomez.com/admin
+ * Registered as game id `drawing_board` at https://scores.gomsen.com/admin
  * (display_order: desc, max_score: 1000000,
  * meta_schema: [{"key":"level","type":"int","min":0,"max":999}]). On any
  * network/registration failure submissions fall back to the local high-score
  * table — see /home/scores/INTEGRATION.md.
  */
 app.onlineScores = (() => {
-  const BASE = 'https://scores.oriolgomez.com'
+  const BASE = 'https://scores.gomsen.com'
   const GAME_ID = 'drawing_board'
   const SECRET = 'p7LYO5YwICHVSBLpc_FYqFln2ZVvB5I2U1K6j-Ow84E'
 

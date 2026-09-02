@@ -284,56 +284,136 @@ content.audio = (() => {
   }
 
   // -------------- UFO bullet voice --------------
-  // A continuous spatial tone per UFO bullet so the player can locate
-  // incoming fire, mirroring the asteroid voices. An earlier per-bullet
-  // loop was killed for flooding the field with a buzzy 60 Hz tremolo
-  // (see CLAUDE.md) — this one is deliberately different: a clean pitched
-  // tone (triangle fundamental + a quiet shimmer partial, a gentle ~7 Hz
-  // AM), modest gain so it sits under the rocks, and naturally few voices
-  // (one UFO, ~1.5 s fire period, 1.4 s bullet life → 1–2 in flight).
+  // A per-bullet spatial WHOOSH rather than a pitched tone — the old
+  // triangle+shimmer whizz loop read as an annoying constant beep. The
+  // bullet lives UFO_BULLET_LIFE (1.4 s), so the whole sound is scheduled
+  // once at fire as a 1.35 s downward noise sweep that tracks the flight:
+  //  - Body: brown noise through a Q3 bandpass falling 1100 → 190 Hz,
+  //    warm-shaped; swells to a "pass" peak at 0.5 s then decays.
+  //  - Sheen: pink noise through a Q6 bandpass falling 2200 → 430 Hz.
+  //  - Room: a four-tap delay wash for a sense of the shot moving through
+  //    the field.
+  // The voice still rides makeSpatialVoice, so position, distance gain and
+  // the behindness muffle all keep working; the sweep is the bullet's own
+  // envelope inside that. Per-bullet ±5% sweep jitter keeps two in flight
+  // distinguishable. Still naturally few voices (1–2 live at once).
   function buildUfoBullet(out) {
     const c = ctxFn()
-    // ±4% per-bullet pitch jitter so two in flight stay distinguishable.
-    const base = 312 * (1 + (Math.random() - 0.5) * 0.08)
+    const sr = c.sampleRate
+    const zero = 0.0001
+    const t0 = now()
+    const pass = t0 + 0.5
+    const end = t0 + 1.35
+    // ±5% per-bullet jitter on the sweep frequencies.
+    const j = 1 + (Math.random() - 0.5) * 0.10
 
-    const o1 = c.createOscillator()
-    o1.type = 'triangle'
-    o1.frequency.value = base
+    // Brown noise (integrated white) — deep rushing body.
+    const bodyBuf = c.createBuffer(1, Math.floor(sr * 2), sr)
+    {
+      const ch = bodyBuf.getChannelData(0)
+      let last = 0
+      for (let i = 0; i < ch.length; i++) {
+        last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02
+        ch[i] = last * 3.5
+      }
+    }
+    const body = c.createBufferSource()
+    body.buffer = bodyBuf
+    body.loop = true
+    const bodyBp = c.createBiquadFilter()
+    bodyBp.type = 'bandpass'
+    bodyBp.Q.value = 3
+    bodyBp.frequency.setValueAtTime(1100 * j, t0)
+    bodyBp.frequency.exponentialRampToValueAtTime(1000 * j, pass - 0.06)
+    bodyBp.frequency.exponentialRampToValueAtTime(420 * j, pass + 0.22)
+    bodyBp.frequency.exponentialRampToValueAtTime(190 * j, end)
+    const bodyShaper = c.createWaveShaper()
+    bodyShaper.curve = _warmCurve()
+    const bodyGain = c.createGain()
+    bodyGain.gain.setValueAtTime(zero, t0)
+    bodyGain.gain.exponentialRampToValueAtTime(0.18, pass)
+    bodyGain.gain.exponentialRampToValueAtTime(0.05, pass + 0.3)
+    bodyGain.gain.exponentialRampToValueAtTime(zero, end)
 
-    // Shimmer partial — a quiet sine high above for "alien energy."
-    const o2 = c.createOscillator()
-    o2.type = 'sine'
-    o2.frequency.value = base * 2.5
-    o2.detune.value = 7
-    const g2 = c.createGain(); g2.gain.value = 0.30
+    // Pink noise (Paul Kellet economy filter) — airy sheen on top.
+    const sheenBuf = c.createBuffer(1, Math.floor(sr * 2), sr)
+    {
+      const ch = sheenBuf.getChannelData(0)
+      let b0 = 0, b1 = 0, b2 = 0
+      for (let i = 0; i < ch.length; i++) {
+        const w = Math.random() * 2 - 1
+        b0 = 0.99765 * b0 + w * 0.0990460
+        b1 = 0.96300 * b1 + w * 0.2965164
+        b2 = 0.57000 * b2 + w * 1.0526913
+        ch[i] = (b0 + b1 + b2 + w * 0.1848) * 0.18
+      }
+    }
+    const sheen = c.createBufferSource()
+    sheen.buffer = sheenBuf
+    sheen.loop = true
+    const sheenBp = c.createBiquadFilter()
+    sheenBp.type = 'bandpass'
+    sheenBp.Q.value = 6
+    sheenBp.frequency.setValueAtTime(2200 * j, t0 + 0.1)
+    sheenBp.frequency.exponentialRampToValueAtTime(760 * j, pass + 0.2)
+    sheenBp.frequency.exponentialRampToValueAtTime(430 * j, end - 0.2)
+    const sheenGain = c.createGain()
+    sheenGain.gain.setValueAtTime(zero, t0 + 0.1)
+    sheenGain.gain.exponentialRampToValueAtTime(0.04, pass)
+    sheenGain.gain.exponentialRampToValueAtTime(zero, end - 0.2)
 
-    const sum = c.createGain(); sum.gain.value = 1
-    o1.connect(sum)
-    o2.connect(g2).connect(sum)
+    // Room wash — dry + four staggered taps.
+    const sum = c.createGain()
+    sum.gain.value = 1
+    const dry = c.createGain()
+    dry.gain.value = 0.7
+    const wet = c.createGain()
+    wet.gain.value = 0.45
+    const taps = []
+    for (const tp of [
+      {delay: 0.043, gain: 0.5},
+      {delay: 0.097, gain: 0.34},
+      {delay: 0.161, gain: 0.22},
+      {delay: 0.247, gain: 0.13},
+    ]) {
+      const d = c.createDelay(0.3)
+      d.delayTime.value = tp.delay
+      const tg = c.createGain()
+      tg.gain.value = tp.gain
+      sum.connect(d).connect(tg).connect(wet)
+      taps.push({d, tg})
+    }
 
-    const lp = c.createBiquadFilter()
-    lp.type = 'lowpass'
-    lp.frequency.value = 2600
-    lp.Q.value = 0.7
+    // Makeup gain — bandpassed noise at these envelope levels is far
+    // quieter than the old full-amplitude triangle; this brings it back
+    // up to sit just under the rocks.
+    const innerGain = c.createGain()
+    innerGain.gain.value = 2.5
 
-    // Gentle AM shimmer — clean, ~7 Hz, shallow. NOT the old 60 Hz buzz.
-    const am = c.createOscillator()
-    am.type = 'sine'
-    am.frequency.value = 7.5
-    const amDepth = c.createGain(); amDepth.gain.value = 0.22
-    const trem = c.createGain(); trem.gain.value = 1
-    am.connect(amDepth).connect(trem.gain)
+    body.connect(bodyBp).connect(bodyShaper).connect(bodyGain).connect(sum)
+    sheen.connect(sheenBp).connect(sheenGain).connect(sum)
+    sum.connect(dry).connect(innerGain)
+    wet.connect(innerGain)
+    innerGain.connect(out)
 
-    // Modest inner gain — between a small (0.22) and medium (0.36) rock.
-    const innerGain = c.createGain(); innerGain.gain.value = 0.30
-
-    sum.connect(lp).connect(trem).connect(innerGain).connect(out)
-
-    o1.start(); o2.start(); am.start()
+    body.start(t0)
+    sheen.start(t0 + 0.1)
     return () => {
-      try { o1.stop() } catch (e) {}
-      try { o2.stop() } catch (e) {}
-      try { am.stop() } catch (e) {}
+      try { body.stop() } catch (e) {}
+      try { sheen.stop() } catch (e) {}
+      for (const tp of taps) {
+        try { tp.d.disconnect() } catch (e) {}
+        try { tp.tg.disconnect() } catch (e) {}
+      }
+      try { bodyBp.disconnect() } catch (e) {}
+      try { bodyShaper.disconnect() } catch (e) {}
+      try { bodyGain.disconnect() } catch (e) {}
+      try { sheenBp.disconnect() } catch (e) {}
+      try { sheenGain.disconnect() } catch (e) {}
+      try { sum.disconnect() } catch (e) {}
+      try { dry.disconnect() } catch (e) {}
+      try { wet.disconnect() } catch (e) {}
+      try { innerGain.disconnect() } catch (e) {}
     }
   }
 
@@ -485,69 +565,167 @@ content.audio = (() => {
   }
 
   // -------------- ship thrust loop --------------
-  // Engine rumble — lowpassed noise body + a sub sine + a sawtooth engine
-  // harmonic, all summed through a slow heartbeat tremolo so it pulses like
-  // an actual reaction engine rather than a steady drone. No high-frequency
-  // content — the loop tops out around 1.1 kHz at full burn.
+  // Alien hover drive — three layers, continuous while thrusting:
+  //  1. Pad: additive stack of five slightly INHARMONIC partials
+  //     (coefficients 1 / 2.01 / 3.04 / 4.97 / 7.11 of a base note). The
+  //     inharmonicity is the point — exact integer ratios read as a church
+  //     organ, these read as an alien engine. A slow drift LFO bends the
+  //     whole stack together and an "openness" LFO breathes the lowpass.
+  //  2. Air: slowed looping noise through a bandpass, washed through a
+  //     three-tap delay for a sense of enclosure around the hull.
+  //  3. Sheen: full ring mod between two close tones — a slow metallic
+  //     beating shimmer, highpassed so it sits above the pad.
+  // Base pitch + filters + gain all rise with ship speed (updateThrustVoice)
+  // so the note doubles as a speed read — the brake voice mirrors the same
+  // pitch curve (see startBrakeVoice).
+  const THRUST_PARTIALS = [
+    // Fundamental deliberately quieter than the upper partials suggest —
+    // at 77 Hz it reads as a loud bass drone at anything near full gain.
+    {coeff: 1.00, gain: 0.15, type: 'sine', detune: 0},
+    {coeff: 2.01, gain: 0.32, type: 'sine', detune: 6},
+    {coeff: 3.04, gain: 0.28, type: 'triangle', detune: 0},
+    {coeff: 4.97, gain: 0.14, type: 'sine', detune: -8},
+    {coeff: 7.11, gain: 0.07, type: 'sine', detune: 0},
+  ]
+  const THRUST_BASE_HZ = 77          // idle engine note
+  const THRUST_BASE_RISE = 45        // added at full speed (sn = 1)
+
+  function _warmCurve() {
+    // Gentle tanh saturation — rounds the additive stack's edges without
+    // adding buzz.
+    const n = 257, curve = new Float32Array(n), k = Math.tanh(2)
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n - 1)) * 2 - 1
+      curve[i] = Math.tanh(2 * x) / k
+    }
+    return curve
+  }
+
   function startThrustVoice() {
     if (_state.thrustVoice) return
     ensureStarted()
     const c = ctxFn()
 
-    // Looping noise → very low lowpass = rumble body.
-    const buf = c.createBuffer(1, c.sampleRate * 0.5, c.sampleRate)
+    // 1. Pad — five partials summed → warm shaper → lowpass.
+    // Kept low — this is the drive into the warm shaper, and overdriving a
+    // multi-partial stack produces intermodulation buzz (reads as a
+    // motorbike, not a hover drive).
+    const padSum = c.createGain()
+    padSum.gain.value = 0.25
+    const oscs = [], oscGains = [], driftDepths = []
+    // One drift LFO bends every partial proportionally (depth scales with
+    // the partial's coefficient so the stack stays in tune with itself).
+    const drift = c.createOscillator()
+    drift.type = 'sine'
+    drift.frequency.value = 0.25
+    for (const p of THRUST_PARTIALS) {
+      const o = c.createOscillator()
+      o.type = p.type
+      o.frequency.value = THRUST_BASE_HZ * p.coeff
+      o.detune.value = p.detune
+      const og = c.createGain()
+      og.gain.value = p.gain
+      o.connect(og).connect(padSum)
+      const dd = c.createGain()
+      dd.gain.value = 1.6 * p.coeff
+      drift.connect(dd).connect(o.frequency)
+      oscs.push(o); oscGains.push(og); driftDepths.push(dd)
+    }
+    const shaper = c.createWaveShaper()
+    shaper.curve = _warmCurve()
+    // Highpass under the pad — partial-gain cuts alone can't tame the low
+    // rumble because the lowpass resonance keeps lifting the bottom back up.
+    const padHp = c.createBiquadFilter()
+    padHp.type = 'highpass'
+    padHp.frequency.value = 170
+    padHp.Q.value = 0.7
+    const padLp = c.createBiquadFilter()
+    padLp.type = 'lowpass'
+    padLp.frequency.value = 1400
+    padLp.Q.value = 1.5
+    // Openness LFO breathes the lowpass ±500 Hz around its centre.
+    const openness = c.createOscillator()
+    openness.type = 'sine'
+    openness.frequency.value = 0.5
+    const openDepth = c.createGain()
+    openDepth.gain.value = 500
+    openness.connect(openDepth).connect(padLp.frequency)
+    padSum.connect(shaper).connect(padHp).connect(padLp)
+
+    // 2. Air — slowed noise → bandpass → dry + three-tap wash.
+    const buf = c.createBuffer(1, c.sampleRate * 2, c.sampleRate)
     const ch = buf.getChannelData(0)
-    for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * 0.7
+    for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1
     const noise = c.createBufferSource()
     noise.buffer = buf
     noise.loop = true
-    const noiseLp = c.createBiquadFilter()
-    noiseLp.type = 'lowpass'
-    noiseLp.frequency.value = 380
-    noiseLp.Q.value = 0.7
-    const noiseGain = c.createGain()
-    noiseGain.gain.value = 0.55
+    noise.playbackRate.value = 0.6
+    const airBp = c.createBiquadFilter()
+    airBp.type = 'bandpass'
+    airBp.frequency.value = 2600
+    airBp.Q.value = 1.4
+    const airGain = c.createGain()
+    airGain.gain.value = 0.12
+    const airDry = c.createGain()
+    airDry.gain.value = 0.6
+    const airWet = c.createGain()
+    airWet.gain.value = 0.7
+    const taps = []
+    for (const t of [{delay: 0.021, gain: 0.5}, {delay: 0.047, gain: 0.35}, {delay: 0.083, gain: 0.22}]) {
+      const d = c.createDelay(0.1)
+      d.delayTime.value = t.delay
+      const tg = c.createGain()
+      tg.gain.value = t.gain
+      airBp.connect(d).connect(tg).connect(airWet)
+      taps.push({d, tg})
+    }
+    noise.connect(airBp).connect(airDry).connect(airGain)
+    airWet.connect(airGain)
 
-    // Sub fundamental — the deep "engine on" note.
-    const sub = c.createOscillator()
-    sub.type = 'sine'
-    sub.frequency.value = 55
-    const subGain = c.createGain()
-    subGain.gain.value = 0.70
-
-    // Engine harmonic — sawtooth at 2× sub, lowpassed so it adds body
-    // without bite. This is the part that goes "vroom" rather than "hiss."
-    const harm = c.createOscillator()
-    harm.type = 'sawtooth'
-    harm.frequency.value = 110
-    const harmLp = c.createBiquadFilter()
-    harmLp.type = 'lowpass'
-    harmLp.frequency.value = 500
-    harmLp.Q.value = 0.7
-    const harmGain = c.createGain()
-    harmGain.gain.value = 0.18
-
-    // Heartbeat tremolo — ~7 Hz wobble that gives the engine a pulsed
-    // character. Faster at high speed.
-    const tremLfo = c.createOscillator()
-    tremLfo.type = 'sine'
-    tremLfo.frequency.value = 7
-    const tremDepth = c.createGain()
-    tremDepth.gain.value = 0.18
-    const trem = c.createGain()
-    trem.gain.value = 1
-    tremLfo.connect(tremDepth).connect(trem.gain)
+    // 3. Sheen — pure ring mod (carrier VCA at 0, driven by the modulator)
+    // between two close tones for a slow beating shimmer.
+    const sheenCar = c.createOscillator()
+    sheenCar.type = 'sine'
+    sheenCar.frequency.value = 1240
+    const sheenVca = c.createGain()
+    sheenVca.gain.value = 0
+    const sheenMod = c.createOscillator()
+    sheenMod.type = 'sine'
+    sheenMod.frequency.value = 311
+    const sheenDepth = c.createGain()
+    sheenDepth.gain.value = 1
+    sheenMod.connect(sheenDepth).connect(sheenVca.gain)
+    const sheenHp = c.createBiquadFilter()
+    sheenHp.type = 'highpass'
+    sheenHp.frequency.value = 700
+    const sheenGain = c.createGain()
+    sheenGain.gain.value = 0.09
+    const sheenDrift = c.createOscillator()
+    sheenDrift.type = 'sine'
+    sheenDrift.frequency.value = 0.25
+    const sheenDriftDepth = c.createGain()
+    sheenDriftDepth.gain.value = 24
+    sheenDrift.connect(sheenDriftDepth).connect(sheenMod.frequency)
+    sheenCar.connect(sheenVca).connect(sheenHp).connect(sheenGain)
 
     const g = c.createGain()
     g.gain.value = 0
-    noise.connect(noiseLp).connect(noiseGain).connect(trem)
-    sub.connect(subGain).connect(trem)
-    harm.connect(harmLp).connect(harmGain).connect(trem)
-    trem.connect(g).connect(_state.masterBus)
+    padLp.connect(g)
+    airGain.connect(g)
+    sheenGain.connect(g)
+    g.connect(_state.masterBus)
 
-    noise.start(); sub.start(); harm.start(); tremLfo.start()
-    g.gain.setTargetAtTime(0.14, now(), 0.06)
-    _state.thrustVoice = {noise, noiseLp, noiseGain, sub, subGain, harm, harmLp, harmGain, tremLfo, tremDepth, trem, g}
+    for (const o of oscs) o.start()
+    drift.start(); openness.start()
+    noise.start()
+    sheenCar.start(); sheenMod.start(); sheenDrift.start()
+    g.gain.setTargetAtTime(0.04, now(), 0.06)
+    _state.thrustVoice = {
+      oscs, oscGains, drift, driftDepths, padSum, shaper, padHp, padLp, openness, openDepth,
+      noise, airBp, airDry, airWet, airGain, taps,
+      sheenCar, sheenVca, sheenMod, sheenDepth, sheenHp, sheenGain, sheenDrift, sheenDriftDepth,
+      g,
+    }
   }
   function stopThrustVoice() {
     if (!_state.thrustVoice) return
@@ -555,22 +733,26 @@ content.audio = (() => {
     _state.thrustVoice = null
     try { v.g.gain.setTargetAtTime(0.0001, now(), 0.04) } catch (e) {}
     setTimeout(() => {
+      for (const o of v.oscs) { try { o.stop() } catch (e) {} }
+      try { v.drift.stop() } catch (e) {}
+      try { v.openness.stop() } catch (e) {}
       try { v.noise.stop() } catch (e) {}
-      try { v.sub.stop() } catch (e) {}
-      try { v.harm.stop() } catch (e) {}
-      try { v.tremLfo.stop() } catch (e) {}
-      try { v.noise.disconnect() } catch (e) {}
-      try { v.noiseLp.disconnect() } catch (e) {}
-      try { v.noiseGain.disconnect() } catch (e) {}
-      try { v.sub.disconnect() } catch (e) {}
-      try { v.subGain.disconnect() } catch (e) {}
-      try { v.harm.disconnect() } catch (e) {}
-      try { v.harmLp.disconnect() } catch (e) {}
-      try { v.harmGain.disconnect() } catch (e) {}
-      try { v.tremLfo.disconnect() } catch (e) {}
-      try { v.tremDepth.disconnect() } catch (e) {}
-      try { v.trem.disconnect() } catch (e) {}
-      try { v.g.disconnect() } catch (e) {}
+      try { v.sheenCar.stop() } catch (e) {}
+      try { v.sheenMod.stop() } catch (e) {}
+      try { v.sheenDrift.stop() } catch (e) {}
+      for (const o of v.oscs) { try { o.disconnect() } catch (e) {} }
+      for (const og of v.oscGains) { try { og.disconnect() } catch (e) {} }
+      for (const dd of v.driftDepths) { try { dd.disconnect() } catch (e) {} }
+      for (const t of v.taps) {
+        try { t.d.disconnect() } catch (e) {}
+        try { t.tg.disconnect() } catch (e) {}
+      }
+      for (const k of ['drift', 'padSum', 'shaper', 'padHp', 'padLp', 'openness', 'openDepth',
+        'noise', 'airBp', 'airDry', 'airWet', 'airGain',
+        'sheenCar', 'sheenVca', 'sheenMod', 'sheenDepth', 'sheenHp', 'sheenGain',
+        'sheenDrift', 'sheenDriftDepth', 'g']) {
+        try { v[k].disconnect() } catch (e) {}
+      }
     }, 200)
   }
 
@@ -581,20 +763,23 @@ content.audio = (() => {
     try { return Math.min(1, content.ship.speed() / 40) } catch (e) { return 0 }
   }
 
-  // Engine rumble shapes with speed: filters open a little, sub + harmonic
-  // climb maybe an octave, heartbeat speeds up, overall gain rises. Cutoffs
-  // stay low across the whole range — never shrill, just throatier.
+  // Hover drive shapes with speed: the whole partial stack climbs together
+  // (base 77 → 122 Hz), the pad lowpass opens, the sheen beats faster, the
+  // air brightens, overall gain rises. Cutoffs stay moderate across the
+  // whole range — throatier, never shrill.
   function updateThrustVoice() {
     const v = _state.thrustVoice
     if (!v) return
     const sn = _speedNorm()
     const t = now()
-    try { v.noiseLp.frequency.setTargetAtTime(380 + 500 * sn, t, 0.10) } catch (e) {}
-    try { v.harmLp.frequency.setTargetAtTime(500 + 600 * sn, t, 0.10) } catch (e) {}
-    try { v.sub.frequency.setTargetAtTime(55 + 35 * sn, t, 0.10) } catch (e) {}
-    try { v.harm.frequency.setTargetAtTime(110 + 70 * sn, t, 0.10) } catch (e) {}
-    try { v.tremLfo.frequency.setTargetAtTime(6 + 5 * sn, t, 0.20) } catch (e) {}
-    try { v.g.gain.setTargetAtTime(0.10 + 0.10 * sn, t, 0.06) } catch (e) {}
+    const base = THRUST_BASE_HZ + THRUST_BASE_RISE * sn
+    for (let i = 0; i < v.oscs.length; i++) {
+      try { v.oscs[i].frequency.setTargetAtTime(base * THRUST_PARTIALS[i].coeff, t, 0.10) } catch (e) {}
+    }
+    try { v.padLp.frequency.setTargetAtTime(1400 + 900 * sn, t, 0.10) } catch (e) {}
+    try { v.airBp.frequency.setTargetAtTime(2600 + 900 * sn, t, 0.10) } catch (e) {}
+    try { v.sheenMod.frequency.setTargetAtTime(311 + 90 * sn, t, 0.10) } catch (e) {}
+    try { v.g.gain.setTargetAtTime(0.03 + 0.03 * sn, t, 0.06) } catch (e) {}
   }
 
   // Brake voice: a mid-low whoosh PLUS the same tonal sub+harmonic stack
@@ -628,17 +813,18 @@ content.audio = (() => {
     whooshGain.gain.value = 0.5
     src.connect(bp).connect(lp).connect(whooshGain)
 
-    // Tonal layer — same sub sine + sawtooth harmonic as the thruster, with
-    // identical speed→pitch params in updateBrakeVoice. Slightly quieter
-    // here so the whoosh dominates the character but the pitch reads.
+    // Tonal layer — a sine at the SAME base note the thruster's pad uses,
+    // plus a sawtooth at the pad's 2.01 second partial, with the identical
+    // speed→pitch curve in updateBrakeVoice. Slightly quieter here so the
+    // whoosh dominates the character but the pitch reads.
     const sub = c.createOscillator()
     sub.type = 'sine'
-    sub.frequency.value = 55
+    sub.frequency.value = THRUST_BASE_HZ
     const subGain = c.createGain()
     subGain.gain.value = 0.55
     const harm = c.createOscillator()
     harm.type = 'sawtooth'
-    harm.frequency.value = 110
+    harm.frequency.value = THRUST_BASE_HZ * 2.01
     const harmLp = c.createBiquadFilter()
     harmLp.type = 'lowpass'
     harmLp.frequency.value = 500
@@ -687,9 +873,10 @@ content.audio = (() => {
     if (!v) return
     const sn = _speedNorm()
     const t = now()
-    // Tonal (mirrors updateThrustVoice exactly).
-    try { v.sub.frequency.setTargetAtTime(55 + 35 * sn, t, 0.10) } catch (e) {}
-    try { v.harm.frequency.setTargetAtTime(110 + 70 * sn, t, 0.10) } catch (e) {}
+    // Tonal (mirrors updateThrustVoice's base-note curve exactly).
+    const base = THRUST_BASE_HZ + THRUST_BASE_RISE * sn
+    try { v.sub.frequency.setTargetAtTime(base, t, 0.10) } catch (e) {}
+    try { v.harm.frequency.setTargetAtTime(base * 2.01, t, 0.10) } catch (e) {}
     try { v.harmLp.frequency.setTargetAtTime(500 + 600 * sn, t, 0.10) } catch (e) {}
     // Whoosh (brake-specific).
     try { v.bp.frequency.setTargetAtTime(500 + 600 * sn, t, 0.06) } catch (e) {}

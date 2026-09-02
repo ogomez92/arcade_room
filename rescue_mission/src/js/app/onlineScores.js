@@ -1,18 +1,18 @@
 /**
- * Online leaderboard client for scores.oriolgomez.com.
+ * Online leaderboard client for scores.gomsen.com.
  *
  * Opens a session on game start, posts the score with the player's name on
  * game over, returns the server rank. Any network/registration failure throws
  * and the gameover screen falls back to the local leaderboard.
  *
- * Registered as game id `rescue_mission` at https://scores.oriolgomez.com/admin
+ * Registered as game id `rescue_mission` at https://scores.gomsen.com/admin
  * (display_order: desc, max_score: 9999999,
  * meta_schema: [{"key":"wave","type":"int","min":0,"max":999}]). On any
  * network/registration failure, submissions fall back to the local high-score
  * table — see /home/scores/INTEGRATION.md.
  */
 app.onlineScores = (() => {
-  const BASE = 'https://scores.oriolgomez.com'
+  const BASE = 'https://scores.gomsen.com'
   const GAME_ID = 'rescue_mission'
   const SECRET = 'oH4H4f-AcSru7WSZXD7oPzeXzp5f6sg-KNWG0Mp0h3E'
 

@@ -1,7 +1,7 @@
 /**
  * TAPPER! — online leaderboard client.
  *
- * Posts to scores.oriolgomez.com per /home/scores/INTEGRATION.md.
+ * Posts to scores.gomsen.com per /home/scores/INTEGRATION.md.
  * Single session per run: openSession() at the start of a fresh game,
  * submit() once when the run ends. The token is single-use; a failed
  * submit invalidates it and the next attempt needs a fresh session.
@@ -18,7 +18,7 @@
 app.scores = (() => {
   const GAME_ID = 'tapper'
   const SECRET  = 'y-ie50udT2qjCm02i9zbR_ElNv7X5NE0BkWyRbzTG2g'
-  const BASE    = 'https://scores.oriolgomez.com'
+  const BASE    = 'https://scores.gomsen.com'
 
   let session = null            // {token, issuedAt} — single-use
   let topCache = null           // last successful fetchTop result (array)

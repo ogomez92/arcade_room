@@ -1,5 +1,5 @@
 app.onlineScores = (() => {
-  const BASE = 'https://scores.oriolgomez.com'
+  const BASE = 'https://scores.gomsen.com'
   const GAME_ID = 'beatstar'
   const SECRET = '0uVez_i748UOFs8mVrEo0CAYl1AJ-1BUaj12rpMoK54'
 

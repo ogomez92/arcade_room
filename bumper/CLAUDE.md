@@ -306,18 +306,20 @@ don't make sense against a single AI list.
   (`0.peerjs.com`) handles signalling; data flows direct over WebRTC
   data channels. No port forwarding, no backend hosting.
 - **STUN / TURN / TURNS.** Self-hosted **coturn** on the VPS that
-  serves oriolgomez.com. STUN+TURN on `turn.oriolgomez.com:3478`
+  serves gomsen.com. STUN+TURN on `turn.gomsen.com:3478`
   (UDP+TCP), TURNS on `:5349` (TLS over TCP). The hostname rides the
-  wildcard `*.oriolgomez.com` A record, so if the VPS ever moves, only
+  wildcard `*.gomsen.com` A record, so if the VPS ever moves, only
   the wildcard needs updating. ICE order in the client is: STUN first,
   TURN/UDP, TURN/TCP, then TURNS as last-resort for networks that
-  block everything except TLS. Connection details live in five
+  block everything except TLS. Connection details live in
   constants at the top of `src/js/app/net.js` — `TURN_HOST`,
-  `TURN_PORT`, `TURNS_PORT`, `TURN_USER`, `TURN_PASS`. Change them
-  there if the server moves or creds rotate, then `gulp build` to
-  refresh `public/scripts.min.js`. Server-side config lives in
+  `TURN_PORT`, `TURNS_PORT`, `TURN_CREDENTIAL_URL`. There is **no TURN
+  password in the client**: coturn runs with `use-auth-secret` and the
+  client mints a short-lived credential from
+  `https://turn.gomsen.com/ice` at runtime. Change these then `gulp build`
+  to refresh `public/scripts.min.js`. Server-side config lives in
   `/etc/turnserver.conf` on the VPS; the TLS cert is provisioned by
-  Caddy (Caddyfile entry for `turn.oriolgomez.com`) and copied to
+  Caddy (Caddyfile entry for `turn.gomsen.com`) and copied to
   `/etc/coturn/{turn.crt,turn.key}` by `/usr/local/bin/coturn-cert-deploy`,
   which is re-triggered on renewal by the systemd path unit
   `coturn-cert-watch.path`. UFW allows `3478/udp+tcp`, `5349/tcp+udp`,

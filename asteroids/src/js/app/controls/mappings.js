@@ -2,9 +2,11 @@ app.controls.mappings = {
   moveAxis: [
     {type: 'gamepad', key: 1},
   ],
+  // A / S / D are fire keys in this game (see content.game.requestFire) —
+  // they must never appear in the movement mappings or shooting drags the
+  // ship around (S used to brake mid-volley).
   moveBackward: [
     {type: 'keyboard', key: 'ArrowDown'},
-    {type: 'keyboard', key: 'KeyS'},
     {type: 'keyboard', key: 'Numpad5'},
     {type: 'gamepad', key: 6},
   ],
@@ -18,11 +20,9 @@ app.controls.mappings = {
     {type: 'gamepad', key: 0},
   ],
   strafeLeft: [
-    {type: 'keyboard', key: 'KeyA'},
     {type: 'keyboard', key: 'Numpad4'},
   ],
   strafeRight: [
-    {type: 'keyboard', key: 'KeyD'},
     {type: 'keyboard', key: 'Numpad6'},
   ],
   turnAxis: [

@@ -239,7 +239,7 @@ in the browser, and to a JSON file via
 gameover screen submits via `app.highscores.add(entry)`.
 
 Online leaderboard via `app.scores` (`src/js/app/scores.js`) posting
-to `scores.oriolgomez.com` — `game_id = 'tapper'`, secret embedded in
+to `scores.gomsen.com` — `game_id = 'tapper'`, secret embedded in
 the bundle. Contract is `/home/scores/INTEGRATION.md`. Flow: `game.js`
 `onEnter` calls `app.scores.openSession()` (fire-and-forget) so
 `play_seconds` is measured from "pressed Play"; `gameover.handleSave`

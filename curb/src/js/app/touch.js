@@ -96,13 +96,16 @@ app.touch = (() => {
   // multi-touch works because each pointer is tracked independently.
   function bindHold(el, code) {
     const active = new Set()
+    let lastPointer = -1e9
     const down = (e) => {
       e.preventDefault()
+      lastPointer = e.timeStamp
       if (active.size === 0) { press(code); el.classList.add('is-active'); buzz() }
       active.add(e.pointerId)
       try { el.setPointerCapture(e.pointerId) } catch (x) {}
     }
     const up = (e) => {
+      lastPointer = e.timeStamp
       if (!active.has(e.pointerId)) return
       active.delete(e.pointerId)
       if (active.size === 0) { release(code); el.classList.remove('is-active') }
@@ -111,6 +114,15 @@ app.touch = (() => {
     el.addEventListener('pointerup', up)
     el.addEventListener('pointercancel', up)
     el.addEventListener('lostpointercapture', up)
+    // A screen reader's activation gesture (VoiceOver/TalkBack double-tap) and
+    // keyboard Enter/Space fire a `click` and do NOT deliver a pointerdown/up
+    // hold. Turn that click into a momentary press. Ignore the compatibility
+    // click that follows a real finger press so we don't fire twice.
+    el.addEventListener('click', (e) => {
+      if (e.timeStamp - lastPointer < 700) return
+      buzz()
+      tap(code)
+    })
   }
 
   // A momentary button: fires code on press, releases on lift (works both as a
@@ -119,8 +131,10 @@ app.touch = (() => {
     const el = document.createElement('button')
     el.type = 'button'
     el.className = 'a-touch--btn' + (spec.variant ? ' a-touch--btn-' + spec.variant : '')
-    el.setAttribute('aria-hidden', 'true')  // real keyboard/AT users don't need these
-    el.tabIndex = -1
+    // Discoverable + labelled for screen readers: on a phone a blind player
+    // explores by swipe (VoiceOver/TalkBack) and must be able to find and hear
+    // these controls. Give a spoken label; the visible text can be a glyph.
+    el.setAttribute('aria-label', spec.aria || spec.hint || spec.label || 'Button')
     el.textContent = spec.label || ''
     if (spec.hint) el.title = spec.hint
     bindHold(el, spec.code)
@@ -138,6 +152,7 @@ app.touch = (() => {
       right: {row: 2, col: 3, glyph: '▶'},
       down:  {row: 3, col: 2, glyph: '▼'},
     }
+    const dirNames = {up: 'Up', down: 'Down', left: 'Left', right: 'Right'}
     const horizontalOnly = !spec.up && !spec.down
     const verticalOnly = !spec.left && !spec.right
     for (const dir of ['up', 'left', 'right', 'down']) {
@@ -145,8 +160,8 @@ app.touch = (() => {
       if (!code) continue
       const b = document.createElement('button')
       b.type = 'button'
-      b.tabIndex = -1
-      b.setAttribute('aria-hidden', 'true')
+      // Screen-reader label (spoken direction name), not the arrow glyph.
+      b.setAttribute('aria-label', (spec.aria && spec.aria[dir]) || dirNames[dir])
       b.className = 'a-touch--dbtn a-touch--dbtn-' + dir
       let row = cells[dir].row, col = cells[dir].col
       if (horizontalOnly) row = 1
@@ -168,8 +183,10 @@ app.touch = (() => {
   function makeAim(spec) {
     const el = document.createElement('div')
     el.className = 'a-touch--aim'
+    el.setAttribute('role', 'button')
+    el.setAttribute('aria-label', spec.aria || spec.label || 'Aim')
     el.textContent = spec.label || ''
-    const state = {pointerId: null, ox: 0, oy: 0, moved: false, active: new Set()}
+    const state = {pointerId: null, ox: 0, oy: 0, moved: false, active: new Set(), lastPointer: -1e9}
     const clearDirs = () => { for (const d of ['up','down','left','right']) { if (spec[d] && state.active.has(d)) { release(spec[d]); state.active.delete(d) } } }
     const setDir = (dir, on) => {
       if (!spec[dir]) return
@@ -179,6 +196,7 @@ app.touch = (() => {
     const down = (e) => {
       e.preventDefault()
       state.pointerId = e.pointerId
+      state.lastPointer = e.timeStamp
       state.ox = e.clientX; state.oy = e.clientY; state.moved = false
       try { el.setPointerCapture(e.pointerId) } catch (x) {}
       el.classList.add('is-active')
@@ -196,6 +214,7 @@ app.touch = (() => {
       state.ox = e.clientX; state.oy = e.clientY
     }
     const up = (e) => {
+      state.lastPointer = e.timeStamp
       if (e.pointerId !== state.pointerId) return
       clearDirs()
       el.classList.remove('is-active')
@@ -207,6 +226,11 @@ app.touch = (() => {
     el.addEventListener('pointerup', up)
     el.addEventListener('pointercancel', up)
     el.addEventListener('lostpointercapture', up)
+    // Screen-reader / keyboard activation can't drag; fire on activate.
+    el.addEventListener('click', (e) => {
+      if (e.timeStamp - state.lastPointer < 700) return
+      if (spec.fire) { buzz(); tap(spec.fire) }
+    })
     return el
   }
 
@@ -272,12 +296,18 @@ app.touch = (() => {
 
     root = document.createElement('div')
     root.className = 'a-touch'
-    root.setAttribute('aria-hidden', 'true')
+    // NOTE: the root is NOT aria-hidden — the control buttons inside must be
+    // discoverable by VoiceOver/TalkBack for blind players on touch devices.
+    // (When a screen isn't a game screen the overlay is visibility:hidden, which
+    // already removes it from the accessibility tree.)
 
-    // HUD banner
+    // HUD banner: visual mirror of the game's aria-live regions for SIGHTED
+    // touch players. Hidden from the a11y tree so screen-reader users don't hear
+    // it twice — the game's own aria-live regions already speak this text.
     if (hudEnabled) {
       hudEl = document.createElement('div')
       hudEl.className = 'a-touch--hud'
+      hudEl.setAttribute('aria-hidden', 'true')
       root.appendChild(hudEl)
       watchAnnouncements()
     }

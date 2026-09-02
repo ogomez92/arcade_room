@@ -1,6 +1,6 @@
 // High-score persistence. Electron writes to a JSON file via preload bridge;
 // HTML5 falls back to localStorage. Top 10 entries kept, sorted descending.
-// Key namespaced by game so concurrent oriolgomez.com hosting doesn't leak.
+// Key namespaced by game so concurrent gomsen.com hosting doesn't leak.
 app.highscores = (() => {
   const KEY = 'lander-highscores-v1'
   const MAX = 10

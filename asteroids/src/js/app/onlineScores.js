@@ -1,4 +1,4 @@
-// Online leaderboard client for scores.oriolgomez.com.
+// Online leaderboard client for scores.gomsen.com.
 // Contract: see /home/scores/INTEGRATION.md. The shared secret lives in this
 // bundle — treat it as obfuscation, not cryptography. The server still
 // enforces single-use nonces, per-game max_score, IP rate limits, and a
@@ -8,7 +8,7 @@ app.onlineScores = (() => {
   // arcade-mode powerup variant. The active mode is set by the menu /
   // gameover screen via setMode(); openSession() / fetchTop() consult the
   // active mode when picking GAME_ID + SECRET. Each board is registered
-  // separately on scores.oriolgomez.com.
+  // separately on scores.gomsen.com.
   const GAMES = {
     classic: {
       id: 'asteroids',
@@ -25,7 +25,7 @@ app.onlineScores = (() => {
   let activeMode = 'classic'
   function setMode(mode) { activeMode = (mode === 'arcade' ? 'arcade' : 'classic') }
   function GAME_ID() { return GAMES[activeMode].id }
-  const BASE   = 'https://scores.oriolgomez.com'
+  const BASE   = 'https://scores.gomsen.com'
   // Mirrors the server's safe-charset regex so we can reject bad names
   // client-side instead of round-tripping.
   const NAME_RE = /^[\p{L}\p{N} _.\-!?¡¿*]+$/u

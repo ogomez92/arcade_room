@@ -1,11 +1,11 @@
-// scores.oriolgomez.com session/HMAC client. Game id `deekout` must be
+// scores.gomsen.com session/HMAC client. Game id `deekout` must be
 // registered with the admin endpoint before submissions will succeed
 // (POST /admin/games with X-Admin-Password header, see
 // /home/scores/INTEGRATION.md). Until then, onlineSubmit calls surface an
 // "online unavailable" message and the game continues with local-only
 // scoring. The SECRET lives in the bundle as obfuscation, not cryptography.
 app.onlineScores = (() => {
-  const BASE = 'https://scores.oriolgomez.com'
+  const BASE = 'https://scores.gomsen.com'
   const GAME_ID = 'deekout'
   const SECRET = 'tikcdHQLJrsB_TUBOOYNVhsAEod75zemDbinDa1Qdng'
 

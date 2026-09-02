@@ -1,5 +1,5 @@
 /**
- * Online leaderboard client for scores.oriolgomez.com (id `air_hockey`).
+ * Online leaderboard client for scores.gomsen.com (id `air_hockey`).
  * Posts your best Hard-mode win streak. Contract: /home/scores/INTEGRATION.md.
  *
  * REGISTRATION PENDING: `air_hockey` is not yet registered with the scores
@@ -9,9 +9,9 @@
  * the roadmap's documented fallback.
  */
 app.onlineScores = (() => {
-  const BASE = 'https://scores.oriolgomez.com'
+  const BASE = 'https://scores.gomsen.com'
   const GAME_ID = 'air_hockey'
-  // TODO(register): obtain from https://scores.oriolgomez.com/admin and set
+  // TODO(register): obtain from https://scores.gomsen.com/admin and set
   // REGISTERED = true. The base64url secret is obfuscation, not cryptography.
   const SECRET = 'REPLACE_WITH_AIR_HOCKEY_SECRET'
   const REGISTERED = false

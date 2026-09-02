@@ -1,13 +1,76 @@
 const network = (() => {
-  // Self-hosted coturn on the VPS that serves oriolgomez.com — shared by
+  // Self-hosted coturn on the VPS that serves gomsen.com — shared by
   // all the games in this repo (see ../template/CLAUDE.md). Five-line
   // block intentionally; if the server moves or creds rotate, this is
   // the only thing that changes.
-  const TURN_HOST = 'turn.oriolgomez.com'
+  const TURN_HOST = 'turn.gomsen.com'
   const TURN_PORT = 3478
   const TURNS_PORT = 5349
-  const TURN_USER = 'gamesturn'
-  const TURN_PASS = 'sin6V0gFokHz78gM0GDfXmat'
+
+  // --- TURN credentials -----------------------------------------------------
+  // No TURN password lives in this bundle any more. Coturn runs with
+  // `use-auth-secret` (the TURN REST API), so the long-lived secret stays on the
+  // server and we fetch a SHORT-LIVED credential from the minter below. If the
+  // minter can't be reached we fall back to STUN only: direct peer-to-peer (the
+  // overwhelmingly common path) still works, we just lose the relay fallback.
+  const TURN_CREDENTIAL_URL = 'https://turn.gomsen.com/ice?app=pong'
+
+  const STUN_ONLY_ICE = [
+    {urls: `stun:${TURN_HOST}:${TURN_PORT}`},
+    {urls: 'stun:stun.l.google.com:19302'},
+  ]
+
+  let iceCache = null      // {servers, expiresAt}
+  let iceInFlight = null
+  const ICE_SKEW_S = 60
+
+  const iceFresh = () =>
+    !!iceCache && iceCache.expiresAt - ICE_SKEW_S > Date.now() / 1000
+
+  // Returns the ICE list, minting a fresh credential when the cached one is
+  // missing or close to expiring. Safe to call concurrently: one fetch is shared.
+  function refreshIce() {
+    if (iceFresh()) return Promise.resolve(iceCache.servers)
+    if (!iceInFlight) {
+      iceInFlight = fetch(TURN_CREDENTIAL_URL, {credentials: 'omit'})
+        .then((r) => {
+          if (!r.ok) throw new Error(`minter returned ${r.status}`)
+          return r.json()
+        })
+        .then((body) => {
+          if (!Array.isArray(body.iceServers) || !body.iceServers.length) {
+            throw new Error('minter returned no iceServers')
+          }
+          iceCache = {
+            servers: body.iceServers,
+            expiresAt:
+              typeof body.expiresAt === 'number' ? body.expiresAt : Date.now() / 1000 + 300,
+          }
+          return iceCache.servers
+        })
+        .catch((err) => {
+          console.warn('[net] could not mint TURN credentials, using STUN only:', err)
+          return STUN_ONLY_ICE
+        })
+        .then((servers) => {
+          iceInFlight = null
+          return servers
+        })
+    }
+    return iceInFlight
+  }
+
+  // Synchronous read for the PeerJS options object. Hosting/joining happens
+  // seconds after page load, so the warm-up below has normally landed by then;
+  // the async paths additionally await refreshIce() before connecting.
+  function currentIceServers() {
+    if (!iceFresh()) refreshIce()
+    return iceFresh() ? iceCache.servers : STUN_ONLY_ICE
+  }
+
+  // Warm the cache as soon as the module loads.
+  refreshIce()
+
 
   // STUN first (most connections never need a relay), then TURN/UDP,
   // TURN/TCP for firewalls that drop UDP, TURNS/TLS as the last-resort
@@ -15,25 +78,7 @@ const network = (() => {
   // default, which can't punch through symmetric NATs.
   const peerOptions = () => ({
     config: {
-      iceServers: [
-        {urls: `stun:${TURN_HOST}:${TURN_PORT}`},
-        {urls: 'stun:stun.l.google.com:19302'},
-        {
-          urls: `turn:${TURN_HOST}:${TURN_PORT}?transport=udp`,
-          username: TURN_USER,
-          credential: TURN_PASS,
-        },
-        {
-          urls: `turn:${TURN_HOST}:${TURN_PORT}?transport=tcp`,
-          username: TURN_USER,
-          credential: TURN_PASS,
-        },
-        {
-          urls: `turns:${TURN_HOST}:${TURNS_PORT}?transport=tcp`,
-          username: TURN_USER,
-          credential: TURN_PASS,
-        },
-      ],
+      iceServers: currentIceServers(),
       iceCandidatePoolSize: 2,
     },
   })

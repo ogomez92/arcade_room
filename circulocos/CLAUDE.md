@@ -93,7 +93,7 @@ can walk back (within budget).
 
 **Online scores — REGISTRATION PENDING.** `app/onlineScores.js` uses id `vault`
 with a placeholder `SECRET`. Register the game at
-`https://scores.oriolgomez.com/admin` (display_order `desc`, max_score 1000000,
+`https://scores.gomsen.com/admin` (display_order `desc`, max_score 1000000,
 meta `[{"key":"level","type":"int","min":0,"max":999}]`) and paste the returned
 secret over `SECRET`. Until then, submissions fall back to the local high-score
 table. See `/home/scores/INTEGRATION.md`.
@@ -404,7 +404,7 @@ Hidden screens are essential for an audio-first game — without them you can't 
 ## Multiplayer (when adding network play)
 
 The template ships single-player. If a game needs online multiplayer,
-the rest of `oriolgomez.com`'s games (`../bumper`, `../racing`) follow
+the rest of `gomsen.com`'s games (`../bumper`, `../racing`) follow
 a fixed pattern — copy it instead of inventing something new, so the
 shared coturn server keeps working uniformly.
 
@@ -418,17 +418,20 @@ shared coturn server keeps working uniformly.
 - **Data plane**: direct **WebRTC data channels** between peers. JSON
   over `DataConnection.send()`.
 - **STUN / TURN / TURNS**: self-hosted **coturn** on the VPS that
-  serves oriolgomez.com.
-  - `turn.oriolgomez.com:3478` UDP+TCP — STUN + TURN.
-  - `turn.oriolgomez.com:5349` TCP — TURNS (TLS, last-resort path
+  serves gomsen.com.
+  - `turn.gomsen.com:3478` UDP+TCP — STUN + TURN.
+  - `turn.gomsen.com:5349` TCP — TURNS (TLS, last-resort path
     through restrictive firewalls).
-  - Hostname rides the wildcard `*.oriolgomez.com` A record. If the
+  - Hostname rides the wildcard `*.gomsen.com` A record. If the
     VPS IP ever changes, only the wildcard updates — no game rebuild.
-  - Server config: `/etc/turnserver.conf`. Long-term creds, single
-    user `gamesturn` (the password lives in the games' source — it's
-    public-by-design because WebRTC requires the browser to know it).
+  - Server config: `/etc/turnserver.conf`. It uses `use-auth-secret`
+    (the TURN REST API) — there is **no static user**. The shared
+    secret never leaves the VPS; `turnauth.service` mints a
+    short-lived credential per session at
+    `https://turn.gomsen.com/ice`, and the client fetches one at
+    connect time. Never hardcode a TURN username/password in a game.
   - TLS cert is provisioned by Caddy (Caddyfile entry for
-    `turn.oriolgomez.com`) and copied into `/etc/coturn/{turn.crt,
+    `turn.gomsen.com`) and copied into `/etc/coturn/{turn.crt,
     turn.key}` by `/usr/local/bin/coturn-cert-deploy`. The systemd
     path unit `coturn-cert-watch.path` re-runs the deploy on Let's
     Encrypt renewal.
@@ -438,16 +441,17 @@ shared coturn server keeps working uniformly.
 ### The constants block (copy this verbatim)
 
 In whichever module owns networking (call it `net.js` or
-`src/js/app/net.js`), put these five constants at the top — never
-inline the host/port/creds further down. Future ops changes (server
-move, cred rotation, port shift) should be one diff in five lines.
+`src/js/app/net.js`), put these constants at the top — never
+inline the host/port further down. Credentials are NOT constants: they are
+minted per session from the server-side endpoint, so a rotation is a
+server-only change and never touches a client bundle.
 
 ```js
-const TURN_HOST = 'turn.oriolgomez.com'
+const TURN_HOST = 'turn.gomsen.com'
 const TURN_PORT = 3478
 const TURNS_PORT = 5349
-const TURN_USER = 'gamesturn'
-const TURN_PASS = 'sin6V0gFokHz78gM0GDfXmat'
+// Short-lived TURN credentials are minted per session; no password here.
+const TURN_CREDENTIAL_URL = 'https://turn.gomsen.com/ice?app=<slug>'
 ```
 
 The `iceServers` array fed to `new Peer({config: {iceServers}})` (or
@@ -458,25 +462,9 @@ resort:
 
 ```js
 config: {
-  iceServers: [
-    {urls: `stun:${TURN_HOST}:${TURN_PORT}`},
-    {urls: 'stun:stun.l.google.com:19302'},  // Google STUN as backup
-    {
-      urls: `turn:${TURN_HOST}:${TURN_PORT}?transport=udp`,
-      username: TURN_USER,
-      credential: TURN_PASS,
-    },
-    {
-      urls: `turn:${TURN_HOST}:${TURN_PORT}?transport=tcp`,
-      username: TURN_USER,
-      credential: TURN_PASS,
-    },
-    {
-      urls: `turns:${TURN_HOST}:${TURNS_PORT}?transport=tcp`,
-      username: TURN_USER,
-      credential: TURN_PASS,
-    },
-  ],
+  // currentIceServers() returns the minted list (STUN-only until the
+  // credential fetch lands, and as the fallback if it fails).
+  iceServers: currentIceServers(),
   iceCandidatePoolSize: 2,
 }
 ```

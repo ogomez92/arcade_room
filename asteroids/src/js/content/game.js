@@ -447,13 +447,11 @@ content.game = (() => {
     return out
   }
 
-  // Tab-aim assist: snap the ship's heading toward whichever threat is the
-  // most likely to kill the player next. "Danger" is a function of two
-  // things: estimated time-to-impact (closing rocks beat drifting ones)
-  // and what kind of thing it is (UFO bullets beat UFOs beat rocks at the
-  // same TTI, because they kill on contact and are small / fast). A static
-  // rock far away gets a high (= safe) score; a UFO bullet heading at you
-  // gets the lowest (= most dangerous) score.
+  // Tab-aim assist. Priority order: arcade powerup (if one is on the
+  // field) > active UFO > most dangerous rock. UFO bullets are never Tab
+  // targets. Rock danger is a function of estimated time-to-impact
+  // (closing rocks beat drifting ones) and size (small rocks fly fast) —
+  // a static rock far away gets a high (= safe) score.
   //
   // Velocity is preserved — only ship orientation changes — so the player
   // still has to deal with their existing drift.
@@ -495,16 +493,25 @@ content.game = (() => {
       const tti = closing > 0.1
         ? effDist / closing
         : 60 + effDist * 0.5
-      // Kind multiplier — lower = more dangerous.
+      // Size multiplier — lower = more dangerous. Only rocks reach the
+      // scorer (UFOs short-circuit above, bullets are never targets).
       const mul =
-        kind === 'ufo-bullet' ? 0.18 :   // bullets kill on contact, small + fast
-        kind === 'ufo-small'  ? 0.45 :   // aims at you, harder to hit
-        kind === 'ufo-big'    ? 0.65 :
-        kind === 'small'      ? 0.90 :   // small rocks fly fast
-        kind === 'medium'     ? 1.00 :
-        kind === 'large'      ? 1.10 :   // big rocks slow + easy to see/dodge
+        kind === 'small'  ? 0.90 :   // small rocks fly fast
+        kind === 'medium' ? 1.00 :
+        kind === 'large'  ? 1.10 :   // big rocks slow + easy to see/dodge
         1.0
       return tti * mul
+    }
+
+    // An active UFO always wins Tab: shooting the shooter is the useful
+    // move, and its bullets are too short-lived to be worth aiming at —
+    // by the time the ship has turned, the bullet is gone or past.
+    const u = content.ufo.active()
+    if (u) {
+      const wd = P().wrapDelta(u.x, u.y, ship.x, ship.y)
+      const dist = Math.sqrt(wd.dx * wd.dx + wd.dy * wd.dy)
+      ship.heading = Math.atan2(wd.dy, wd.dx)
+      return {target: u, distance: dist, kind: 'ufo-' + u.kind}
     }
 
     let best = null, bestScore = Infinity, bestKind = null, bestDist = 0
@@ -520,9 +527,6 @@ content.game = (() => {
     }
 
     for (const r of content.asteroids.list) consider(r, r.size)
-    const u = content.ufo.active()
-    if (u) consider(u, 'ufo-' + u.kind)
-    for (const b of content.ufo.bullets()) consider(b, 'ufo-bullet')
 
     if (!best) return null
     const wd = P().wrapDelta(best.x, best.y, ship.x, ship.y)

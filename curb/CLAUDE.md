@@ -252,37 +252,33 @@ Hidden screens are essential for audio-first games — to validate orientation, 
 
 ## Multiplayer (when adding network play)
 
-The template ships single-player. For online play, copy the pattern the rest of oriolgomez.com's games use (`../bumper`, `../racing`) so the shared coturn server keeps working uniformly.
+The template ships single-player. For online play, copy the pattern the rest of gomsen.com's games use (`../bumper`, `../racing`) so the shared coturn server keeps working uniformly.
 
 ### Infrastructure (already running, don't redeploy)
 
 - **Signalling:** free public **PeerJS broker** (`0.peerjs.com`). Host picks a deterministic id `<gameslug>-<roomcode>`; clients connect to it. Public ids are global, so always prefix with the game name.
 - **Data plane:** direct **WebRTC data channels**, JSON over `DataConnection.send()`.
-- **STUN/TURN/TURNS:** self-hosted **coturn** on the oriolgomez.com VPS. `turn.oriolgomez.com:3478` (UDP+TCP, STUN+TURN); `:5349` (TCP, TURNS/TLS, last resort). Hostname rides the `*.oriolgomez.com` wildcard. Config `/etc/turnserver.conf`, long-term user `gamesturn` (password public-by-design — WebRTC needs it client-side). TLS cert from Caddy, deployed by `coturn-cert-deploy` (re-run on renewal by `coturn-cert-watch.path`). UFW opens `3478`, `5349`, `49160-49200/udp`.
+- **STUN/TURN/TURNS:** self-hosted **coturn** on the gomsen.com VPS. `turn.gomsen.com:3478` (UDP+TCP, STUN+TURN); `:5349` (TCP, TURNS/TLS, last resort). Hostname rides the `*.gomsen.com` wildcard. Config `/etc/turnserver.conf`, which uses `use-auth-secret` (TURN REST API): there is **no static user**. The shared secret stays on the server and `turnauth.service` (`https://turn.gomsen.com/ice`) mints short-lived per-session credentials, so no TURN password is ever shipped in a client bundle. TLS cert from Caddy, deployed by `coturn-cert-deploy` (re-run on renewal by `coturn-cert-watch.path`). UFW opens `3478`, `5349`, `49160-49200/udp`.
 
 ### The constants block (copy verbatim)
 
 Put these at the top of the networking module (`net.js`), never inlined further down, so ops changes are a one-diff:
 
 ```js
-const TURN_HOST = 'turn.oriolgomez.com'
+const TURN_HOST = 'turn.gomsen.com'
 const TURN_PORT = 3478
 const TURNS_PORT = 5349
-const TURN_USER = 'gamesturn'
-const TURN_PASS = 'sin6V0gFokHz78gM0GDfXmat'
+// Short-lived TURN credentials are minted per session; no password here.
+const TURN_CREDENTIAL_URL = 'https://turn.gomsen.com/ice?app=<slug>'
 ```
 
 `iceServers` order is fixed — STUN first (most connections never relay), then TURN/UDP, TURN/TCP (firewalls dropping UDP), TURNS/TLS last:
 
 ```js
 config: {
-  iceServers: [
-    {urls: `stun:${TURN_HOST}:${TURN_PORT}`},
-    {urls: 'stun:stun.l.google.com:19302'},  // Google STUN backup
-    {urls: `turn:${TURN_HOST}:${TURN_PORT}?transport=udp`, username: TURN_USER, credential: TURN_PASS},
-    {urls: `turn:${TURN_HOST}:${TURN_PORT}?transport=tcp`, username: TURN_USER, credential: TURN_PASS},
-    {urls: `turns:${TURN_HOST}:${TURNS_PORT}?transport=tcp`, username: TURN_USER, credential: TURN_PASS},
-  ],
+  // currentIceServers() returns the minted list (STUN-only until the
+  // credential fetch lands, and as the fallback if it fails).
+  iceServers: currentIceServers(),
   iceCandidatePoolSize: 2,
 }
 ```

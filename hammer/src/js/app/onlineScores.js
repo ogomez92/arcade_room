@@ -1,5 +1,5 @@
 /**
- * Online leaderboard client for scores.oriolgomez.com.
+ * Online leaderboard client for scores.gomsen.com.
  *
  * Drop-in module: opens a session on game start, posts the score with
  * the player's name on game over, returns server rank.
@@ -11,7 +11,7 @@
  *     fresh session.
  */
 app.onlineScores = (() => {
-  const BASE = 'https://scores.oriolgomez.com'
+  const BASE = 'https://scores.gomsen.com'
   const GAME_ID = 'hammer'
   const SECRET = 'DzcByqnHoNdUH6LHfE0RsWAidGWs95vjWY10_NoZRkw'
 

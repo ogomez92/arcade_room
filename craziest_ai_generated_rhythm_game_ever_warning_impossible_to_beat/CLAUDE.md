@@ -128,7 +128,7 @@ good ~69% — the fast, tight, syncopated finale bites; flailing dies ~sector 5)
 ## Online scores — REGISTRATION PENDING
 `app/onlineScores.js` has `GAME_ID = 'cadence'` and the placeholder
 `SECRET = 'REPLACE_WITH_CADENCE_SECRET'`. Register at
-`https://scores.oriolgomez.com/admin`: display_order **desc**, max_score
+`https://scores.gomsen.com/admin`: display_order **desc**, max_score
 **9999999**, meta_schema `[{"key":"level","type":"int","min":0,"max":99}]`
 (`level` = sectors cleared, 0–15; a win is 15). Paste the returned secret over the
 placeholder. Until then submissions fall back to the local high-score table.

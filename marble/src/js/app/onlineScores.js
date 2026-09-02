@@ -1,11 +1,11 @@
-// Online leaderboard client for the shared scores.oriolgomez.com service.
+// Online leaderboard client for the shared scores.gomsen.com service.
 // Contract: /home/scores/INTEGRATION.md. Flow is openSession() (server hands
 // back a single-use token) -> submit({name, score, meta}) signed with
 // HMAC-SHA256 of `token|name|score|metaJson`. The secret below is obfuscation,
 // not crypto (per the spec's threat model). Everything fails SOFT: any network
 // or crypto error leaves the local app.highscores board as the source of truth.
 app.onlineScores = (() => {
-  const BASE = 'https://scores.oriolgomez.com'
+  const BASE = 'https://scores.gomsen.com'
   const GAME_ID = 'marble'
   const SECRET = '-rfhTrV3Q8PFx5h7RYf3mSSUD3ef-j7TPpYJbAizPo4'
 

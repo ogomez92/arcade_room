@@ -237,73 +237,78 @@ content.sfx = (() => {
       })
     },
     introJingle: () => {
-      // Old-arcade chiptune: two pure square-wave voices, no drums, no filter.
-      // ~3.1 seconds at 150 BPM. Lead runs rapid 16th-note arpeggios through
-      // C → G → F → V → I, ending on a held high C. Bass bounces root+octave
-      // eighths under the chord changes. The point is to sound like a 1980-era
-      // PSG chip (Pac-Man / Galaga / Donkey Kong era), not a modern fanfare.
-      const c = ctx()
-      const t0 = c.currentTime
-      const out = dest()
-
-      function voice(freq, when, dur, gain) {
-        const osc = c.createOscillator()
-        osc.type = 'square'
-        osc.frequency.value = freq
-        const g = c.createGain()
-        // Snap-on, hold near full, snap-off — staccato chip envelope.
-        g.gain.setValueAtTime(0, t0 + when)
-        g.gain.linearRampToValueAtTime(gain, t0 + when + 0.002)
-        g.gain.setValueAtTime(gain, t0 + when + Math.max(0.004, dur - 0.012))
-        g.gain.exponentialRampToValueAtTime(0.001, t0 + when + dur)
-        osc.connect(g).connect(out)
-        osc.start(t0 + when)
-        osc.stop(t0 + when + dur + 0.02)
-      }
-
-      // 150 BPM
-      const S = 0.1, E = 0.2, Q = 0.4
-
-      // C major notes
-      const C2 = 65.41, F2 = 87.31, G2 = 98.00
-      const C3 = 130.81, F3 = 174.61, G3 = 196.00
-      const C5 = 523.25, D5 = 587.33, G5 = 783.99, A5 = 880.00, B5 = 987.77, E5 = 659.25, F5 = 698.46
-      const C6 = 1046.50, D6 = 1174.66, E6 = 1318.51, F6 = 1396.91, G6 = 1567.98
-      const C7 = 2093.00
-
-      // Lead: 24 sixteenths of arpeggios spelling I → V → IV → V, then held C7.
-      const melody = [
-        // b1: C arp up
-        [C5, S], [E5, S], [G5, S], [C6, S],
-        // b2: peak flutter
-        [G5, S], [C6, S], [E6, S], [G5, S],
-        // b3: G arp up
-        [D5, S], [G5, S], [B5, S], [D6, S],
-        // b4: peak descent
-        [G6, S], [D6, S], [B5, S], [G5, S],
-        // b5: F arp up
-        [F5, S], [A5, S], [C6, S], [F6, S],
-        // b6: V climb to G6
-        [G5, S], [C6, S], [E6, S], [G6, S],
-        // b7-8: triumphant held tonic
-        [C7, Q + 0.3],
+      // FM bell melody over a dub delay: three descending call phrases, then a
+      // chromatic climb to a held finish. Each note is a sine FM "bell" (mod
+      // depth decays over the note) doubled an octave down by a soft triangle
+      // body. ~4.3 seconds; [beat, midi, beats] rows below, one beat = U.
+      const U = 0.062
+      const NOTES = [
+        [0,71,2],[2,83,2],[4,78,2],[6,75,2],[8,83,1],[9,78,3],[12,75,4],
+        [18,72,2],[20,84,2],[22,79,2],[24,76,2],[26,84,1],[27,79,3],[30,76,4],
+        [36,71,2],[38,83,2],[40,78,2],[42,75,2],[44,83,1],[45,78,3],[48,75,4],
+        [54,75,1],[55,76,1],[56,77,2],[58,77,1],[59,78,1],[60,79,2],[62,79,1],[63,80,1],[64,81,2],[66,83,4],
       ]
-      let t = 0
-      for (const [f, d] of melody) { voice(f, t, d, 0.10); t += d }
 
-      // Bass: each beat = root (eighth) + octave (eighth). I I V V IV V I.
-      const bassChords = [
-        [C2, C3], [C2, C3],   // b1-2: I
-        [G2, G3], [G2, G3],   // b3-4: V
-        [F2, F3],             // b5: IV
-        [G2, G3],             // b6: V
-        [C2, C3],             // b7: I (lead held above)
-      ]
-      for (let i = 0; i < bassChords.length; i++) {
-        const bt = i * Q
-        voice(bassChords[i][0], bt, E, 0.14)
-        voice(bassChords[i][1], bt + E, E, 0.14)
-      }
+      const when = ctx().currentTime
+      const zero = engine.const.zeroGain
+
+      const space = engine.effect.dubDelay({
+        delay: U * 6,
+        feedback: 0.3,
+        dry: 1,
+        wet: 0.2,
+        filterFrequency: 2000,
+        filterQ: 0.7,
+        maxDelayTime: 1,
+      })
+
+      space.output.connect(dest())
+      // Free the delay chain once the last note (66+4 beats) and its echo
+      // tail have died out — introJingle can fire many times per session.
+      setTimeout(() => space.output.disconnect(), (70 * U + 3) * 1000)
+
+      NOTES.forEach(function (n) {
+        const t = when + n[0] * U
+        const dur = n[2] * U
+        const freq = engine.fn.fromMidi(n[1])
+
+        const bell = engine.synth.fm({
+          carrierType: 'sine',
+          carrierFrequency: freq,
+          modType: 'sine',
+          modFrequency: freq * 2.01,
+          modDepth: freq * 2.6,
+          when: t,
+        }).filtered({
+          frequency: 9000,
+          Q: 0.7,
+          when: t,
+        }).shaped(engine.shape.warm())
+
+        bell.connect(space.input)
+        bell.param.mod.depth.setValueAtTime(freq * 2.6, t)
+        bell.param.mod.depth.exponentialRampToValueAtTime(freq * 0.15, t + dur + 0.1)
+        bell.param.gain.setValueAtTime(zero, t)
+        bell.param.gain.exponentialRampToValueAtTime(0.15, t + 0.005)
+        bell.param.gain.exponentialRampToValueAtTime(zero, t + dur * 0.9 + 0.12)
+        bell.stop(t + dur + 0.14)
+
+        const body = engine.synth.simple({
+          type: 'triangle',
+          frequency: freq / 2,
+          when: t,
+        }).filtered({
+          frequency: 2400,
+          Q: 0.6,
+          when: t,
+        })
+
+        body.connect(space.input)
+        body.param.gain.setValueAtTime(zero, t)
+        body.param.gain.exponentialRampToValueAtTime(0.07, t + 0.01)
+        body.param.gain.exponentialRampToValueAtTime(zero, t + dur * 0.95)
+        body.stop(t + dur + 0.02)
+      })
     },
     footstep: () => {
       // Soft low-frequency click, fires once per tile crossed. Quiet enough

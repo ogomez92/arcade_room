@@ -52,25 +52,36 @@
 
   const root = document.createElement('div')
   root.className = 'r-touch'
-  root.setAttribute('aria-hidden', 'true')
+  // Not aria-hidden: blind players on touch devices explore with VoiceOver and
+  // must be able to find/activate these buttons.
 
   function hold(el, code) {
     const active = new Set()
+    let lastPointer = -1e9
     el.addEventListener('pointerdown', (e) => {
       e.preventDefault()
+      lastPointer = e.timeStamp
       if (active.size === 0) { press(code); el.classList.add('active'); buzz() }
       active.add(e.pointerId)
       try { el.setPointerCapture(e.pointerId) } catch (x) {}
     })
-    const up = (e) => { if (active.has(e.pointerId)) { active.delete(e.pointerId); if (active.size === 0) { release(code); el.classList.remove('active') } } }
+    const up = (e) => { lastPointer = e.timeStamp; if (active.has(e.pointerId)) { active.delete(e.pointerId); if (active.size === 0) { release(code); el.classList.remove('active') } } }
     el.addEventListener('pointerup', up)
     el.addEventListener('pointercancel', up)
     el.addEventListener('lostpointercapture', up)
+    // VoiceOver double-tap / keyboard activation fires a click without a
+    // pointerdown/up hold — turn it into a momentary press (ignore the
+    // compatibility click after a real touch).
+    el.addEventListener('click', (e) => {
+      if (e.timeStamp - lastPointer < 700) return
+      press(code); setTimeout(() => release(code), 60)
+    })
   }
 
-  function btn(code, label, cls) {
+  function btn(code, label, cls, aria) {
     const b = document.createElement('button')
-    b.type = 'button'; b.tabIndex = -1; b.setAttribute('aria-hidden', 'true')
+    b.type = 'button'
+    b.setAttribute('aria-label', aria || label)   // spoken label for screen readers
     b.textContent = label
     if (cls) b.className = cls
     hold(b, code)
@@ -85,12 +96,13 @@
   }
 
   // Left: steer + brake. Right: boost (primary) + item. Center: directional shoot.
-  zone('left', [btn('ArrowLeft', '◀'), btn('ArrowRight', '▶'), btn('ArrowDown', 'BRK', 'sm')])
-  zone('right', [btn('ShiftLeft', 'BOOST', 'primary'), btn('Space', 'ITEM', 'sm')])
-  zone('center', [btn('KeyA', '◀', 'sm'), btn('KeyS', 'FIRE'), btn('KeyD', '▶', 'sm')])
+  zone('left', [btn('ArrowLeft', '◀', null, 'Steer left'), btn('ArrowRight', '▶', null, 'Steer right'), btn('ArrowDown', 'BRK', 'sm', 'Brake')])
+  zone('right', [btn('ShiftLeft', 'BOOST', 'primary', 'Boost'), btn('Space', 'ITEM', 'sm', 'Use item')])
+  zone('center', [btn('KeyA', '◀', 'sm', 'Shoot left'), btn('KeyS', 'FIRE', null, 'Shoot forward'), btn('KeyD', '▶', 'sm', 'Shoot right')])
 
   const banner = document.createElement('div')
   banner.className = 'banner'
+  banner.setAttribute('aria-hidden', 'true') // visual mirror; #announce already speaks to AT
   root.appendChild(banner)
 
   document.addEventListener('DOMContentLoaded', mount)

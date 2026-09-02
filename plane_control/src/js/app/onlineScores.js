@@ -1,11 +1,11 @@
-// scores.oriolgomez.com session/HMAC client. Game id `plane_control` is
+// scores.gomsen.com session/HMAC client. Game id `plane_control` is
 // registered with the admin endpoint (POST /admin/games with X-Admin-Password
 // header, see /home/scores/INTEGRATION.md); if a submission ever fails,
 // onlineSubmit calls surface an "online unavailable" message and the game
 // continues with local-only scoring. The SECRET lives in the bundle as
 // obfuscation, not cryptography.
 app.onlineScores = (() => {
-  const BASE = 'https://scores.oriolgomez.com'
+  const BASE = 'https://scores.gomsen.com'
   const GAME_ID = 'plane_control'
   const SECRET = 'frgP-XKOdh-MjStPDMXOxl5nOA-sXQ9OdQ2Yt7sQUdA'
 

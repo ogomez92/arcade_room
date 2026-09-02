@@ -1,5 +1,5 @@
 /**
- * Online leaderboard client for scores.oriolgomez.com.
+ * Online leaderboard client for scores.gomsen.com.
  *
  * Opens a session on game start, posts the score with the player's name on
  * game over, returns the server rank. Any network failure throws and the
@@ -10,7 +10,7 @@
  * /home/scores/INTEGRATION.md for the contract.
  */
 app.onlineScores = (() => {
-  const BASE = 'https://scores.oriolgomez.com'
+  const BASE = 'https://scores.gomsen.com'
   const GAME_ID = 'boing'
   const SECRET = '5oMVIDBwTS9MBu8yrzsV8hf-yAcs3uuBd6z5-tJgFVw'
 

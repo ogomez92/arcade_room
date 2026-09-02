@@ -117,7 +117,7 @@ app.screen.game = app.screenManager.invent({
     // forget: a failure (network down, server 5xx, CORS blocked, etc.)
     // just leaves us with local scoring — the run is still playable.
     // Switch the online-scores backend to match the active mode (classic
-    // vs arcade have separate leaderboards on scores.oriolgomez.com).
+    // vs arcade have separate leaderboards on scores.gomsen.com).
     try {
       app.onlineScores.setMode(content.game.isArcade() ? 'arcade' : 'classic')
       app.onlineScores.openSession().catch(() => {})
