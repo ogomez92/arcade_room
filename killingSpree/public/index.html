@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Killing Spree</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <!-- Screen-reader announce regions -->
+      <div class="a-app--announce u-screenReader" aria-live="polite" aria-atomic="true"></div>
+      <div class="a-app--announce-assertive u-screenReader" aria-live="assertive" aria-atomic="true"></div>
+
+      <!-- Game -->
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <div class="a-game--hud">
+            <span class="a-game--stat"><span data-i18n="hud.score">Score</span>: <b class="a-game--score-value">0</b></span>
+            <span class="a-game--stat"><span data-i18n="hud.health">Health</span>: <b class="a-game--health-value">100</b></span>
+            <span class="a-game--stat"><span data-i18n="hud.level">Level</span>: <b class="a-game--level-value">1</b></span>
+            <span class="a-game--stat"><b class="a-game--speed-value">0</b> <span data-i18n="hud.speed">km/h</span></span>
+            <span class="a-game--stat"><span data-i18n="hud.combo">Combo</span>: <b class="a-game--combo-value">0</b></span>
+          </div>
+          <div class="a-game--road" data-curve="straight" aria-hidden="true">
+            <div class="a-game--peds"></div>
+            <div class="a-game--car"></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Pause -->
+      <div class="a-app--screen a-app--pause">
+        <section class="c-screen c-menu a-pause" tabindex="-1" data-i18n-attr="aria-label:pause.aria">
+          <h1 class="c-menu--title" data-i18n="pause.title">Paused</h1>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="resume" data-i18n="pause.resume">Resume</button></li>
+            <li><button class="c-menu--button" data-action="restart" data-i18n="pause.restart">Restart</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="pause.menu">Main menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Game over -->
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title a-gameover--title" data-i18n="gameover.titleCrash">Wrecked</h1>
+          <p class="c-menu--subtitle a-gameover--score">Score: 0</p>
+          <p class="c-menu--subtitle a-gameover--detail"></p>
+          <p class="c-menu--subtitle a-gameover--rank-msg" hidden></p>
+          <form class="a-gameover--form">
+            <ul class="c-menu--list">
+              <li>
+                <input class="c-menu--button a-gameover--name" type="text" maxlength="24"
+                       autocomplete="off" data-i18n-attr="aria-label:gameover.name;placeholder:gameover.name" />
+              </li>
+              <li><button class="c-menu--button a-gameover--submit" type="submit" data-i18n="gameover.save">Save score</button></li>
+            </ul>
+          </form>
+          <div class="a-gameover--post" hidden>
+            <p class="c-menu--subtitle a-gameover--post-prompt" data-i18n="gameover.postPrompt">Post this score to the online scoreboard?</p>
+            <ul class="c-menu--list">
+              <li><button class="c-menu--button a-gameover--post-yes" data-action="post" data-i18n="gameover.postYes">Post online</button></li>
+              <li><button class="c-menu--button a-gameover--post-no" data-action="declinePost" data-i18n="gameover.postNo">No thanks</button></li>
+            </ul>
+          </div>
+          <p class="a-gameover--online-status" aria-live="polite" hidden></p>
+          <p><a class="a-gameover--online-link" href="#" target="_blank" rel="noopener" hidden></a></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="again" data-i18n="gameover.again">Drive again</button></li>
+            <li><button class="c-menu--button" data-action="continue" data-i18n="gameover.continue">Main menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- How to play -->
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to play</h1>
+          <p class="c-menu--subtitle" data-i18n="help.subtitle">An arcade driving game played by ear.</p>
+          <p class="a-help--text" data-i18n="help.intro"></p>
+          <ul class="a-help--list">
+            <li data-i18n-html="help.h.steer"></li>
+            <li data-i18n-html="help.h.speed"></li>
+            <li data-i18n-html="help.h.pan"></li>
+            <li data-i18n-html="help.h.road"></li>
+            <li data-i18n-html="help.h.pacenote"></li>
+            <li data-i18n-html="help.h.squeal"></li>
+            <li data-i18n-html="help.h.peds"></li>
+            <li data-i18n-html="help.h.keys"></li>
+          </ul>
+          <p class="a-help--text" data-i18n="help.audio"></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- High scores -->
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen c-menu a-highscores" tabindex="-1" data-i18n-attr="aria-label:highscores.aria">
+          <h1 class="c-menu--title" data-i18n="highscores.title">High scores</h1>
+          <p class="c-menu--subtitle" data-i18n="highscores.subtitle">Your best sprees on this device.</p>
+          <ul class="a-highscores--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="highscores.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Learn the sounds -->
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen c-menu a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 class="c-menu--title" data-i18n="learn.title">Learn the sounds</h1>
+          <p class="c-menu--subtitle" data-i18n="learn.subtitle">Play each cue on its own.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-sound="engineStart" data-i18n="learn.engineStart">Starting the engine</button></li>
+            <li><button class="c-menu--button" data-sound="engine" data-i18n="learn.engine">Accelerating through the gears</button></li>
+            <li><button class="c-menu--button" data-sound="panLeft" data-i18n="learn.panLeft">Your car drifting left of centre</button></li>
+            <li><button class="c-menu--button" data-sound="panRight" data-i18n="learn.panRight">Your car drifting right of centre</button></li>
+            <li><button class="c-menu--button" data-sound="roadLeft" data-i18n="learn.roadLeft">Road voice: a left curve</button></li>
+            <li><button class="c-menu--button" data-sound="roadRight" data-i18n="learn.roadRight">Road voice: a right curve</button></li>
+            <li><button class="c-menu--button" data-sound="callout1" data-i18n="learn.callout1">Pacenote: left, easy</button></li>
+            <li><button class="c-menu--button" data-sound="callout2" data-i18n="learn.callout2">Pacenote: right, medium</button></li>
+            <li><button class="c-menu--button" data-sound="callout3" data-i18n="learn.callout3">Pacenote: left, tight</button></li>
+            <li><button class="c-menu--button" data-sound="callout4" data-i18n="learn.callout4">Pacenote: right, hairpin</button></li>
+            <li><button class="c-menu--button" data-sound="squeal" data-i18n="learn.squeal">Tyres at the limit</button></li>
+            <li><button class="c-menu--button" data-sound="rumble" data-i18n="learn.rumble">Rumble strip</button></li>
+            <li><button class="c-menu--button" data-sound="scrape" data-i18n="learn.scrape">Scraping the barrier</button></li>
+            <li><button class="c-menu--button" data-sound="crash" data-i18n="learn.crash">Hitting the barrier</button></li>
+            <li><button class="c-menu--button" data-sound="talker" data-i18n="learn.talker">A pedestrian talking</button></li>
+            <li><button class="c-menu--button" data-sound="whistler" data-i18n="learn.whistler">A pedestrian whistling</button></li>
+            <li><button class="c-menu--button" data-sound="phone" data-i18n="learn.phone">A phone ringing</button></li>
+            <li><button class="c-menu--button" data-sound="jogger" data-i18n="learn.jogger">A jogger</button></li>
+            <li><button class="c-menu--button" data-sound="crosser" data-i18n="learn.crosser">Someone crossing</button></li>
+            <li><button class="c-menu--button" data-sound="lock" data-i18n="learn.lock">Lined up</button></li>
+            <li><button class="c-menu--button" data-sound="hit" data-i18n="learn.hit">Hitting a pedestrian</button></li>
+            <li><button class="c-menu--button" data-sound="hitCombo" data-i18n="learn.hitCombo">Hitting at combo six</button></li>
+            <li><button class="c-menu--button" data-sound="nearMiss" data-i18n="learn.nearMiss">A near miss</button></li>
+            <li><button class="c-menu--button" data-sound="comboLost" data-i18n="learn.comboLost">Combo lost</button></li>
+            <li><button class="c-menu--button" data-sound="gearShift" data-i18n="learn.gearShift">Gear change</button></li>
+            <li><button class="c-menu--button" data-sound="levelUp" data-i18n="learn.levelUp">Level up</button></li>
+            <li><button class="c-menu--button" data-sound="healthLow" data-i18n="learn.healthLow">Health low</button></li>
+            <li><button class="c-menu--button" data-sound="gameOver" data-i18n="learn.gameOver">Game over</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="learn.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Language -->
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Main menu -->
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Killing Spree</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">Keep the car in the middle. Take the curves. Run them down.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="start" data-i18n="menu.start">Start driving</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to play</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn the sounds</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="menu.highscores">High scores</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

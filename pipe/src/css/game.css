@@ -1,0 +1,43 @@
+/* Pipe — screen-specific styling (game is audio-only; these are for the menus
+   that carry text: score tables, the name input, status lines). */
+
+.c-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0.4rem;
+  color: #FFFFFF;
+  font-size: 1.05em;
+  padding: 0.7em 1em;
+  text-align: center;
+  width: 100%;
+}
+.c-input:focus {
+  border-color: #FFFFFF;
+  outline: none;
+}
+
+.a-gameover--status,
+.a-gameover--online,
+.a-training--status,
+.a-speakertest--status,
+.a-highscores--chart {
+  opacity: 0.9;
+  text-align: center;
+}
+
+.a-gameover--scores,
+.a-highscores--list {
+  font-family: monospace;
+  letter-spacing: 0;
+  list-style: none;
+  margin: 0.5rem auto;
+  max-height: 40vh;
+  overflow-y: auto;
+  padding: 0;
+  text-align: left;
+  width: min(32em, 92vw);
+}
+  .a-gameover--scores li,
+  .a-highscores--list li {
+    padding: 0.15em 0.25em;
+  }

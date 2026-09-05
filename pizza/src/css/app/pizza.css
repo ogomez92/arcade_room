@@ -1,0 +1,121 @@
+/* aria-live regions live offscreen — they exist for screen readers,
+   not for sighted players. */
+.a-app--announce {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+}
+  .a-live { display: block; }
+
+/* Game HUD: simple stack at top centre. */
+.a-game {
+  align-items: center;
+  text-align: center;
+}
+  .a-game--title {
+    font-size: 2.4em;
+    margin-bottom: 1.5rem;
+  }
+  .a-game--status {
+    font-size: 1.2em;
+    margin: 0.25em 0;
+    opacity: 0.85;
+  }
+
+/* Briefing: pizza list */
+.a-briefing--subtitle {
+  font-size: 1.4em;
+  margin-bottom: 0.5rem;
+}
+.a-briefing--intro {
+  line-height: 1.5;
+  margin: 0.5rem auto;
+  max-width: 36em;
+  text-align: center;
+}
+.a-briefing--list {
+  font-size: 1.05em;
+  line-height: 1.6;
+  list-style: decimal inside;
+  margin: 1rem auto;
+  max-width: 42em;
+  padding: 0;
+  text-align: left;
+}
+.a-briefing--list li {
+  padding: 0.4em 0.6em;
+  margin-bottom: 0.3em;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 0.3rem;
+}
+.a-briefing--list li[data-selected="true"] {
+  background: rgba(255, 255, 255, 0.18);
+  outline: 2px solid rgba(255, 255, 255, 0.6);
+}
+.a-briefing--hint {
+  font-size: 0.95em;
+  opacity: 0.7;
+  margin: 0.5rem auto;
+  text-align: center;
+}
+
+/* Help screen */
+.a-help--list {
+  list-style: disc inside;
+  margin: 0.5rem auto;
+  max-width: 36em;
+  padding: 0;
+  text-align: left;
+}
+.a-help--list kbd {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 0.25em;
+  font-family: monospace;
+  padding: 0 0.4em;
+}
+.a-help--objective {
+  line-height: 1.6;
+  margin: 0.5rem auto;
+  max-width: 36em;
+  text-align: left;
+}
+
+/* Game over */
+.a-gameover--reason,
+.a-gameover--tips,
+.a-gameover--deliveries,
+.a-gameover--jobs {
+  font-size: 1.1em;
+  margin: 0.2em 0;
+}
+.a-gameover--name {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+.a-gameover--name-input {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0.4rem;
+  color: #FFFFFF;
+  font-size: 1.1em;
+  padding: 0.5em 0.8em;
+  text-align: center;
+  width: min(20em, 80vw);
+}
+.a-gameover--name-input:focus {
+  border-color: #FFFFFF;
+  outline: none;
+}
+
+/* High scores */
+.a-highscores--list {
+  font-family: monospace;
+  text-align: left;
+}
+.a-highscores--list li {
+  padding: 0.25em 0;
+}

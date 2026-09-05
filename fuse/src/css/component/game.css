@@ -1,0 +1,81 @@
+/* SALVO game HUD + visual compass (aria-hidden; the audio + announcements are
+   the real interface). Kept readable for sighted / low-vision players: eight
+   sectors light up as enemies close in from each bearing. */
+.a-game {
+  align-items: center;
+  text-align: center;
+}
+  .a-game--hud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em 1.4em;
+    justify-content: center;
+    font-size: 1.05em;
+    margin-bottom: 1.2rem;
+  }
+    .a-game--stat b { color: #ffd479; }
+
+  /* Maze grid (aria-hidden; audio + announcements are the real interface).
+     COLS x rows of cells, built by the game screen. Tiles are tinted by content;
+     overlays (player/enemy/bomb/flame/power-up) take precedence. */
+  .a-game--grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 13), 1fr);
+    gap: 2px;
+    width: min(94vw, 34em);
+    margin: 1em auto 0;
+  }
+  .a-game--cell {
+    aspect-ratio: 1 / 1;
+    border-radius: 0.15em;
+    background: #1d2633;
+  }
+    .a-game--cell[data-t="hard"]  { background: #44506a; }
+    .a-game--cell[data-t="soft"]  { background: #6b5a3a; }
+    .a-game--cell[data-t="floor"] { background: #1d2633; }
+    .a-game--cell[data-o="powerup"] { background: #7fe0a0; }
+    .a-game--cell[data-o="bomb"]    { background: #ff8a5b; box-shadow: 0 0 8px rgba(255,138,91,0.8); }
+    .a-game--cell[data-o="flame"]   { background: #ffec6b; box-shadow: 0 0 10px rgba(255,236,107,0.9); }
+    .a-game--cell[data-o="enemy"]   { background: #ff5b7f; }
+    .a-game--cell[data-o="player"]  { background: #6bdcff; box-shadow: 0 0 8px rgba(107,220,255,0.9); }
+
+/* Help / lists */
+.a-help--text {
+  max-width: 44em;
+  margin-left: auto;
+  margin-right: auto;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+.a-help--list {
+  list-style: none;
+  margin: 0.5rem auto;
+  padding: 0;
+  max-width: 44em;
+  text-align: left;
+}
+  .a-help--list li {
+    margin: 0.4em 0;
+    line-height: 1.4;
+  }
+.a-help--list kbd {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 0.25em;
+  padding: 0.05em 0.4em;
+  font-family: inherit;
+}
+
+.a-highscores--list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 40em;
+}
+  .a-highscores--entry,
+  .a-highscores--empty {
+    padding: 0.35em 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+.a-gameover--online-status[data-state="error"] { color: #ff9a8a; }
+.a-gameover--online-status[data-state="ok"] { color: #7fe0a0; }

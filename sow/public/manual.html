@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Sow — Manual</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <style>
+      *, *::after, *::before {
+        background: transparent;
+        border: 0;
+        box-sizing: border-box;
+        color: inherit;
+        font: inherit;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        background-color: #FFFFFF;
+        font-family: sans-serif;
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.5;
+      }
+
+      main ::selection {
+        background-color: #FF0069;
+        color: #FFFFFF;
+        text-decoration-color: #FFFFFF;
+      }
+
+      a {
+        color: #FF0069;
+        cursor: pointer;
+        text-decoration: underline;
+      }
+
+      code {
+        font-family: monospace;
+      }
+
+      details > * + * {
+        margin-top: 1.25em;
+      }
+
+      em {
+        font-family: sans-serif;
+        font-style: italic;
+      }
+
+      h2 {
+        font-size: 2em;
+      }
+
+      h3 {
+        font-size: 1.5em;
+        margin-top: 3rem;
+      }
+
+      h4 {
+        font-size: 1.25em;
+        margin-top: 3rem;
+      }
+
+      kbd {
+        border: 1px solid #FF0069;
+        border-radius: 0.25em;
+        display: inline-block;
+        font-family: monospace;
+        padding: 0 0.5em;
+      }
+
+      strong, th {
+        font-family: sans-serif;
+        font-weight: 700;
+      }
+
+      section {
+        margin: 0 auto;
+        max-width: calc(60ch + 4em);
+        padding: 3em 1em;
+      }
+
+      section + section {
+        border-top: 1px dotted #CCCCCC;
+      }
+
+      section > * + *:not(h3):not(h4) {
+        margin-top: 1.25em;
+      }
+
+      section > h2 + *,
+      section > h3 + *,
+      section > h4 + * {
+        margin-top: 0.75em !important;
+      }
+
+      table, td, th {
+        border: 1px solid #000000;
+        border-collapse: collapse;
+      }
+
+      td, th {
+        padding: 0.25em 0.5em;
+      }
+
+      th {
+        text-align: left;
+      }
+
+      ul {
+        list-style-position: inside;
+        padding-left: 1.5em;
+      }
+
+      .hero {
+        align-items: center;
+        background-color: #000000;
+        color: #FFFFFF;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        line-height: 1.25;
+        padding: 4em 1em;
+        text-align: center;
+      }
+        .hero--author {
+          font-family: monospace;
+          margin-top: 2em;
+        }
+        .hero--logo {
+          font-family: monospace;
+          font-size: 3em;
+          text-transform: uppercase;
+        }
+
+      .scrollable {
+        max-width: 100%;
+        overflow: auto;
+        white-space: nowrap;
+      }
+
+      @media (min-width: 20rem) {
+        :root {
+          font-size: calc(1rem + ((1vw - 0.2rem) * 0.25));
+        }
+      }
+
+      @media (min-width: 48rem) {
+        section {
+          padding-left: 2em;
+          padding-right: 2em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <h1>
+        <div class="hero--lockup">
+          <div class="hero--logo">Sow</div>
+          <div class="hero--author">audio mancala</div>
+        </div>
+      </h1>
+    </header>
+
+    <main>
+      <section>
+        <h2>Introduction</h2>
+        <p><strong>Sow</strong> is an audio-first, blind-accessible take on Mancala (the Kalah rules). You have six pits in front of you, each starting with four seeds, and a store — your bank — to your right. The machine has six pits behind you and a store to your left. Pick up a pit's seeds and sow them one at a time into the following pits, going counterclockwise, trying to bank more seeds than the machine.</p>
+        <p>It is a <em>thinking</em> game, not a reflex game: nothing moves until you move. Two rules give it depth — if your last seed lands in your store you take another turn, and if it lands in an empty pit on your own side you capture that seed plus everything in the pit opposite. Win a game and you climb to a stronger opponent; lose and you spend one of three lives.</p>
+        <p>Sow is built for the ear, and the listener never turns. The pits ring around you: your six across the front, the machine's across the behind (muffled, since they sit behind you), your store to the right, the machine's to the left. When seeds are sown you hear them travel that ring — one soft pluck per pit — so a sow literally sweeps around your head.</p>
+      </section>
+
+      <section>
+        <h2>System Requirements</h2>
+        <p>This is best experienced with headphones and a gamepad.</p>
+        <p>Real-time synthesis is an <em>extremely</em> CPU-intensive process. It will attempt to run on any machine that meets its minimum requirements; however, you may experience stuttering or drop-outs when running below the recommended requirements.</p>
+
+        <h3>Minimum System Requirements</h3>
+        <table>
+          <tr>
+            <th>CPU</th>
+            <td>SSE2 capable (64-bit)</td>
+          </tr>
+          <tr>
+            <th>RAM</th>
+            <td>2 GB</td>
+          </tr>
+        </table>
+
+        <h3>Recommended System Requirements</h3>
+        <table>
+          <tr>
+            <th>CPU</th>
+            <td>3.5 GHz Quad-Core (64-bit)</td>
+          </tr>
+          <tr>
+            <th>RAM</th>
+            <td>4 GB</td>
+          </tr>
+        </table>
+
+        <h3>Browser Support</h3>
+        <p>The HTML5 build is intended to be played in a recent version of a Chromium-based browser, such as Google Chrome, Microsoft Edge, or Opera. Browser extensions that alter page behavior are not recommended. Other browsers must support modern JavaScript features and the current Web Audio API specification.</p>
+      </section>
+
+      <section>
+        <h2>How to Play</h2>
+        <p>Move left and right along your six pits; each is announced with how many seeds it holds, and its tone sounds from its place in front of you. Press <kbd>Enter</kbd> to sow the current pit: its seeds lift and drop one per pit counterclockwise — rightward across your pits, into your store, then around behind through the machine's pits (the machine's store is skipped). You hear each seed land as the sound travels around the ring.</p>
+        <p>Two things to watch for, both announced: if your last seed lands in your store you get an <strong>extra turn</strong> (a quick rising tone) — chain these to pull ahead. If your last seed lands in an empty pit on your own side, you <strong>capture</strong> it and the pit directly opposite (a scoop then a bright chime). Plan your sow lengths to set these up.</p>
+        <p>To read the board: <kbd>Space</kbd> sweeps the whole ring, each pit's pitch rising with how many seeds it holds; <kbd>C</kbd> counts the current pit with one tick per seed; <kbd>F2</kbd> reads the two stores, <kbd>F3</kbd> your pits, <kbd>F4</kbd> the machine's.</p>
+        <p>When one side's pits empty out, each player banks the seeds left on their own side and the larger store wins. Win to climb a level (the bigger your margin, the more you score); lose and spend a life. Out of lives ends the run — enter your name to save your score.</p>
+      </section>
+
+      <section>
+        <h2>Controls</h2>
+        <div class="scrollable">
+          <table>
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Keyboard</th>
+                <th>Gamepad</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Move along your pits</td><td><kbd>Left</kbd> / <kbd>Right</kbd>, <kbd>A</kbd> / <kbd>D</kbd></td><td>D-pad left / right</td></tr>
+              <tr><td>Sow the current pit</td><td><kbd>Enter</kbd></td><td>A</td></tr>
+              <tr><td>Scan the whole board</td><td><kbd>Space</kbd></td><td>X</td></tr>
+              <tr><td>Count the current pit</td><td><kbd>C</kbd></td><td>B</td></tr>
+              <tr><td>Status: level, score, lives, stores</td><td><kbd>F1</kbd></td><td>—</td></tr>
+              <tr><td>Read the two stores</td><td><kbd>F2</kbd></td><td>—</td></tr>
+              <tr><td>Read your pits</td><td><kbd>F3</kbd></td><td>—</td></tr>
+              <tr><td>Read the machine's pits</td><td><kbd>F4</kbd></td><td>—</td></tr>
+              <tr><td>Pause</td><td><kbd>Escape</kbd></td><td>Start</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

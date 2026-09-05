@@ -1,0 +1,86 @@
+/* OH SHIT game HUD + visual strip (aria-hidden; the audio + announcements are
+   the real interface). Kept readable for sighted / low-vision players: a
+   side-view strip — the player square, pits as dark gaps, cannons, rolling
+   balls, falling rocks, and glowing items. */
+.a-game {
+  align-items: center;
+  text-align: center;
+}
+  .a-game--hud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em 1.4em;
+    justify-content: center;
+    font-size: 1.05em;
+    margin-bottom: 1.2rem;
+  }
+    .a-game--stat b { color: #ffd479; }
+
+  .a-game--strip {
+    position: relative;
+    width: min(94vw, 44em);
+    height: 9em;
+    margin: 0 auto;
+    border-bottom: 3px solid #6a5a44;
+    background: linear-gradient(180deg, rgba(120,150,200,0.06) 0%, rgba(120,150,200,0.02) 62%, rgba(150,120,80,0.08) 62%, rgba(150,120,80,0.12) 100%);
+    overflow: hidden;
+  }
+  .a-game--marker {
+    position: absolute;
+    width: 1.2em;
+    height: 1.2em;
+    transform: translateX(-50%);
+    transition: left 60ms linear;
+  }
+    .a-game--marker[data-kind="player"] { bottom: 0; height: 1.4em; border-radius: 3px; background: #6bd0ff; box-shadow: 0 0 8px rgba(107, 208, 255, 0.8); }
+    .a-game--marker[data-kind="player"][data-air="1"] { bottom: 3.2em; }
+    .a-game--marker[data-kind="pit"] { bottom: -0.4em; width: 2.4em; height: 0.9em; border-radius: 0 0 50% 50%; background: #14171d; box-shadow: inset 0 4px 6px rgba(0,0,0,0.7); }
+    .a-game--marker[data-kind="pit"][data-state="warning"] { background: #3a3326; box-shadow: 0 0 6px rgba(214, 178, 94, 0.6); }
+    .a-game--marker[data-kind="cannon"] { bottom: 0; border-radius: 20%; background: #9aa3b2; }
+    .a-game--marker[data-kind="ball"] { bottom: 0.2em; width: 0.9em; height: 0.9em; border-radius: 50%; background: #ff5a5a; box-shadow: 0 0 8px rgba(255, 90, 90, 0.8); }
+    .a-game--marker[data-kind="rock"] { top: 0; width: 1em; height: 1em; border-radius: 35%; background: #b07a4a; }
+    .a-game--marker[data-kind="item-score"] { bottom: 0.1em; width: 0.8em; height: 0.8em; border-radius: 50%; background: #ffe06b; box-shadow: 0 0 8px rgba(255, 224, 107, 0.9); }
+    .a-game--marker[data-kind="item-power"] { bottom: 0.1em; width: 1em; height: 1em; border-radius: 50%; background: #b08aff; box-shadow: 0 0 10px rgba(176, 138, 255, 0.9); }
+    .a-game--marker[data-kind="chaser"] { bottom: 0.6em; width: 1.1em; height: 1.1em; border-radius: 50%; background: #ff3a3a; box-shadow: 0 0 12px rgba(255, 58, 58, 0.9); }
+
+/* Help / lists */
+.a-help--text {
+  max-width: 44em;
+  margin-left: auto;
+  margin-right: auto;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+.a-help--list {
+  list-style: none;
+  margin: 0.5rem auto;
+  padding: 0;
+  max-width: 44em;
+  text-align: left;
+}
+  .a-help--list li {
+    margin: 0.4em 0;
+    line-height: 1.4;
+  }
+.a-help--list kbd {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 0.25em;
+  padding: 0.05em 0.4em;
+  font-family: inherit;
+}
+
+.a-highscores--list,
+.a-highscores--runner-list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 40em;
+}
+  .a-highscores--entry,
+  .a-highscores--empty {
+    padding: 0.35em 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+.a-gameover--online-status[data-state="error"] { color: #ff9a8a; }
+.a-gameover--online-status[data-state="ok"] { color: #7fe0a0; }

@@ -3,96 +3,1228 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Choose a game to play</title>
+<title>Arcade Room</title>
+<meta name="description" content="A collection of accessible, audio-first games you can play entirely by ear.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>">
 <style>
   :root {
     color-scheme: light dark;
-    --fg: #1a1a1a;
-    --bg: #fafafa;
-    --accent: #2d6cdf;
-    --card: #fff;
-    --border: #ddd;
+    --bg: #ffffff;
+    --surface: #f4f4f6;
+    --surface-hover: #e6e6ee;
+    --surface-active: #d8d8e6;
+    --fg: #16161a;
+    --fg-muted: #45454f;
+    --accent: #0b4fd0;
+    --accent-fg: #ffffff;
+    --border: #7d7d8a;
+    --border-strong: #16161a;
+    --focus: #0b4fd0;
+    --dev: #6d3600;
+    --dev-bg: #ffe7c2;
+    --shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+    --radius: 10px;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --fg: #eee; --bg: #111; --accent: #6ea8ff; --card: #1c1c1c; --border: #333; }
+    :root {
+      --bg: #0e0e12;
+      --surface: #1b1b22;
+      --surface-hover: #2a2a34;
+      --surface-active: #383845;
+      --fg: #f2f2f5;
+      --fg-muted: #c2c2cc;
+      --accent: #9dbeff;
+      --accent-fg: #0e0e12;
+      --border: #7c7c88;
+      --border-strong: #f2f2f5;
+      --focus: #ffd54a;
+      --dev: #ffcf8a;
+      --dev-bg: #3b2a10;
+      --shadow: 0 8px 24px rgb(0 0 0 / 0.6);
+    }
   }
-  * { box-sizing: border-box; }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+
   body {
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-    color: var(--fg);
-    background: var(--bg);
     margin: 0;
-    padding: 2rem 1rem;
-    line-height: 1.5;
-  }
-  main { max-width: 720px; margin: 0 auto; }
-  h1 { font-size: 2rem; margin: 0 0 .25rem; }
-  .lead { color: var(--fg); opacity: .75; margin: 0 0 2rem; }
-  ul.games { list-style: none; padding: 0; margin: 0; display: grid; gap: .75rem; }
-  ul.games a {
-    display: block;
-    padding: 1rem 1.25rem;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    text-decoration: none;
+    background: var(--bg);
     color: var(--fg);
-    font-size: 1.125rem;
+    font: 1.0625rem/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
-  ul.games a:hover, ul.games a:focus {
-    border-color: var(--accent);
-    color: var(--accent);
-    outline: none;
-  }
-  .empty { opacity: .6; font-style: italic; }
+
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+
   .sr-only {
     position: absolute;
     width: 1px; height: 1px;
     padding: 0; margin: -1px;
-    overflow: hidden; clip: rect(0,0,0,0);
-    white-space: nowrap; border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .skip-link {
+    position: absolute;
+    left: 0.5rem;
+    top: -100%;
+    z-index: 60;
+    padding: 0.75rem 1.25rem;
+    background: var(--accent);
+    color: var(--accent-fg);
+    font-weight: 600;
+    border-radius: 0 0 var(--radius) var(--radius);
+    text-decoration: none;
+  }
+  .skip-link:focus { top: 0; }
+
+  .wrap { max-width: 64rem; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+
+  h1 { font-size: clamp(1.75rem, 5vw, 2.5rem); line-height: 1.2; margin: 0 0 0.5rem; }
+  .tagline { color: var(--fg-muted); margin: 0 0 1.5rem; max-width: 46rem; }
+
+  /* --- Toolbar -------------------------------------------------------- */
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
+    align-items: flex-end;
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 1.25rem;
+  }
+  .field { display: flex; flex-direction: column; gap: 0.35rem; }
+  .field > .label { font-weight: 600; font-size: 0.9375rem; padding: 0; }
+
+  button {
+    font: inherit;
+    font-weight: 600;
+    min-height: 2.75rem;
+    padding: 0.6rem 1.1rem;
+    color: var(--fg);
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  button:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+
+  select {
+    font: inherit;
+    min-height: 2.75rem;
+    padding: 0.6rem 0.7rem;
+    color: var(--fg);
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  select:hover { border-color: var(--border-strong); }
+  select:focus { border-color: var(--focus); }
+
+  input[type="text"] {
+    font: inherit;
+    flex: 1 1 auto;
+    padding: 0.6rem 0.75rem;
+    min-height: 2.75rem;
+    min-width: 0;
+    color: var(--fg);
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+  }
+  input[type="text"]:focus { border-color: var(--focus); }
+
+  /* --- Listboxes: one look for both popups ---------------------------- */
+
+  .listbox {
+    margin: 0;
+    padding: 0.3rem;
+    list-style: none;
+    overscroll-behavior: contain;
+    background: var(--bg);
+    border: 2px solid var(--border-strong);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .listbox:focus-visible { outline-offset: -2px; }
+
+  [role="option"] {
+    display: block;
+    padding: 0.6rem 0.7rem;
+    min-height: 2.75rem;
+    border-radius: 6px;
+    color: var(--fg);
+    cursor: pointer;
+  }
+  [role="option"] .name { font-weight: 700; display: block; }
+  [role="option"] .meta { color: var(--fg-muted); font-size: 0.875rem; }
+  [role="option"]:hover { background: var(--surface-hover); }
+  /* The active option is marked by an outline as well as colour. */
+  [role="option"][aria-selected="true"] {
+    background: var(--accent);
+    color: var(--accent-fg);
+    outline: 2px solid var(--border-strong);
+  }
+  [role="option"][aria-selected="true"] .meta { color: var(--accent-fg); }
+  [role="option"].jump {
+    border-top: 1px solid var(--border);
+    margin-top: 0.3rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  [role="option"].jump[aria-selected="true"] { color: var(--accent-fg); }
+
+  /* --- Search combobox ------------------------------------------------ */
+
+  .combo { position: relative; flex: 1 1 20rem; min-width: 15rem; }
+  .combo-input-row { display: flex; gap: 0.4rem; }
+  .combo-clear { padding: 0.6rem 0.85rem; }
+
+  #results {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 0.35rem);
+    left: 0;
+    right: 0;
+    max-height: min(50vh, 24rem);
+    overflow-y: auto;
+  }
+
+  .combo-empty {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 0.35rem);
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 0.75rem 0.8rem;
+    color: var(--fg-muted);
+    background: var(--bg);
+    border: 2px solid var(--border-strong);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  /* --- Category disclosures ------------------------------------------- */
+
+  nav.categories { margin: 0 0 2rem; }
+  nav.categories > .label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    margin: 0 0 0.5rem;
+  }
+
+  ul.cat-list { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+  ul.cat-list > li { position: relative; list-style: none; }
+
+  .cat-button {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--surface);
+  }
+  .cat-button[aria-expanded="true"] { background: var(--surface-active); border-color: var(--border-strong); }
+  .cat-button .caret { font-size: 0.75em; }
+  .cat-button .n { font-weight: 400; color: var(--fg-muted); font-size: 0.875rem; }
+  .cat-button[aria-expanded="true"] .n { color: var(--fg); }
+
+  .cat-listbox {
+    position: absolute;
+    z-index: 40;
+    top: calc(100% + 0.3rem);
+    left: 0;
+    min-width: 17rem;
+    max-width: min(24rem, 90vw);
+    max-height: min(60vh, 30rem);
+    overflow-y: auto;
+  }
+
+  /* --- Game listing --------------------------------------------------- */
+
+  .status { margin: 0 0 1.5rem; color: var(--fg-muted); font-size: 0.9375rem; }
+
+  section.category { margin: 0 0 2.75rem; }
+  section.category h2 {
+    font-size: 1.375rem;
+    margin: 0 0 0.25rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--border);
+  }
+  section.category h2:focus-visible { outline-offset: 4px; }
+  .count { font-weight: 400; color: var(--fg-muted); font-size: 0.9375rem; }
+  .cat-desc { color: var(--fg-muted); margin: 0 0 1.25rem; font-size: 0.9375rem; }
+
+  ul.games {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.875rem;
+    grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  }
+
+  li.game {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 1rem 1.1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  li.game:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+  li.game:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  li.game a {
+    align-self: flex-start;
+    font-size: 1.1875rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  li.game a::after { content: ""; position: absolute; inset: 0; }
+
+  .game-desc { margin: 0; font-size: 0.9375rem; }
+  .game-alt { margin: 0; color: var(--fg-muted); font-size: 0.875rem; }
+
+  .badge {
+    align-self: flex-start;
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: var(--dev-bg);
+    color: var(--dev);
+  }
+
+  .hint { color: var(--fg-muted); font-size: 0.9375rem; margin: 0 0 1.5rem; }
+
+  footer.page {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--fg-muted);
+    font-size: 0.9375rem;
+  }
+
+  /* --- Small screens / touch.
+     Both listboxes drop out of the overlay layer and sit in the flow. On a
+     touch screen reader that is the difference between swiping straight into
+     the options and hunting for a floating layer, and it keeps them clear of
+     the on-screen keyboard. --------------------------------------------- */
+
+  @media (max-width: 46rem) {
+    .toolbar { gap: 1rem; }
+    .field, .combo { flex: 1 1 100%; }
+    select { width: 100%; }
+
+    #results, .combo-empty, .cat-listbox {
+      position: static;
+      max-height: none;
+      max-width: none;
+      min-width: 0;
+      margin-top: 0.4rem;
+      box-shadow: none;
+    }
+
+    ul.cat-list { flex-direction: column; align-items: stretch; }
+    ul.cat-list > li { width: 100%; }
+    .cat-button { width: 100%; justify-content: space-between; }
+
+    ul.games { grid-template-columns: 1fr; }
+    li.game { padding: 1rem; }
+  }
+
+  @media (pointer: coarse) {
+    button, select, input[type="text"], [role="option"] { min-height: 3rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  @media (prefers-contrast: more) {
+    li.game, .cat-button, .toolbar { border-color: var(--border-strong); }
   }
 </style>
 </head>
 <body>
-<main>
-  <h1>Choose a game to play</h1>
-  <p class="lead">A small collection of audio and arcade games by Oriol Gómez.</p>
 
-  <section aria-labelledby="games-heading">
-    <h2 id="games-heading" class="sr-only">Games</h2>
-    <ul class="games" id="gameList" aria-busy="true"></ul>
-  </section>
-</main>
+<a class="skip-link" href="#games" data-i18n="skip">Skip to the games</a>
 
-<script type="application/json" id="games-data">
-{{- $skip := list "electron" "node_modules" -}}
-{{- $items := list -}}
-{{- range $name := (listFiles "/") -}}
-  {{- if and (not (contains "." $name)) (not (has $name $skip)) -}}
-    {{- $items = append $items $name -}}
-  {{- end -}}
-{{- end -}}
-{{- $items | toJson -}}
-</script>
+<div class="wrap">
+
+  <header>
+    <h1 id="site-title">Arcade Room</h1>
+    <p class="tagline" id="site-tagline"></p>
+
+    <div class="toolbar">
+      <div class="field">
+        <label class="label" for="lang-select" data-i18n="langLegend">Language</label>
+        <select id="lang-select"></select>
+      </div>
+
+      <div class="field combo">
+        <label class="label" for="search" id="search-label" data-i18n="searchLabel">Search the games</label>
+        <div class="combo-input-row">
+          <input type="text" id="search"
+                 role="combobox"
+                 aria-expanded="false"
+                 aria-controls="results"
+                 aria-autocomplete="list"
+                 aria-describedby="combo-help"
+                 autocomplete="off" autocorrect="off" autocapitalize="off"
+                 spellcheck="false" enterkeyhint="go">
+          <button type="button" class="combo-clear" id="combo-clear" hidden></button>
+        </div>
+        <ul class="listbox" id="results" role="listbox" hidden></ul>
+        <p class="combo-empty" id="combo-empty" hidden></p>
+        <p id="combo-help" class="sr-only"></p>
+      </div>
+
+      <div class="field">
+        <span class="label" aria-hidden="true">&nbsp;</span>
+        <button type="button" id="random" data-i18n="randomBtn">Surprise me</button>
+      </div>
+    </div>
+
+    <nav class="categories" aria-labelledby="cat-nav-label">
+      <h2 class="label" id="cat-nav-label" data-i18n="categoriesHeading">Categories</h2>
+      <ul class="cat-list" id="cat-list"></ul>
+      <p class="sr-only" id="cat-help"></p>
+    </nav>
+  </header>
+
+  <main id="games" tabindex="-1">
+    <h2 class="sr-only" data-i18n="allGamesHeading">All games</h2>
+    <p class="status" id="status"></p>
+    <p class="hint" id="kbd-hint"></p>
+    <div id="listing"></div>
+  </main>
+
+  <footer class="page">
+    <p id="footer-text"></p>
+  </footer>
+
+  <p class="sr-only" id="live" role="status" aria-live="polite"></p>
+
+  <noscript>
+    <p><strong>English:</strong> This page needs JavaScript to list the games.
+      Every game lives at its own address, for example
+      <a href="/asteroids/">/asteroids/</a>.</p>
+    <p lang="es"><strong>Español:</strong> Esta página necesita JavaScript para
+      listar los juegos. Cada juego tiene su propia dirección, por ejemplo
+      <a href="/asteroids/">/asteroids/</a>.</p>
+  </noscript>
+
+</div>
 
 <script>
-  const games = JSON.parse(document.getElementById('games-data').textContent).sort();
-  const list = document.getElementById('gameList');
-  list.removeAttribute('aria-busy');
+(() => {
+  'use strict'
 
-  if (games.length === 0) {
-    list.innerHTML = '<li class="empty">No games found.</li>';
-  } else {
-    for (const name of games) {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = '/' + encodeURIComponent(name) + '/';
-      a.textContent = name.charAt(0).toUpperCase() + name.slice(1);
-      li.appendChild(a);
-      list.appendChild(li);
+  const STORAGE_KEY = 'play.lang'
+  const DEFAULT_LANG = 'en'
+
+  const UI = {
+    en: {
+      htmlLang: 'en',
+      otherLang: 'es',
+      skip: 'Skip to the games',
+      langLegend: 'Language',
+      searchLabel: 'Search the games',
+      searchPlaceholder: 'e.g. maze, rhythm, pac',
+      resultsLabel: 'Search results',
+      comboHelp:
+        'Type to search. Use the up and down arrow keys to move through the results, ' +
+        'Enter to open a game, and Escape to close the list.',
+      clearSearch: 'Clear search',
+      cleared: 'Search cleared.',
+      randomBtn: 'Surprise me',
+      categoriesHeading: 'Categories',
+      categoriesHelp:
+        'Each category is a button that opens a list of its games. Enter or Space opens ' +
+        'a list, the up and down arrow keys move through it, Enter opens the highlighted ' +
+        'game, and Escape closes the list and returns you to the button.',
+      allGamesHeading: 'All games',
+      kbdHint: 'Keyboard: press / to search, then Down to walk the results. Each category is a button — Enter opens its list, Escape closes it.',
+      total: (g, c) => `${g} games in ${c} categories.`,
+      results: (n) =>
+        n === 1
+          ? '1 result available. Use the arrow keys to review it.'
+          : `${n} results available. Use the arrow keys to review them.`,
+      noResults: (q) => `No games match “${q}”.`,
+      noResultsVisible: (q) => `No games match “${q}”. Try a different word, or browse the categories.`,
+      games: (n) => (n === 1 ? '1 game' : `${n} games`),
+      showAll: (n) => `Show all ${n} on the page`,
+      opened: (name) => `${name}, list of games.`,
+      altName: 'In Spanish:',
+      devBadge: 'In development',
+      inDevelopment: 'in development',
+      loadError: 'The game list could not be loaded. Please reload the page.',
+      footer: 'Accessible audio games by Oriol Gómez, built on the syngen Web Audio engine.',
+    },
+    es: {
+      htmlLang: 'es',
+      otherLang: 'en',
+      skip: 'Ir a los juegos',
+      langLegend: 'Idioma',
+      searchLabel: 'Buscar juegos',
+      searchPlaceholder: 'p. ej. laberinto, ritmo, pac',
+      resultsLabel: 'Resultados de la búsqueda',
+      comboHelp:
+        'Escribe para buscar. Usa las flechas arriba y abajo para recorrer los resultados, ' +
+        'Intro para abrir un juego y Escape para cerrar la lista.',
+      clearSearch: 'Vaciar la búsqueda',
+      cleared: 'Búsqueda vaciada.',
+      randomBtn: 'Sorpréndeme',
+      categoriesHeading: 'Categorías',
+      categoriesHelp:
+        'Cada categoría es un botón que abre una lista de sus juegos. Intro o Espacio abre ' +
+        'una lista, las flechas arriba y abajo la recorren, Intro abre el juego resaltado ' +
+        'y Escape cierra la lista y te devuelve al botón.',
+      allGamesHeading: 'Todos los juegos',
+      kbdHint: 'Teclado: pulsa / para buscar y luego Abajo para recorrer los resultados. Cada categoría es un botón: Intro abre su lista y Escape la cierra.',
+      total: (g, c) => `${g} juegos en ${c} categorías.`,
+      results: (n) =>
+        n === 1
+          ? '1 resultado disponible. Usa las flechas para revisarlo.'
+          : `${n} resultados disponibles. Usa las flechas para revisarlos.`,
+      noResults: (q) => `Ningún juego coincide con «${q}».`,
+      noResultsVisible: (q) => `Ningún juego coincide con «${q}». Prueba otra palabra o explora las categorías.`,
+      games: (n) => (n === 1 ? '1 juego' : `${n} juegos`),
+      showAll: (n) => `Ver los ${n} en la página`,
+      opened: (name) => `${name}, lista de juegos.`,
+      altName: 'En inglés:',
+      devBadge: 'En desarrollo',
+      inDevelopment: 'en desarrollo',
+      loadError: 'No se ha podido cargar la lista de juegos. Recarga la página.',
+      footer: 'Juegos de audio accesibles de Oriol Gómez, sobre el motor de audio web syngen.',
+    },
+  }
+
+  const $ = (id) => document.getElementById(id)
+  const el = {
+    title: $('site-title'),
+    tagline: $('site-tagline'),
+    langSelect: $('lang-select'),
+    searchLabel: $('search-label'),
+    input: $('search'),
+    clear: $('combo-clear'),
+    listbox: $('results'),
+    empty: $('combo-empty'),
+    comboHelp: $('combo-help'),
+    random: $('random'),
+    catList: $('cat-list'),
+    catHelp: $('cat-help'),
+    status: $('status'),
+    kbdHint: $('kbd-hint'),
+    listing: $('listing'),
+    footer: $('footer-text'),
+    live: $('live'),
+  }
+
+  let data = null
+  let lang = DEFAULT_LANG
+  let t = UI[DEFAULT_LANG]
+
+  const fold = (s) =>
+    (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+  const pick = (obj, l) => (obj && (obj[l] || obj[DEFAULT_LANG])) || ''
+  const visibleGames = () => data.games.filter((g) => !g.hidden)
+  const catById = (id) => data.categories.find((c) => c.id === id)
+
+  function announce(message) {
+    el.live.textContent = ''
+    window.setTimeout(() => { el.live.textContent = message }, 30)
+  }
+
+  // An element with role="option" must not be an interactive widget itself,
+  // so options carry their target rather than being links. Activation goes
+  // through a throwaway anchor to keep identical navigation semantics.
+  function openUrl(url) {
+    const a = document.createElement('a')
+    a.href = url
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  }
+
+  /* =================================================================== */
+  /* Shared listbox helpers                                              */
+  /*                                                                     */
+  /* Both popups are role="listbox" holding role="option" children.      */
+  /* aria-selected is set ONLY on the active option — never "false" on   */
+  /* the rest, which some screen readers read out as "not selected" on   */
+  /* every row.                                                          */
+  /* =================================================================== */
+
+  function makeOption(id, primary, secondary, extraClass) {
+    const li = document.createElement('li')
+    li.id = id
+    li.setAttribute('role', 'option')
+    if (extraClass) li.className = extraClass
+
+    const name = document.createElement('span')
+    name.className = 'name'
+    name.textContent = primary
+    li.appendChild(name)
+
+    if (secondary) {
+      const meta = document.createElement('span')
+      meta.className = 'meta'
+      meta.textContent = secondary
+      li.appendChild(meta)
+    }
+    return li
+  }
+
+  function setActiveOption(owner, options, index) {
+    for (const o of options) o.node.removeAttribute('aria-selected')
+    if (index < 0 || !options[index]) {
+      owner.removeAttribute('aria-activedescendant')
+      return
+    }
+    const node = options[index].node
+    node.setAttribute('aria-selected', 'true')
+    owner.setAttribute('aria-activedescendant', node.id)
+
+    const box = node.parentElement
+    const top = node.offsetTop
+    const bottom = top + node.offsetHeight
+    if (top < box.scrollTop) box.scrollTop = top
+    else if (bottom > box.scrollTop + box.clientHeight) box.scrollTop = bottom - box.clientHeight
+  }
+
+  const stepIndex = (current, delta, length) => {
+    if (!length) return -1
+    if (current === -1) return delta > 0 ? 0 : length - 1
+    return (current + delta + length) % length
+  }
+
+  // Shared type-ahead: a letter jumps to the next option starting with it.
+  function makeTypeahead() {
+    let buffer = ''
+    let timer = null
+    return (options, current, char) => {
+      window.clearTimeout(timer)
+      buffer += fold(char)
+      timer = window.setTimeout(() => { buffer = '' }, 600)
+      const labels = options.map((o) => fold(o.node.textContent))
+      for (let step = 1; step <= labels.length; step++) {
+        const i = (current + step) % labels.length
+        if (labels[i].startsWith(buffer)) return i
+      }
+      if (buffer.length > 1 && /^(.)\1*$/.test(buffer)) {
+        const c = buffer[0]
+        for (let step = 1; step <= labels.length; step++) {
+          const i = (current + step) % labels.length
+          if (labels[i].startsWith(c)) return i
+        }
+      }
+      return -1
     }
   }
+
+  /* =================================================================== */
+  /* Search: editable combobox over a listbox                             */
+  /* =================================================================== */
+
+  const combo = {
+    options: [],
+    activeIndex: -1,
+    open: false,
+    lastCount: null,
+
+    matches(query) {
+      const needle = fold(query.trim())
+      const all = visibleGames()
+      return needle ? all.filter((g) => g._haystack.includes(needle)) : all
+    },
+
+    render(query) {
+      const games = this.matches(query)
+      this.options = []
+      this.activeIndex = -1
+      el.input.removeAttribute('aria-activedescendant')
+      el.listbox.textContent = ''
+
+      games.forEach((game, i) => {
+        const cat = catById(game.category)
+        const bits = [cat ? pick(cat.name, lang) : '']
+        if (game.category === 'dev') bits.push(t.inDevelopment)
+        const node = makeOption(
+          'combo-option-' + i,
+          pick(game.name, lang),
+          bits.filter(Boolean).join(' · ')
+        )
+        node.addEventListener('mousedown', (e) => e.preventDefault())
+        node.addEventListener('click', () => openUrl(game.path))
+        el.listbox.appendChild(node)
+        this.options.push({ game, node })
+      })
+      return games.length
+    },
+
+    show() {
+      if (this.open) return
+      this.open = true
+      el.listbox.hidden = false
+      el.input.setAttribute('aria-expanded', 'true')
+    },
+
+    hide() {
+      this.open = false
+      el.listbox.hidden = true
+      el.empty.hidden = true
+      el.input.setAttribute('aria-expanded', 'false')
+      el.input.removeAttribute('aria-activedescendant')
+      this.activeIndex = -1
+      for (const o of this.options) o.node.removeAttribute('aria-selected')
+    },
+
+    setActive(index) {
+      this.activeIndex = index
+      setActiveOption(el.input, this.options, index)
+    },
+
+    move(delta) {
+      this.setActive(stepIndex(this.activeIndex, delta, this.options.length))
+    },
+
+    activate(index) {
+      const option = this.options[index]
+      if (option) openUrl(option.game.path)
+    },
+
+    onInput() {
+      const value = el.input.value
+      el.clear.hidden = value.length === 0
+
+      if (!value.trim()) {
+        this.render('')
+        this.hide()
+        this.lastCount = null
+        return
+      }
+
+      const count = this.render(value)
+      if (count === 0) {
+        // A listbox may only contain options, so the "nothing found" message
+        // lives outside it and the popup stays collapsed.
+        this.hide()
+        el.empty.textContent = t.noResultsVisible(value.trim())
+        el.empty.hidden = false
+      } else {
+        el.empty.hidden = true
+        this.show()
+      }
+
+      if (count !== this.lastCount) {
+        announce(count === 0 ? t.noResults(value.trim()) : t.results(count))
+        this.lastCount = count
+      }
+    },
+
+    onKeydown(e) {
+      const key = e.key
+
+      if (key === 'ArrowDown' || key === 'ArrowUp') {
+        e.preventDefault()
+        if (!this.open) {
+          // Opening an empty box lists everything: a keyboard-only way to
+          // browse the whole collection.
+          const count = this.render(el.input.value)
+          if (!count) return
+          el.empty.hidden = true
+          this.show()
+          announce(t.results(count))
+          this.lastCount = count
+          this.setActive(key === 'ArrowDown' ? 0 : this.options.length - 1)
+          return
+        }
+        this.move(key === 'ArrowDown' ? 1 : -1)
+        return
+      }
+
+      if (!this.open) {
+        if (key === 'Escape' && el.input.value) {
+          e.preventDefault()
+          this.clearInput()
+        }
+        return
+      }
+
+      if (key === 'Home') { e.preventDefault(); this.setActive(0); return }
+      if (key === 'End') { e.preventDefault(); this.setActive(this.options.length - 1); return }
+
+      if (key === 'Enter') {
+        if (this.activeIndex >= 0) { e.preventDefault(); this.activate(this.activeIndex) }
+        else if (this.options.length === 1) { e.preventDefault(); this.activate(0) }
+        return
+      }
+
+      if (key === 'Escape') { e.preventDefault(); this.hide(); return }
+      if (key === 'Tab') this.hide()
+    },
+
+    clearInput() {
+      el.input.value = ''
+      el.clear.hidden = true
+      this.hide()
+      this.lastCount = null
+      announce(t.cleared)
+      el.input.focus()
+    },
+
+    reset() {
+      this.hide()
+      this.options = []
+      this.lastCount = null
+      el.listbox.textContent = ''
+      el.empty.hidden = true
+      el.clear.hidden = el.input.value.length === 0
+    },
+  }
+
+  /* =================================================================== */
+  /* Categories: a disclosure button per category revealing a listbox     */
+  /*                                                                     */
+  /* button[aria-haspopup="listbox"][aria-expanded][aria-controls]        */
+  /*   -> ul[role="listbox"] > li[role="option"]                          */
+  /*                                                                     */
+  /* Focus moves onto the listbox itself, which carries                   */
+  /* aria-activedescendant; options are never focusable, as the role      */
+  /* requires. Same pattern as the search popup above.                    */
+  /* =================================================================== */
+
+  const categories = {
+    entries: [],       // [{button, listbox, options, activeIndex}]
+    openIndex: -1,
+    typeahead: makeTypeahead(),
+
+    open(index, focusTarget) {
+      if (this.openIndex !== -1 && this.openIndex !== index) this.close(this.openIndex)
+      const entry = this.entries[index]
+      if (!entry) return
+      entry.button.setAttribute('aria-expanded', 'true')
+      entry.listbox.hidden = false
+      this.openIndex = index
+      entry.listbox.focus()
+      this.setActive(index, focusTarget === 'last' ? entry.options.length - 1 : 0)
+    },
+
+    close(index, refocus) {
+      if (index === undefined) index = this.openIndex
+      const entry = this.entries[index]
+      if (index === -1 || !entry) return
+      // Clear the flag first so hiding the listbox (which drops focus) does
+      // not re-enter through the focusout guard.
+      if (this.openIndex === index) this.openIndex = -1
+      this.setActive(index, -1)
+      if (refocus) entry.button.focus()
+      entry.button.setAttribute('aria-expanded', 'false')
+      entry.listbox.hidden = true
+    },
+
+    closeAll() { if (this.openIndex !== -1) this.close(this.openIndex) },
+
+    toggle(index) {
+      if (this.openIndex === index) this.close(index, true)
+      else this.open(index)
+    },
+
+    setActive(index, optionIndex) {
+      const entry = this.entries[index]
+      entry.activeIndex = optionIndex
+      setActiveOption(entry.listbox, entry.options, optionIndex)
+    },
+
+    activate(index) {
+      const entry = this.entries[index]
+      const option = entry.options[entry.activeIndex]
+      if (option) option.run()
+    },
+
+    onButtonKeydown(e, index) {
+      const key = e.key
+      const last = this.entries.length - 1
+
+      if (key === 'ArrowDown') { e.preventDefault(); this.open(index, 'first'); return }
+      if (key === 'ArrowUp') { e.preventDefault(); this.open(index, 'last'); return }
+      if (key === 'Escape') { e.preventDefault(); this.closeAll(); return }
+
+      // Arrow travel along the row is an extra on top of Tab, not a
+      // replacement for it: every button is in the natural tab order.
+      if (key === 'ArrowRight' || key === 'ArrowLeft') {
+        e.preventDefault()
+        const next = key === 'ArrowRight'
+          ? (index === last ? 0 : index + 1)
+          : (index === 0 ? last : index - 1)
+        this.closeAll()
+        this.entries[next].button.focus()
+        return
+      }
+      if (key === 'Home') { e.preventDefault(); this.closeAll(); this.entries[0].button.focus(); return }
+      if (key === 'End') { e.preventDefault(); this.closeAll(); this.entries[last].button.focus() }
+    },
+
+    onListboxKeydown(e, index) {
+      const key = e.key
+      const entry = this.entries[index]
+      if (!entry) return
+      const length = entry.options.length
+
+      if (key === 'Escape') { e.preventDefault(); this.close(index, true); return }
+      if (key === 'ArrowDown') { e.preventDefault(); this.setActive(index, stepIndex(entry.activeIndex, 1, length)); return }
+      if (key === 'ArrowUp') { e.preventDefault(); this.setActive(index, stepIndex(entry.activeIndex, -1, length)); return }
+      if (key === 'Home') { e.preventDefault(); this.setActive(index, 0); return }
+      if (key === 'End') { e.preventDefault(); this.setActive(index, length - 1); return }
+      if (key === 'Enter' || key === ' ' || key === 'Spacebar') { e.preventDefault(); this.activate(index); return }
+      if (key === 'Tab') { this.close(index); return }
+
+      if (key.length === 1 && /\S/.test(key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const hit = this.typeahead(entry.options, entry.activeIndex, key)
+        if (hit !== -1) { e.preventDefault(); this.setActive(index, hit) }
+      }
+    },
+
+    build() {
+      el.catList.textContent = ''
+      this.entries = []
+      this.openIndex = -1
+
+      data.categories.forEach((cat) => {
+        const games = visibleGames().filter((g) => g.category === cat.id)
+        if (!games.length) return
+
+        const index = this.entries.length
+        const listboxId = 'cat-listbox-' + cat.id
+        const labelId = 'cat-label-' + cat.id
+
+        const li = document.createElement('li')
+
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'cat-button'
+        button.id = 'cat-button-' + cat.id
+        button.setAttribute('aria-haspopup', 'listbox')
+        button.setAttribute('aria-expanded', 'false')
+        button.setAttribute('aria-controls', listboxId)
+
+        const label = document.createElement('span')
+        label.id = labelId
+        label.textContent = pick(cat.name, lang)
+        const n = document.createElement('span')
+        n.className = 'n'
+        n.textContent = '(' + t.games(games.length) + ')'
+        const caret = document.createElement('span')
+        caret.className = 'caret'
+        caret.setAttribute('aria-hidden', 'true')
+        caret.textContent = '▾'
+        button.append(label, n, caret)
+
+        const listbox = document.createElement('ul')
+        listbox.className = 'listbox cat-listbox'
+        listbox.id = listboxId
+        listbox.setAttribute('role', 'listbox')
+        listbox.setAttribute('aria-labelledby', labelId)
+        listbox.tabIndex = -1
+        listbox.hidden = true
+
+        const options = []
+        games.forEach((game, gi) => {
+          const node = makeOption(
+            listboxId + '-option-' + gi,
+            pick(game.name, lang),
+            game.category === 'dev' ? t.inDevelopment : ''
+          )
+          node.addEventListener('mousedown', (e) => e.preventDefault())
+          node.addEventListener('click', () => openUrl(game.path))
+          listbox.appendChild(node)
+          options.push({ node, run: () => openUrl(game.path) })
+        })
+
+        // Last option jumps to this category's section in the page.
+        const jump = makeOption(
+          listboxId + '-option-' + games.length,
+          t.showAll(games.length),
+          '',
+          'jump'
+        )
+        const runJump = () => {
+          this.close(index)
+          const heading = document.getElementById('h-' + cat.id)
+          if (heading) {
+            if (heading.scrollIntoView) heading.scrollIntoView({ block: 'start' })
+            heading.focus()
+          }
+        }
+        jump.addEventListener('mousedown', (e) => e.preventDefault())
+        jump.addEventListener('click', runJump)
+        listbox.appendChild(jump)
+        options.push({ node: jump, run: runJump })
+
+        button.addEventListener('click', () => this.toggle(index))
+        button.addEventListener('keydown', (e) => this.onButtonKeydown(e, index))
+        listbox.addEventListener('keydown', (e) => this.onListboxKeydown(e, index))
+
+        li.addEventListener('focusout', (e) => {
+          if (this.openIndex !== index) return
+          if (e.relatedTarget && li.contains(e.relatedTarget)) return
+          this.close(index)
+        })
+
+        li.append(button, listbox)
+        el.catList.appendChild(li)
+        this.entries.push({ button, listbox, options, activeIndex: -1 })
+      })
+    },
+  }
+
+  /* =================================================================== */
+  /* Listing                                                             */
+  /* =================================================================== */
+
+  function buildCard(game) {
+    const li = document.createElement('li')
+    li.className = 'game'
+
+    const a = document.createElement('a')
+    a.href = game.path
+    a.textContent = pick(game.name, lang)
+    const descId = 'desc-' + game.id
+    a.setAttribute('aria-describedby', descId)
+    li.appendChild(a)
+
+    if (game.category === 'dev') {
+      const badge = document.createElement('p')
+      badge.className = 'badge'
+      badge.textContent = t.devBadge
+      li.appendChild(badge)
+    }
+
+    const desc = document.createElement('p')
+    desc.className = 'game-desc'
+    desc.id = descId
+    desc.textContent = pick(game.description, lang)
+    li.appendChild(desc)
+
+    const other = pick(game.name, t.otherLang)
+    if (other && other !== pick(game.name, lang)) {
+      const alt = document.createElement('p')
+      alt.className = 'game-alt'
+      const label = document.createElement('span')
+      label.className = 'sr-only'
+      label.textContent = t.altName + ' '
+      const value = document.createElement('span')
+      value.lang = t.otherLang
+      value.textContent = other
+      alt.append(label, value)
+      li.appendChild(alt)
+    }
+    return li
+  }
+
+  function buildListing() {
+    el.listing.textContent = ''
+    let sections = 0
+
+    for (const cat of data.categories) {
+      const games = visibleGames().filter((g) => g.category === cat.id)
+      if (!games.length) continue
+      sections++
+
+      const section = document.createElement('section')
+      section.className = 'category'
+      section.id = 'cat-' + cat.id
+      section.setAttribute('aria-labelledby', 'h-' + cat.id)
+
+      const h2 = document.createElement('h2')
+      h2.id = 'h-' + cat.id
+      h2.tabIndex = -1
+      h2.appendChild(document.createTextNode(pick(cat.name, lang) + ' '))
+      const count = document.createElement('span')
+      count.className = 'count'
+      count.textContent = '(' + t.games(games.length) + ')'
+      h2.appendChild(count)
+      section.appendChild(h2)
+
+      if (cat.description) {
+        const p = document.createElement('p')
+        p.className = 'cat-desc'
+        p.textContent = pick(cat.description, lang)
+        section.appendChild(p)
+      }
+
+      const ul = document.createElement('ul')
+      ul.className = 'games'
+      for (const game of games) ul.appendChild(buildCard(game))
+      section.appendChild(ul)
+
+      el.listing.appendChild(section)
+    }
+    return sections
+  }
+
+  /* =================================================================== */
+  /* Render                                                              */
+  /* =================================================================== */
+
+  function render() {
+    t = UI[lang]
+
+    document.documentElement.lang = t.htmlLang
+    document.title = pick(data.site.title, lang)
+    el.title.textContent = pick(data.site.title, lang)
+    el.tagline.textContent = pick(data.site.tagline, lang)
+    el.footer.textContent = t.footer
+    el.input.placeholder = t.searchPlaceholder
+    el.comboHelp.textContent = t.comboHelp
+    el.catHelp.textContent = t.categoriesHelp
+    el.listbox.setAttribute('aria-label', t.resultsLabel)
+    el.clear.textContent = t.clearSearch
+    el.kbdHint.textContent = t.kbdHint
+
+    document.querySelectorAll('[data-i18n]').forEach((node) => {
+      const key = node.getAttribute('data-i18n')
+      if (typeof t[key] === 'string') node.textContent = t[key]
+    })
+
+    // The <select> is never replaced, so a language change never steals focus
+    // from it. Options are the languages' own endonyms.
+    if (!el.langSelect.options.length) {
+      for (const l of data.languages) {
+        const opt = document.createElement('option')
+        opt.value = l.code
+        opt.textContent = l.label
+        opt.lang = l.code
+        el.langSelect.appendChild(opt)
+      }
+    }
+    el.langSelect.value = lang
+
+    categories.build()
+    const sections = buildListing()
+    el.status.textContent = t.total(visibleGames().length, sections)
+    combo.reset()
+  }
+
+  function rebuildHaystacks() {
+    for (const g of data.games) {
+      const cat = catById(g.category)
+      g._haystack = fold([
+        g.id,
+        g.name.en, g.name.es,
+        g.description.en, g.description.es,
+        cat ? cat.name.en : '', cat ? cat.name.es : '',
+        g.category === 'dev' ? 'dev development desarrollo' : '',
+      ].join(' '))
+    }
+  }
+
+  /* =================================================================== */
+  /* Language                                                            */
+  /* =================================================================== */
+
+  function readStoredLang() {
+    const fromUrl = new URLSearchParams(location.search).get('lang')
+    if (fromUrl && UI[fromUrl]) return fromUrl
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved && UI[saved]) return saved
+    } catch (e) { /* storage blocked */ }
+    const nav = (navigator.language || DEFAULT_LANG).slice(0, 2)
+    return UI[nav] ? nav : DEFAULT_LANG
+  }
+
+  function storeLang(l) {
+    try { localStorage.setItem(STORAGE_KEY, l) } catch (e) { /* ignore */ }
+    const url = new URL(location.href)
+    url.searchParams.set('lang', l)
+    history.replaceState(null, '', url)
+  }
+
+  /* =================================================================== */
+  /* Wiring                                                              */
+  /* =================================================================== */
+
+  function wire() {
+    el.input.addEventListener('input', () => combo.onInput())
+    el.input.addEventListener('keydown', (e) => combo.onKeydown(e))
+    el.input.addEventListener('blur', () => {
+      window.setTimeout(() => {
+        if (document.activeElement !== el.input) combo.hide()
+      }, 120)
+    })
+    el.clear.addEventListener('click', () => combo.clearInput())
+
+    el.langSelect.addEventListener('change', () => {
+      const chosen = el.langSelect.value
+      if (!UI[chosen] || chosen === lang) return
+      lang = chosen
+      storeLang(lang)
+      rebuildHaystacks()
+      render()
+      announce(pick(data.site.title, lang))
+    })
+
+    el.random.addEventListener('click', () => {
+      const games = visibleGames()
+      if (!games.length) return
+      openUrl(games[Math.floor(Math.random() * games.length)].path)
+    })
+
+    document.addEventListener('click', (e) => {
+      if (!el.catList.contains(e.target)) categories.closeAll()
+      if (!e.target.closest('.combo')) combo.hide()
+    })
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return
+      const tag = e.target && e.target.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.target && e.target.getAttribute('role') === 'listbox') return
+      e.preventDefault()
+      el.input.focus()
+      el.input.select()
+    })
+  }
+
+  fetch('games.json', { cache: 'no-cache' })
+    .then((r) => {
+      if (!r.ok) throw new Error('HTTP ' + r.status)
+      return r.json()
+    })
+    .then((json) => {
+      data = json
+      lang = readStoredLang()
+      rebuildHaystacks()
+      render()
+      wire()
+    })
+    .catch((err) => {
+      console.error('games.json failed to load:', err)
+      el.status.textContent = UI[readStoredLang()].loadError
+    })
+})()
 </script>
 </body>
 </html>

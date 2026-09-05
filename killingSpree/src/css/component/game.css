@@ -1,0 +1,98 @@
+/* KILLING SPREE HUD + top-down road strip (aria-hidden; audio is the
+   interface). The strip shows the barriers, your car's offset and heading,
+   and pedestrians ahead as dots by type. */
+.a-game {
+  align-items: center;
+  text-align: center;
+}
+  .a-game--hud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em 1.4em;
+    justify-content: center;
+    font-size: 1.05em;
+    margin-bottom: 1.2rem;
+  }
+    .a-game--stat b { color: #ff7a6b; }
+
+  .a-game--road {
+    position: relative;
+    width: min(60vw, 22em);
+    height: min(60vh, 26em);
+    margin: 0 auto;
+    border-left: 4px solid #9a3b33;
+    border-right: 4px solid #9a3b33;
+    background:
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.18) 0 1.2em, transparent 1.2em 2.6em) 50% 0 / 0.25em 100% no-repeat,
+      linear-gradient(180deg, #24262b 0%, #1a1c20 100%);
+    overflow: hidden;
+    transition: transform 0.4s ease;
+  }
+    .a-game--road[data-curve="left"] { transform: skewX(-6deg); }
+    .a-game--road[data-curve="right"] { transform: skewX(6deg); }
+  .a-game--car {
+    position: absolute;
+    bottom: 1.2em;
+    left: 50%;
+    width: 1.5em;
+    height: 3em;
+    transform: translateX(-50%);
+    border-radius: 0.35em;
+    background: #e0e4ea;
+    box-shadow: 0 0 10px rgba(224, 228, 234, 0.6);
+    transition: left 80ms linear;
+  }
+  .a-game--peds { position: absolute; inset: 0; }
+  .a-game--ped {
+    position: absolute;
+    width: 0.7em;
+    height: 0.7em;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: #ffd479;
+  }
+    .a-game--ped[data-type="whistler"] { background: #7fe0a0; }
+    .a-game--ped[data-type="phone"] { background: #6bd0ff; }
+    .a-game--ped[data-type="jogger"] { background: #ffa04a; }
+    .a-game--ped[data-type="crosser"] { background: #ff5a5a; }
+
+/* Help / lists */
+.a-help--text {
+  max-width: 44em;
+  margin-left: auto;
+  margin-right: auto;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+.a-help--list {
+  list-style: none;
+  margin: 0.5rem auto;
+  padding: 0;
+  max-width: 44em;
+  text-align: left;
+}
+  .a-help--list li {
+    margin: 0.4em 0;
+    line-height: 1.4;
+  }
+.a-help--list kbd {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 0.25em;
+  padding: 0.05em 0.4em;
+  font-family: inherit;
+}
+
+.a-highscores--list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 40em;
+}
+  .a-highscores--entry,
+  .a-highscores--empty {
+    padding: 0.35em 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+.a-gameover--online-status[data-state="error"] { color: #ff9a8a; }
+.a-gameover--online-status[data-state="ok"] { color: #7fe0a0; }

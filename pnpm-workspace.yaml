@@ -1,0 +1,20 @@
+# Single shared dependency tree for every game in this repo.
+#
+# Each game directory is a workspace package. `pnpm install` at this root
+# resolves the whole collection once into /home/games/node_modules/.pnpm and
+# gives each game a node_modules/ of symlinks into it, so the ~40 identical
+# copies of gulp + syngen collapse to one on-disk set.
+#
+# Build a single game:   pnpm --filter <pkg-name> exec gulp build
+# Build everything:      pnpm run build:all
+# (<pkg-name> is the "name" in that game's package.json, not the directory.)
+packages:
+  - '*'
+
+allowBuilds:
+  electron: true
+
+# pnpm >= 10 refuses to run install scripts unless the package is listed here.
+# Electron's postinstall downloads the desktop binary used by `pnpm start`.
+onlyBuiltDependencies:
+  - electron

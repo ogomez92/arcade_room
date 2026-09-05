@@ -1,0 +1,99 @@
+/* Minefield game HUD + visual grid (aria-hidden; the audio + announcements are
+   the real interface). Kept readable for sighted / low-vision players. */
+.a-game {
+  align-items: center;
+  text-align: center;
+}
+  .a-game--hud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em 1.4em;
+    justify-content: center;
+    font-size: 1.05em;
+    margin-bottom: 1.2rem;
+  }
+    .a-game--stat b { color: #ffd479; }
+
+  .a-game--grid {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 0.6em;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 0.5rem;
+    margin: 0 auto;
+  }
+  .a-game--row {
+    display: flex;
+    gap: 3px;
+  }
+  .a-game--cell {
+    align-items: center;
+    border-radius: 3px;
+    display: inline-flex;
+    font-size: 1.1em;
+    height: 1.7em;
+    justify-content: center;
+    width: 1.7em;
+    background: rgba(255, 255, 255, 0.10);
+    color: rgba(255, 255, 255, 0.85);
+  }
+    .a-game--cell.is-covered { background: rgba(255, 255, 255, 0.16); color: transparent; }
+    .a-game--cell.is-empty { background: rgba(255, 255, 255, 0.04); color: rgba(255, 255, 255, 0.25); }
+    .a-game--cell.is-flag { background: rgba(255, 170, 60, 0.30); color: #ffd479; }
+    .a-game--cell.is-mine { background: rgba(220, 60, 60, 0.55); color: #fff; }
+    .a-game--cell.is-n { background: rgba(80, 140, 220, 0.18); font-weight: bold; }
+    .a-game--cell.n1 { color: #7fb2ff; }
+    .a-game--cell.n2 { color: #7fe0a0; }
+    .a-game--cell.n3 { color: #ff9a8a; }
+    .a-game--cell.n4 { color: #c79bff; }
+    .a-game--cell.n5 { color: #ffb066; }
+    .a-game--cell.n6 { color: #66e0e0; }
+    .a-game--cell.n7 { color: #ffe066; }
+    .a-game--cell.n8 { color: #ff6b9d; }
+    .a-game--cell.is-cursor {
+      outline: 3px solid #ffffff;
+      outline-offset: -1px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+    }
+
+/* Help / lists */
+.a-help--text {
+  max-width: 44em;
+  margin-left: auto;
+  margin-right: auto;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+.a-help--list {
+  list-style: none;
+  margin: 0.5rem auto;
+  padding: 0;
+  max-width: 44em;
+  text-align: left;
+}
+  .a-help--list li {
+    margin: 0.4em 0;
+    line-height: 1.4;
+  }
+.a-help--list kbd {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 0.25em;
+  padding: 0.05em 0.4em;
+  font-family: inherit;
+}
+
+.a-highscores--list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 40em;
+}
+  .a-highscores--entry,
+  .a-highscores--empty {
+    padding: 0.35em 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+.a-gameover--online-status[data-state="error"] { color: #ff9a8a; }
+.a-gameover--online-status[data-state="ok"] { color: #7fe0a0; }

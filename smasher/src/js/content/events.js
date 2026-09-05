@@ -1,0 +1,30 @@
+// Tiny event bus for content modules. Copied verbatim from the collection's
+// shared pattern so wiring looks the same everywhere. The game module emits;
+// the game screen subscribes and turns events into audio + announcements.
+content.events = (() => {
+  const listeners = {}
+
+  return {
+    on: function (name, fn) {
+      if (!listeners[name]) listeners[name] = []
+      listeners[name].push(fn)
+      return this
+    },
+    off: function (name, fn) {
+      if (!listeners[name]) return this
+      listeners[name] = listeners[name].filter((f) => f !== fn)
+      return this
+    },
+    emit: function (name, payload) {
+      if (!listeners[name]) return this
+      for (const fn of listeners[name]) {
+        try { fn(payload) } catch (e) { console.error(e) }
+      }
+      return this
+    },
+    clear: function () {
+      for (const k in listeners) delete listeners[k]
+      return this
+    },
+  }
+})()

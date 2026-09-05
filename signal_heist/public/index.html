@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Signal Heist</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div class="a-app--announce" aria-live="polite" aria-atomic="true"></div>
+      <div class="a-app--announce-assertive" aria-live="assertive" aria-atomic="true"></div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <canvas class="a-game--canvas" aria-hidden="true"></canvas>
+          <div class="a-game--hud" aria-hidden="true">
+            <span class="a-game--score">Score 0</span>
+            <span class="a-game--contract">Contract 1</span>
+            <span class="a-game--loot">Loot 0/0</span>
+            <span class="a-game--heat">Heat 0%</span>
+            <span class="a-game--jammers">Jammers 0</span>
+            <span class="a-game--status">Trace 0s. Stamina 100%.</span>
+          </div>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Run Ended</h1>
+          <p class="c-menu--subtitle a-gameover--subtitle"></p>
+          <div class="a-gameover--scoreEntry" hidden>
+            <p data-i18n="gameover.namePrompt">Enter your name to post your score:</p>
+            <input class="a-gameover--name" type="text" maxlength="100" autocomplete="name" />
+            <ul class="c-menu--list">
+              <li><button class="c-menu--button" data-action="submit" data-i18n="gameover.submit">Post Score</button></li>
+              <li><button class="c-menu--button" data-action="skip" data-i18n="gameover.skip">Skip</button></li>
+            </ul>
+          </div>
+          <p class="a-gameover--online-status" role="status" aria-live="polite" hidden></p>
+          <p class="a-gameover--online-link-wrap"><a class="a-gameover--online-link" href="https://scores.gomsen.com" target="_blank" rel="noopener" hidden></a></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="again" data-i18n="gameover.again">Run Again</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="menu.highscores">High Scores</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="gameover.menu">Main Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen c-menu a-highscores" tabindex="-1" data-i18n-attr="aria-label:highscores.aria">
+          <h1 class="c-menu--title" data-i18n="highscores.title">High Scores</h1>
+          <p class="c-menu--subtitle a-highscores--subtitle" data-i18n="highscores.subtitleLocal">Top runs on this device.</p>
+          <ul class="c-menu--list a-highscores--list"></ul>
+          <p class="a-highscores--online-link-wrap"><a class="a-highscores--online-link" href="https://scores.gomsen.com" target="_blank" rel="noopener" data-i18n="online.viewBoard">View the world leaderboard</a></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="highscores.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to Play</h1>
+          <p class="c-menu--subtitle" data-i18n="help.intro"></p>
+          <ul class="c-menu--list c-menu--prose">
+            <li data-i18n-html="help.move"></li>
+            <li data-i18n-html="help.jam"></li>
+            <li data-i18n="help.goal"></li>
+            <li data-i18n="help.stealth"></li>
+            <li data-i18n="help.heat"></li>
+            <li data-i18n-html="help.statusKeys"></li>
+            <li data-i18n="help.scoring"></li>
+          </ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen c-menu a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 class="c-menu--title" data-i18n="learn.title">Learn Sounds</h1>
+          <p class="c-menu--subtitle" data-i18n="learn.subtitle">Audition the important cues before you enter the building.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-sound="guard" data-i18n="learn.guard">Guard footsteps</button></li>
+            <li><button class="c-menu--button" data-sound="camera" data-i18n="learn.camera">Camera alert motor</button></li>
+            <li><button class="c-menu--button" data-sound="cache" data-i18n="learn.cache">Data cache</button></li>
+            <li><button class="c-menu--button" data-sound="exit" data-i18n="learn.exit">Exit beacon</button></li>
+            <li><button class="c-menu--button" data-sound="jam" data-i18n="learn.jam">Signal jammer</button></li>
+            <li><button class="c-menu--button" data-sound="sneak" data-i18n="learn.sneak">Clean sneak-past music</button></li>
+            <li><button class="c-menu--button" data-sound="nearCaught" data-i18n="learn.nearCaught">Almost caught</button></li>
+            <li><button class="c-menu--button" data-sound="caught" data-i18n="learn.caught">Captured</button></li>
+            <li><button class="c-menu--button" data-sound="contract" data-i18n="learn.contract">Perfect contract clear</button></li>
+            <li><button class="c-menu--button" data-sound="musicLow" data-i18n="learn.musicLow">Low-tension music layer</button></li>
+            <li><button class="c-menu--button" data-sound="musicHigh" data-i18n="learn.musicHigh">High-tension music layer</button></li>
+          </ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="learn.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Signal Heist</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">Steal the data, read the room by ear, and leave before security closes in.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="start" data-i18n="menu.start">Start Contract Run</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="menu.highscores">High Scores</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to Play</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn Sounds</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+            <li><button class="c-menu--button" data-action="quit" data-i18n="menu.quit">Quit</button></li>
+          </ul>
+        </section>
+      </div>
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

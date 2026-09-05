@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Pipe</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <!-- Live regions for the announcer -->
+      <div class="a-app--announce u-screenReader" aria-live="polite" aria-atomic="true"></div>
+      <div class="a-app--announce-assertive u-screenReader" aria-live="assertive" aria-atomic="true"></div>
+
+      <!-- Game (audio only) -->
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria"></section>
+      </div>
+
+      <!-- City / difficulty picker -->
+      <div class="a-app--screen a-app--city">
+        <section class="c-screen c-menu a-city" tabindex="-1" data-i18n-attr="aria-label:city.aria">
+          <h1 class="c-menu--title" data-i18n="city.title">Choose a City</h1>
+          <p class="c-menu--subtitle" data-i18n="city.subtitle">Cities are listed in order of difficulty.</p>
+          <ul class="c-menu--list a-city--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="city.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Game over -->
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Game Over</h1>
+          <p class="a-gameover--status"></p>
+          <ul class="c-menu--list a-gameover--scores"></ul>
+          <ul class="c-menu--list">
+            <li>
+              <input class="a-gameover--name c-input" type="text" maxlength="24"
+                     data-i18n-attr="aria-label:gameover.namePrompt;placeholder:gameover.namePrompt" />
+            </li>
+            <li><button class="c-menu--button" data-action="submit" data-i18n="gameover.submit">Submit to leaderboard</button></li>
+          </ul>
+          <p class="a-gameover--online"></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="play" data-i18n="gameover.playAgain">Play Again</button></li>
+            <li><button class="c-menu--button" data-action="scores" data-i18n="gameover.viewScores">Top Scores</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="gameover.menu">Main Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Top scores -->
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen c-menu a-highscores" tabindex="-1" data-i18n-attr="aria-label:scores.aria">
+          <h1 class="c-menu--title" data-i18n="scores.title">Top Scores</h1>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-city="usa" data-i18n="city.usa">USA</button></li>
+            <li><button class="c-menu--button" data-city="canada" data-i18n="city.canada">Canada</button></li>
+            <li><button class="c-menu--button" data-city="spain" data-i18n="city.spain">Spain</button></li>
+          </ul>
+          <h2 class="a-highscores--chart"></h2>
+          <ul class="c-menu--list a-highscores--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="scores.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Learn game sounds -->
+      <div class="a-app--screen a-app--learn">
+        <section class="c-screen c-menu a-learn" tabindex="-1" data-i18n-attr="aria-label:learn.aria">
+          <h1 class="c-menu--title" data-i18n="learn.title">Learn Game Sounds</h1>
+          <ul class="c-menu--list a-learn--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="learn.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Training -->
+      <div class="a-app--screen a-app--training">
+        <section class="c-screen c-menu a-training" tabindex="-1" data-i18n-attr="aria-label:training.aria">
+          <h1 class="c-menu--title" data-i18n="training.title">Training Mode</h1>
+          <p class="a-training--status"></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="training.back">Back to menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Speaker test -->
+      <div class="a-app--screen a-app--speakertest">
+        <section class="c-screen c-menu a-speakertest" tabindex="-1" data-i18n-attr="aria-label:speaker.aria">
+          <h1 class="c-menu--title" data-i18n="speaker.title">Speaker Test</h1>
+          <p class="a-speakertest--status"></p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="play" data-i18n="speaker.play">Play test sound</button></li>
+            <li><button class="c-menu--button" data-action="left" data-i18n="speaker.left">I heard it on the LEFT (correct)</button></li>
+            <li><button class="c-menu--button" data-action="right" data-i18n="speaker.right">I heard it on the RIGHT (swap)</button></li>
+            <li><button class="c-menu--button" data-action="back" data-i18n="speaker.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Settings -->
+      <div class="a-app--screen a-app--settings">
+        <section class="c-screen c-menu a-settings" tabindex="-1" data-i18n-attr="aria-label:settings.aria">
+          <h1 class="c-menu--title" data-i18n="settings.title">Settings</h1>
+          <ul class="c-menu--list a-settings--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="settings.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Language -->
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- Main menu -->
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Pipe</h1>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="play" data-i18n="menu.start">Start Game</button></li>
+            <li><button class="c-menu--button" data-action="training" data-i18n="menu.training">Training Mode</button></li>
+            <li><button class="c-menu--button" data-action="learn" data-i18n="menu.learn">Learn Game Sounds</button></li>
+            <li><button class="c-menu--button" data-action="scores" data-i18n="menu.scores">Top Scores</button></li>
+            <li><button class="c-menu--button" data-action="speaker" data-i18n="menu.speaker">Speaker Test</button></li>
+            <li><button class="c-menu--button" data-action="settings" data-i18n="menu.settings">Settings</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+            <li><button class="c-menu--button" data-action="quit" data-i18n="menu.quit">Quit</button></li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

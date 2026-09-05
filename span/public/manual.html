@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Span — Manual</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <style>
+      *, *::after, *::before {
+        background: transparent;
+        border: 0;
+        box-sizing: border-box;
+        color: inherit;
+        font: inherit;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        background-color: #FFFFFF;
+        font-family: sans-serif;
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.5;
+      }
+
+      main ::selection {
+        background-color: #FF0069;
+        color: #FFFFFF;
+        text-decoration-color: #FFFFFF;
+      }
+
+      a {
+        color: #FF0069;
+        cursor: pointer;
+        text-decoration: underline;
+      }
+
+      code {
+        font-family: monospace;
+      }
+
+      details > * + * {
+        margin-top: 1.25em;
+      }
+
+      em {
+        font-family: sans-serif;
+        font-style: italic;
+      }
+
+      h2 {
+        font-size: 2em;
+      }
+
+      h3 {
+        font-size: 1.5em;
+        margin-top: 3rem;
+      }
+
+      h4 {
+        font-size: 1.25em;
+        margin-top: 3rem;
+      }
+
+      kbd {
+        border: 1px solid #FF0069;
+        border-radius: 0.25em;
+        display: inline-block;
+        font-family: monospace;
+        padding: 0 0.5em;
+      }
+
+      strong, th {
+        font-family: sans-serif;
+        font-weight: 700;
+      }
+
+      section {
+        margin: 0 auto;
+        max-width: calc(60ch + 4em);
+        padding: 3em 1em;
+      }
+
+      section + section {
+        border-top: 1px dotted #CCCCCC;
+      }
+
+      section > * + *:not(h3):not(h4) {
+        margin-top: 1.25em;
+      }
+
+      section > h2 + *,
+      section > h3 + *,
+      section > h4 + * {
+        margin-top: 0.75em !important;
+      }
+
+      table, td, th {
+        border: 1px solid #000000;
+        border-collapse: collapse;
+      }
+
+      td, th {
+        padding: 0.25em 0.5em;
+      }
+
+      th {
+        text-align: left;
+      }
+
+      ul {
+        list-style-position: inside;
+        padding-left: 1.5em;
+      }
+
+      .hero {
+        align-items: center;
+        background-color: #000000;
+        color: #FFFFFF;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        line-height: 1.25;
+        padding: 4em 1em;
+        text-align: center;
+      }
+        .hero--author {
+          font-family: monospace;
+          margin-top: 2em;
+        }
+        .hero--logo {
+          font-family: monospace;
+          font-size: 3em;
+          text-transform: uppercase;
+        }
+
+      .scrollable {
+        max-width: 100%;
+        overflow: auto;
+        white-space: nowrap;
+      }
+
+      @media (min-width: 20rem) {
+        :root {
+          font-size: calc(1rem + ((1vw - 0.2rem) * 0.25));
+        }
+      }
+
+      @media (min-width: 48rem) {
+        section {
+          padding-left: 2em;
+          padding-right: 2em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <h1>
+        <div class="hero--lockup">
+          <div class="hero--logo">Span</div>
+          <div class="hero--author">audio bridges</div>
+        </div>
+      </h1>
+    </header>
+
+    <main>
+      <section>
+        <h2>Introduction</h2>
+        <p><strong>Span</strong> is an audio-first, blind-accessible take on Hashiwokakero — the "Bridges" logic puzzle. Islands sit on a grid, each showing a number. You build bridges between them — straight, horizontal or vertical, one or two between any pair — so that every island carries exactly its number of bridges, no two bridges cross, and all the islands join into a single connected network.</p>
+        <p>It is a pure <em>logic</em> puzzle: every board is generated from a real bridge network, so a valid solution always exists. You have a generous move budget per board; run it dry and the puzzle is failed, costing one of three lives. Solve a board to climb to a larger one.</p>
+        <p>Span reads by ear, and the listener never turns: north is always in front of you, south behind, east to your right, west to your left. Because bridges run in those four directions, the compass scan and every bridge you build sound from their true bearing. The cursor hops island to island; each island's tone pans to its column and rises in pitch toward the top of the board.</p>
+      </section>
+
+      <section>
+        <h2>System Requirements</h2>
+        <p>This is best experienced with headphones and a gamepad.</p>
+        <p>Real-time synthesis is an <em>extremely</em> CPU-intensive process. It will attempt to run on any machine that meets its minimum requirements; however, you may experience stuttering or drop-outs when running below the recommended requirements.</p>
+
+        <h3>Minimum System Requirements</h3>
+        <table>
+          <tr>
+            <th>CPU</th>
+            <td>SSE2 capable (64-bit)</td>
+          </tr>
+          <tr>
+            <th>RAM</th>
+            <td>2 GB</td>
+          </tr>
+        </table>
+
+        <h3>Recommended System Requirements</h3>
+        <table>
+          <tr>
+            <th>CPU</th>
+            <td>3.5 GHz Quad-Core (64-bit)</td>
+          </tr>
+          <tr>
+            <th>RAM</th>
+            <td>4 GB</td>
+          </tr>
+        </table>
+
+        <h3>Browser Support</h3>
+        <p>The HTML5 build is intended to be played in a recent version of a Chromium-based browser, such as Google Chrome, Microsoft Edge, or Opera. Browser extensions that alter page behavior are not recommended. Other browsers must support modern JavaScript features and the current Web Audio API specification.</p>
+      </section>
+
+      <section>
+        <h2>How to Play</h2>
+        <p>The cursor sits on an island. Press an arrow to hop to the next island in that direction; you'll hear its position and be told its number and how many bridges it currently carries. Press <kbd>Space</kbd> to scan the compass from where you are — each of the four directions plays a cue: near-silence for open water, a soft pip for a reachable island with no bridge yet, and a taut tone (doubled for two bridges) where a bridge already runs.</p>
+        <p>To build, select the island with <kbd>Enter</kbd>, then press a <kbd>direction</kbd>: the first press lays one bridge that way, a second makes it a double, a third removes it. As a shortcut, hold <kbd>Shift</kbd> and press a direction to do the same in one step without selecting. A bridge that would cross another is refused with a buzz. When you land on an island that already carries exactly its number, you hear a soft shimmer.</p>
+        <p>Press <kbd>C</kbd> to describe the current island and what lies in each direction; <kbd>F2</kbd> lists the islands that don't yet carry their number — the audio equivalent of scanning the board.</p>
+        <p>Connect every island into one network with the right number of bridges on each to solve the puzzle and climb a level; the fewer moves you spend, the more you score. Run out of moves and the puzzle is failed, costing a life. Out of lives ends the run — enter your name to save your score.</p>
+      </section>
+
+      <section>
+        <h2>Controls</h2>
+        <div class="scrollable">
+          <table>
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Keyboard</th>
+                <th>Gamepad</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Hop to the next island</td><td><kbd>Arrows</kbd>, <kbd>WASD</kbd>, numpad</td><td>D-pad</td></tr>
+              <tr><td>Select island / cancel</td><td><kbd>Enter</kbd></td><td>A</td></tr>
+              <tr><td>Build bridge (after selecting)</td><td>a <kbd>direction</kbd></td><td>D-pad</td></tr>
+              <tr><td>Build bridge shortcut</td><td><kbd>Shift</kbd> + <kbd>direction</kbd></td><td>—</td></tr>
+              <tr><td>Scan the compass</td><td><kbd>Space</kbd></td><td>X</td></tr>
+              <tr><td>Describe the current island</td><td><kbd>C</kbd></td><td>B</td></tr>
+              <tr><td>Status: score, lives, moves, unsolved</td><td><kbd>F1</kbd></td><td>—</td></tr>
+              <tr><td>List unsolved islands</td><td><kbd>F2</kbd></td><td>—</td></tr>
+              <tr><td>Progress + moves left</td><td><kbd>F3</kbd></td><td>—</td></tr>
+              <tr><td>Describe the current island</td><td><kbd>F4</kbd></td><td>—</td></tr>
+              <tr><td>Pause</td><td><kbd>Escape</kbd></td><td>Start</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

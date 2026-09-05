@@ -8,7 +8,9 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "package": "node electron/build.js"
+    "package": "node electron/build.js",
+    "build:all": "pnpm -r --filter \"!oriolgomez-games\" exec gulp build",
+    "games:check": "node tools/games-check.js"
   },
   "devDependencies": {
     "@electron/packager": "^20.0.0",

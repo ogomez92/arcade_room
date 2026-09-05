@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title data-i18n="doc.title">Night Chase</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="stylesheet" type="text/css" href="./styles.min.css" />
+  </head>
+  <body role="application">
+    <main class="a-app">
+      <canvas class="a-app--overlaySupport"></canvas>
+
+      <div role="status" aria-live="polite" aria-atomic="true" class="u-screenReader a-app--announce"></div>
+      <div role="status" aria-live="assertive" aria-atomic="true" class="u-screenReader a-app--announce-assertive"></div>
+
+      <div class="a-app--screen a-app--game">
+        <section class="c-screen a-game" tabindex="-1" data-i18n-attr="aria-label:game.aria">
+          <h1 class="u-screenReader" data-i18n="game.heading">Race in progress</h1>
+          <div class="a-game--hud" aria-hidden="true">
+            <div><span data-i18n="game.score">Score</span> <strong class="a-game--score-value">0</strong></div>
+            <div><span data-i18n="game.speed">Speed</span> <strong class="a-game--speed-value">0</strong></div>
+            <div><span data-i18n="game.health">Health</span> <strong class="a-game--health-value">100</strong></div>
+            <div><span data-i18n="game.heat">Heat</span> <strong class="a-game--heat-value">0</strong></div>
+            <div><span data-i18n="game.cops">Cops</span> <strong class="a-game--cops-value">1</strong></div>
+            <div><span data-i18n="game.turbo">Turbo</span> <strong class="a-game--turbo-value">0</strong></div>
+            <div><span data-i18n="game.capture">Capture</span> <strong class="a-game--capture-value">0</strong></div>
+          </div>
+          <p class="a-game--prompt" data-i18n="game.prompt">Keep the engine centered. F1 status, F2 target, F3 road, F4 resources, F5 lane.</p>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--language">
+        <section class="c-screen c-menu a-language" tabindex="-1" data-i18n-attr="aria-label:language.aria">
+          <h1 class="c-menu--title" data-i18n="language.title">Language</h1>
+          <p class="c-menu--subtitle" data-i18n="language.subtitle">Choose the language used for menus and announcements.</p>
+          <ul class="c-menu--list a-language--list"></ul>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="language.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--menu">
+        <section class="c-screen c-menu a-menu" tabindex="-1" data-i18n-attr="aria-label:menu.aria">
+          <h1 class="c-menu--title" data-i18n="menu.title">Night Chase</h1>
+          <p class="c-menu--subtitle" data-i18n="menu.subtitle">Audio-first street pursuit racing.</p>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="play" data-i18n="menu.start">Start Chase</button></li>
+            <li><button class="c-menu--button" data-action="difficulty">Difficulty: Pursuit</button></li>
+            <li><button class="c-menu--button" data-action="highscores" data-i18n="menu.highscores">High Scores</button></li>
+            <li><button class="c-menu--button" data-action="help" data-i18n="menu.help">How to Play</button></li>
+            <li><button class="c-menu--button" data-action="language" data-i18n="language.button">Language</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--pause">
+        <section class="c-screen c-menu a-pause" tabindex="-1" data-i18n-attr="aria-label:pause.aria">
+          <h1 class="c-menu--title" data-i18n="pause.title">Paused</h1>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="resume" data-i18n="pause.resume">Resume</button></li>
+            <li><button class="c-menu--button" data-action="menu" data-i18n="pause.menu">Quit to Menu</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--highscores">
+        <section class="c-screen c-menu a-highscores" tabindex="-1" data-i18n-attr="aria-label:highscores.aria">
+          <h1 class="c-menu--title" data-i18n="highscores.title">High Scores</h1>
+          <ol class="a-highscores--list" data-i18n-attr="aria-label:highscores.listLabel"></ol>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="highscores.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--gameover">
+        <section class="c-screen c-menu a-gameover" tabindex="-1" data-i18n-attr="aria-label:gameover.aria">
+          <h1 class="c-menu--title" data-i18n="gameover.title">Captured</h1>
+          <p><span data-i18n="gameover.finalScore">Final score:</span> <strong class="a-gameover--score">0</strong></p>
+          <p class="a-gameover--reason"></p>
+          <form class="a-gameover--form">
+            <label for="a-gameover-name" class="u-screenReader" data-i18n="gameover.nameLabel">Driver name</label>
+            <input id="a-gameover-name" class="a-gameover--name" type="text" autocomplete="off" data-i18n-attr="placeholder:gameover.namePlaceholder" />
+            <button class="c-menu--button a-gameover--submit" type="submit" data-i18n="gameover.save">Save Score</button>
+          </form>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="continue" data-i18n="gameover.continue">Continue</button></li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="a-app--screen a-app--help">
+        <section class="c-screen c-menu a-help" tabindex="-1" data-i18n-attr="aria-label:help.aria">
+          <h1 class="c-menu--title" data-i18n="help.title">How to Play</h1>
+          <div class="c-menu--prose">
+            <h2 data-i18n="help.goalHeader">Goal</h2>
+            <p data-i18n="help.goal">Survive as long as possible, score by wrecking targets, and escape escalating police pressure.</p>
+
+            <h2 data-i18n="help.controlsHeader">Controls</h2>
+            <ul>
+              <li data-i18n-html="help.controlSteer"><kbd>Left</kbd>/<kbd>Right</kbd> or gamepad stick steer.</li>
+              <li data-i18n-html="help.controlThrottle"><kbd>Up</kbd> accelerates. <kbd>Down</kbd> brakes.</li>
+              <li data-i18n-html="help.controlTurbo"><kbd>Space</kbd> or gamepad south button uses turbo when available.</li>
+              <li data-i18n-html="help.controlPause"><kbd>Escape</kbd> pauses.</li>
+            </ul>
+
+            <h2 data-i18n="help.audioHeader">Audio Driving</h2>
+            <ul>
+              <li data-i18n="help.audioEngine">Your engine pans left or right when you drift from the center. Keep it centered.</li>
+              <li data-i18n="help.audioCurves">Curve warnings play from the turn direction about two seconds early.</li>
+              <li data-i18n="help.audioTargets">Target beacons point toward pedestrians, bars, turbo, and armor.</li>
+              <li data-i18n="help.audioCops">Cop engines and sirens grow behind you as they close in.</li>
+            </ul>
+
+            <h2 data-i18n="help.statusHeader">Status Keys</h2>
+            <ul>
+              <li data-i18n-html="help.statusF1"><kbd>F1</kbd> reads score, health, heat, speed, cops, and armor.</li>
+              <li data-i18n-html="help.statusF2"><kbd>F2</kbd> reads nearest target.</li>
+              <li data-i18n-html="help.statusF3"><kbd>F3</kbd> reads current or upcoming curve.</li>
+              <li data-i18n-html="help.statusF4"><kbd>F4</kbd> reads turbo and armor.</li>
+              <li data-i18n-html="help.statusF5"><kbd>F5</kbd> reads lane position.</li>
+            </ul>
+          </div>
+          <ul class="c-menu--list">
+            <li><button class="c-menu--button" data-action="back" data-i18n="help.back">Back</button></li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <script src="./scripts.min.js"></script>
+  </body>
+</html>

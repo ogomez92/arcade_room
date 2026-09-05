@@ -1,0 +1,102 @@
+/* Minefield game HUD + visual grid (aria-hidden; the audio + announcements are
+   the real interface). Kept readable for sighted / low-vision players. */
+.a-game {
+  align-items: center;
+  text-align: center;
+}
+  .a-game--hud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em 1.4em;
+    justify-content: center;
+    font-size: 1.05em;
+    margin-bottom: 1.2rem;
+  }
+    .a-game--stat b { color: #ffd479; }
+
+  .a-game--grid {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 0.6em;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 0.5rem;
+    margin: 0 auto;
+  }
+  .a-game--row {
+    display: flex;
+    gap: 3px;
+  }
+  .a-game--cell {
+    align-items: center;
+    border-radius: 3px;
+    display: inline-flex;
+    font-size: 1.1em;
+    height: 1.7em;
+    justify-content: center;
+    width: 1.7em;
+    background: rgba(255, 255, 255, 0.10);
+    color: rgba(255, 255, 255, 0.85);
+  }
+    .a-game--cell.is-empty { background: rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.22); }
+    .a-game--cell.is-thread { color: rgba(0, 0, 0, 0.65); font-weight: bold; }
+    .a-game--cell.is-anchor { color: #0a0a0a; font-weight: bold; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.5); }
+    /* six thread colours */
+    .a-game--cell.c0 { background: #ff7f7f; } /* bell */
+    .a-game--cell.c1 { background: #7fb2ff; } /* pluck */
+    .a-game--cell.c2 { background: #7fe0a0; } /* marimba */
+    .a-game--cell.c3 { background: #ffe066; } /* glass */
+    .a-game--cell.c4 { background: #c79bff; } /* reed */
+    .a-game--cell.c5 { background: #66e0e0; } /* bass */
+    .a-game--cell.is-thread.c0 { background: rgba(255,127,127,0.5); }
+    .a-game--cell.is-thread.c1 { background: rgba(127,178,255,0.5); }
+    .a-game--cell.is-thread.c2 { background: rgba(127,224,160,0.5); }
+    .a-game--cell.is-thread.c3 { background: rgba(255,224,102,0.5); }
+    .a-game--cell.is-thread.c4 { background: rgba(199,155,255,0.5); }
+    .a-game--cell.is-thread.c5 { background: rgba(102,224,224,0.5); }
+    .a-game--cell.is-cursor {
+      outline: 3px solid #ffffff;
+      outline-offset: -1px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+    }
+
+/* Help / lists */
+.a-help--text {
+  max-width: 44em;
+  margin-left: auto;
+  margin-right: auto;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+.a-help--list {
+  list-style: none;
+  margin: 0.5rem auto;
+  padding: 0;
+  max-width: 44em;
+  text-align: left;
+}
+  .a-help--list li {
+    margin: 0.4em 0;
+    line-height: 1.4;
+  }
+.a-help--list kbd {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 0.25em;
+  padding: 0.05em 0.4em;
+  font-family: inherit;
+}
+
+.a-highscores--list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 40em;
+}
+  .a-highscores--entry,
+  .a-highscores--empty {
+    padding: 0.35em 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+.a-gameover--online-status[data-state="error"] { color: #ff9a8a; }
+.a-gameover--online-status[data-state="ok"] { color: #7fe0a0; }

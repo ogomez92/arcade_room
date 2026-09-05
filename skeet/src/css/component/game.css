@@ -1,0 +1,83 @@
+/* SALVO game HUD + visual compass (aria-hidden; the audio + announcements are
+   the real interface). Kept readable for sighted / low-vision players: eight
+   sectors light up as enemies close in from each bearing. */
+.a-game {
+  align-items: center;
+  text-align: center;
+}
+  .a-game--hud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em 1.4em;
+    justify-content: center;
+    font-size: 1.05em;
+    margin-bottom: 1.2rem;
+  }
+    .a-game--stat b { color: #ffd479; }
+
+  /* Sky strip (aria-hidden; audio + announcements are the real interface). A row
+     of slots across the front arc, left to right; a slot lights for each clay
+     (doves tinted), and the aim slot is outlined. Built by the game screen. */
+  .a-game--sky {
+    display: flex;
+    gap: 0.25em;
+    justify-content: center;
+    align-items: flex-end;
+    width: min(94vw, 36em);
+    height: 8em;
+    margin: 1em auto 0;
+  }
+  .a-game--slot {
+    flex: 1 1 0;
+    height: 100%;
+    border-radius: 0.2em;
+    background: #ffd479;
+    opacity: 0.06;
+    transition: opacity 60ms linear;
+  }
+    .a-game--slot[data-dove] { background: #7fd0ff; }
+    .a-game--slot[data-aim] {
+      box-shadow: inset 0 0 0 2px rgba(127, 224, 160, 0.9);
+      opacity: 0.45;
+    }
+
+/* Help / lists */
+.a-help--text {
+  max-width: 44em;
+  margin-left: auto;
+  margin-right: auto;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+.a-help--list {
+  list-style: none;
+  margin: 0.5rem auto;
+  padding: 0;
+  max-width: 44em;
+  text-align: left;
+}
+  .a-help--list li {
+    margin: 0.4em 0;
+    line-height: 1.4;
+  }
+.a-help--list kbd {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 0.25em;
+  padding: 0.05em 0.4em;
+  font-family: inherit;
+}
+
+.a-highscores--list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 40em;
+}
+  .a-highscores--entry,
+  .a-highscores--empty {
+    padding: 0.35em 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+.a-gameover--online-status[data-state="error"] { color: #ff9a8a; }
+.a-gameover--online-status[data-state="ok"] { color: #7fe0a0; }

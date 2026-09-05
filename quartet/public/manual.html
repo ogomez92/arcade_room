@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Quartet — Manual</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <style>
+      *, *::after, *::before {
+        background: transparent;
+        border: 0;
+        box-sizing: border-box;
+        color: inherit;
+        font: inherit;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        background-color: #FFFFFF;
+        font-family: sans-serif;
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.5;
+      }
+
+      main ::selection {
+        background-color: #FF0069;
+        color: #FFFFFF;
+        text-decoration-color: #FFFFFF;
+      }
+
+      a {
+        color: #FF0069;
+        cursor: pointer;
+        text-decoration: underline;
+      }
+
+      code {
+        font-family: monospace;
+      }
+
+      details > * + * {
+        margin-top: 1.25em;
+      }
+
+      em {
+        font-family: sans-serif;
+        font-style: italic;
+      }
+
+      h2 {
+        font-size: 2em;
+      }
+
+      h3 {
+        font-size: 1.5em;
+        margin-top: 3rem;
+      }
+
+      h4 {
+        font-size: 1.25em;
+        margin-top: 3rem;
+      }
+
+      kbd {
+        border: 1px solid #FF0069;
+        border-radius: 0.25em;
+        display: inline-block;
+        font-family: monospace;
+        padding: 0 0.5em;
+      }
+
+      strong, th {
+        font-family: sans-serif;
+        font-weight: 700;
+      }
+
+      section {
+        margin: 0 auto;
+        max-width: calc(60ch + 4em);
+        padding: 3em 1em;
+      }
+
+      section + section {
+        border-top: 1px dotted #CCCCCC;
+      }
+
+      section > * + *:not(h3):not(h4) {
+        margin-top: 1.25em;
+      }
+
+      section > h2 + *,
+      section > h3 + *,
+      section > h4 + * {
+        margin-top: 0.75em !important;
+      }
+
+      table, td, th {
+        border: 1px solid #000000;
+        border-collapse: collapse;
+      }
+
+      td, th {
+        padding: 0.25em 0.5em;
+      }
+
+      th {
+        text-align: left;
+      }
+
+      ul {
+        list-style-position: inside;
+        padding-left: 1.5em;
+      }
+
+      .hero {
+        align-items: center;
+        background-color: #000000;
+        color: #FFFFFF;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        line-height: 1.25;
+        padding: 4em 1em;
+        text-align: center;
+      }
+        .hero--author {
+          font-family: monospace;
+          margin-top: 2em;
+        }
+        .hero--logo {
+          font-family: monospace;
+          font-size: 3em;
+          text-transform: uppercase;
+        }
+
+      .scrollable {
+        max-width: 100%;
+        overflow: auto;
+        white-space: nowrap;
+      }
+
+      @media (min-width: 20rem) {
+        :root {
+          font-size: calc(1rem + ((1vw - 0.2rem) * 0.25));
+        }
+      }
+
+      @media (min-width: 48rem) {
+        section {
+          padding-left: 2em;
+          padding-right: 2em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <h1>
+        <div class="hero--lockup">
+          <div class="hero--logo">Quartet</div>
+          <div class="hero--author">audio four-in-a-row</div>
+        </div>
+      </h1>
+    </header>
+
+    <main>
+      <section>
+        <h2>Introduction</h2>
+        <p><strong>Quartet</strong> is an audio-first, blind-accessible take on four-in-a-row. Seven columns stand left to right in front of you. On your turn you drop a disc into a column and it falls to the lowest free slot. Connect four of your discs in a line — across, up, or on a diagonal — to win the game.</p>
+        <p>It is a <em>thinking</em> game, not a reflex game: nothing moves until you move. Win and you climb to a stronger opponent; lose and you spend one of three lives. The run is an endless ladder — how high a tier can you out-think before the machine beats you three times?</p>
+        <p>Everything is playable purely by ear. Each column sounds from its own place in the stereo field: column one is hard left, column four is dead centre, column seven is hard right — and that never changes, because the board never turns. A disc's pitch rises the higher it sits in its column, so you can hear how full a column is. Your discs are a warm, rounded tone; the machine's are darker and metallic, so you always know whose disc is whose.</p>
+      </section>
+
+      <section>
+        <h2>System Requirements</h2>
+        <p>This is best experienced with headphones and a gamepad.</p>
+        <p>Real-time synthesis is an <em>extremely</em> CPU-intensive process. It will attempt to run on any machine that meets its minimum requirements; however, you may experience stuttering or drop-outs when running below the recommended requirements.</p>
+
+        <h3>Minimum System Requirements</h3>
+        <table>
+          <tr>
+            <th>CPU</th>
+            <td>SSE2 capable (64-bit)</td>
+          </tr>
+          <tr>
+            <th>RAM</th>
+            <td>2 GB</td>
+          </tr>
+        </table>
+
+        <h3>Recommended System Requirements</h3>
+        <table>
+          <tr>
+            <th>CPU</th>
+            <td>3.5 GHz Quad-Core (64-bit)</td>
+          </tr>
+          <tr>
+            <th>RAM</th>
+            <td>4 GB</td>
+          </tr>
+        </table>
+
+        <h3>Browser Support</h3>
+        <p>The HTML5 build is intended to be played in a recent version of a Chromium-based browser, such as Google Chrome, Microsoft Edge, or Opera. Browser extensions that alter page behavior are not recommended. Other browsers must support modern JavaScript features and the current Web Audio API specification.</p>
+      </section>
+
+      <section>
+        <h2>How to Play</h2>
+        <p>Move your aim left and right across the seven columns. Each step previews where your next disc would land — a tone panned to that column, pitched at the height of the next free slot (low near the bottom, high near the top). A dull buzz means the column is full.</p>
+        <p>Press <kbd>Enter</kbd> to drop a disc into the aimed column. You always move first. After you drop, the machine thinks for a moment and answers; its disc is announced and sounds from its column. Then it is your turn again.</p>
+        <p>To read the board, <strong>scan</strong> a column with <kbd>Space</kbd> (or <kbd>Down</kbd>): you hear its discs from the bottom up, each one's pitch giving its height and its timbre telling you whether it is yours or the machine's. <strong>Sweep</strong> the whole board with <kbd>Up</kbd> to hear the top disc of every column, left to right — a quick read of the skyline and who holds it.</p>
+        <p>Need a hand spotting danger? Press <kbd>F2</kbd> for an analysis of immediate threats: the columns where you can connect four right now, and the columns where you must block the machine before it does. This is the audio equivalent of glancing at the board.</p>
+        <p>Win a game and you climb a level against a tougher opponent, scoring more for sharper (fewer-disc) wins. If the machine connects four first you lose a life. A completely full board with no winner is a draw — small points, and you replay the same level. Lose three games and the run ends; enter your name to save your score to the local and online leaderboards.</p>
+      </section>
+
+      <section>
+        <h2>Controls</h2>
+        <div class="scrollable">
+          <table>
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Keyboard</th>
+                <th>Gamepad</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Move aim left / right</td><td><kbd>Left</kbd> / <kbd>Right</kbd>, <kbd>A</kbd> / <kbd>D</kbd>, numpad <kbd>4</kbd> / <kbd>6</kbd></td><td>D-pad left / right</td></tr>
+              <tr><td>Drop a disc</td><td><kbd>Enter</kbd></td><td>A</td></tr>
+              <tr><td>Scan the aimed column (bottom to top)</td><td><kbd>Space</kbd>, <kbd>Down</kbd></td><td>X</td></tr>
+              <tr><td>Sweep the whole board (left to right)</td><td><kbd>Up</kbd>, <kbd>W</kbd></td><td>Y</td></tr>
+              <tr><td>Describe the aimed column</td><td><kbd>C</kbd></td><td>B</td></tr>
+              <tr><td>Status: level, opponent, score, lives, turn</td><td><kbd>F1</kbd></td><td>—</td></tr>
+              <tr><td>Threats: where you can win / must block</td><td><kbd>F2</kbd></td><td>—</td></tr>
+              <tr><td>Board: disc counts and full columns</td><td><kbd>F3</kbd></td><td>—</td></tr>
+              <tr><td>Last moves played</td><td><kbd>F4</kbd></td><td>—</td></tr>
+              <tr><td>Pause</td><td><kbd>Escape</kbd></td><td>Start</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

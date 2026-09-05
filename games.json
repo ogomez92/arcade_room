@@ -1,0 +1,986 @@
+{
+  "$comment": "Source of truth for the launcher at play.oriolgomez.com. To add a game: drop its folder in /home/games (with a public/index.html) and add an entry to \"games\" below. Then run: pnpm run games:check",
+  "site": {
+    "title": {
+      "en": "Arcade Room",
+      "es": "Sala Arcade"
+    },
+    "tagline": {
+      "en": "Accessible games you play entirely by ear. Keyboard and screen reader throughout, and touch controls on mobile.",
+      "es": "Juegos accesibles que se juegan completamente de oído. Teclado y lector de pantalla en todos, y controles táctiles en el móvil."
+    }
+  },
+  "languages": [
+    {
+      "code": "en",
+      "label": "English"
+    },
+    {
+      "code": "es",
+      "label": "Español"
+    }
+  ],
+  "categories": [
+    {
+      "id": "arcade",
+      "name": {
+        "en": "Arcade classics",
+        "es": "Clásicos del arcade"
+      },
+      "description": {
+        "en": "Cabinet legends rebuilt for the ears.",
+        "es": "Leyendas del salón recreativo, reconstruidas para el oído."
+      }
+    },
+    {
+      "id": "action",
+      "name": {
+        "en": "Action and combat",
+        "es": "Acción y combate"
+      },
+      "description": {
+        "en": "Shooting, brawling and rescuing under pressure.",
+        "es": "Disparar, pelear y rescatar a contrarreloj."
+      }
+    },
+    {
+      "id": "puzzle",
+      "name": {
+        "en": "Puzzles",
+        "es": "Puzles"
+      },
+      "description": {
+        "en": "Take your time. Think it through.",
+        "es": "Sin prisa. Piénsalo bien."
+      }
+    },
+    {
+      "id": "rhythm",
+      "name": {
+        "en": "Rhythm and memory",
+        "es": "Ritmo y memoria"
+      },
+      "description": {
+        "en": "Listen, remember, answer on the beat.",
+        "es": "Escucha, recuerda y responde a tiempo."
+      }
+    },
+    {
+      "id": "sports",
+      "name": {
+        "en": "Sports",
+        "es": "Deportes"
+      },
+      "description": {
+        "en": "Matches you play by ear.",
+        "es": "Partidos que se juegan de oído."
+      }
+    },
+    {
+      "id": "driving",
+      "name": {
+        "en": "Driving and street",
+        "es": "Conducción y calle"
+      },
+      "description": {
+        "en": "Wheels, traffic and the road ahead.",
+        "es": "Ruedas, tráfico y la carretera."
+      }
+    },
+    {
+      "id": "strategy",
+      "name": {
+        "en": "Strategy and management",
+        "es": "Estrategia y gestión"
+      },
+      "description": {
+        "en": "You do not run — you direct.",
+        "es": "Aquí no corres: diriges."
+      }
+    },
+    {
+      "id": "dev",
+      "name": {
+        "en": "Games under development",
+        "es": "Juegos en desarrollo"
+      },
+      "description": {
+        "en": "Playable, but still being built. Expect rough edges and changes.",
+        "es": "Se pueden jugar, pero siguen en construcción. Habrá asperezas y cambios."
+      }
+    }
+  ],
+  "games": [
+    {
+      "id": "asteroids",
+      "path": "/asteroids/",
+      "category": "arcade",
+      "name": {
+        "en": "Asteroids",
+        "es": "Asteroides"
+      },
+      "description": {
+        "en": "Audio-first arcade. Rotate, thrust, fire — and try not to drift into a rock.",
+        "es": "Arcade audio-primero. Gira, empuja, dispara — y procura no chocar."
+      }
+    },
+    {
+      "id": "breakout",
+      "path": "/breakout/",
+      "category": "arcade",
+      "name": {
+        "en": "Audio Breakout",
+        "es": "Audio Breakout"
+      },
+      "description": {
+        "en": "A wood-and-glass arcade wall you can play by ear.",
+        "es": "Un muro arcade de madera y cristal que se puede jugar de oído."
+      }
+    },
+    {
+      "id": "flappy_bird",
+      "path": "/flappy_bird/",
+      "category": "arcade",
+      "name": {
+        "en": "Audio Flappy",
+        "es": "Flappy Audio"
+      },
+      "description": {
+        "en": "Flap through the gaps. Pitch tells you your altitude, panning tells you where the next pipe is.",
+        "es": "Aletea entre los huecos. El tono te dice tu altura y el paneo, dónde está la siguiente tubería."
+      }
+    },
+    {
+      "id": "pacman",
+      "path": "/pacman/",
+      "category": "arcade",
+      "name": {
+        "en": "Audio Pac-Man",
+        "es": "Audio Pac-Man"
+      },
+      "description": {
+        "en": "An audio-first arcade adventure",
+        "es": "Una aventura arcade centrada en el audio"
+      }
+    },
+    {
+      "id": "ballMerge",
+      "path": "/ballMerge/",
+      "category": "arcade",
+      "name": {
+        "en": "Basket",
+        "es": "Basket"
+      },
+      "description": {
+        "en": "Catch falling balls and crash them together. Bigger balls fall faster. Drop one and it's over.",
+        "es": "Atrapa las bolas que caen y hazlas chocar entre sí. Las bolas grandes caen más rápido. Si una toca el suelo, se acabó."
+      }
+    },
+    {
+      "id": "berzerker",
+      "path": "/berzerker/",
+      "category": "arcade",
+      "name": {
+        "en": "BERZERK!",
+        "es": "BERZERK!"
+      },
+      "description": {
+        "en": "Audio-first arcade horror.",
+        "es": "Terror arcade en audio."
+      }
+    },
+    {
+      "id": "boing",
+      "path": "/boing/",
+      "category": "arcade",
+      "name": {
+        "en": "Boing Boing",
+        "es": "Boing Boing"
+      },
+      "description": {
+        "en": "An audio-first bounce climber. You bounce forever; steer left and right to land on the next platform by ear, and climb as high as you can.",
+        "es": "Un trepador de rebotes sonoro. Rebotas sin fin; muévete a izquierda y derecha para aterrizar en la siguiente plataforma de oído y sube lo más alto que puedas."
+      }
+    },
+    {
+      "id": "climber",
+      "path": "/climber/",
+      "category": "arcade",
+      "name": {
+        "en": "CRAZY CLIMBER!",
+        "es": "CRAZY CLIMBER!"
+      },
+      "description": {
+        "en": "Two-handed climber. Use your ears.",
+        "es": "¡Trepa con las dos manos! Escucha bien."
+      }
+    },
+    {
+      "id": "hammer",
+      "path": "/hammer/",
+      "category": "arcade",
+      "name": {
+        "en": "HAMMER OF GLORY!",
+        "es": "¡MARTILLO DE GLORIA!"
+      },
+      "description": {
+        "en": "Step right up — ring the bell at the top!",
+        "es": "¡Pasen y vean — haz sonar la campana de arriba!"
+      }
+    },
+    {
+      "id": "lander",
+      "path": "/lander/",
+      "category": "arcade",
+      "name": {
+        "en": "Lunar Lander",
+        "es": "Aterrizaje"
+      },
+      "description": {
+        "en": "An audio-first port of the GMA Lander tradition. Land on ten worlds with one button.",
+        "es": "Una versión sonora del clásico GMA Lander. Aterriza en diez mundos con una sola tecla."
+      }
+    },
+    {
+      "id": "missile_command",
+      "path": "/missile_command/",
+      "category": "arcade",
+      "name": {
+        "en": "Missile Command",
+        "es": "Missile Command"
+      },
+      "description": {
+        "en": "Audio-first arcade defense — protect six Spanish cities.",
+        "es": "Arcade audio-first — defiende seis ciudades españolas."
+      }
+    },
+    {
+      "id": "pong",
+      "path": "/pong/",
+      "category": "arcade",
+      "name": {
+        "en": "Pong",
+        "es": "Pong"
+      },
+      "description": {
+        "en": "Slide your paddle along your end of the table and swing — straight, left or right.",
+        "es": "Desliza tu pala por tu lado de la mesa y golpea: recto, a la izquierda o a la derecha."
+      }
+    },
+    {
+      "id": "snake",
+      "path": "/snake/",
+      "category": "arcade",
+      "name": {
+        "en": "Snake",
+        "es": "Snake"
+      },
+      "description": {
+        "en": "An audio snake. Steer a growing serpent to the food by ear; the longer you get, the more your own body becomes the maze you must not bite. Every blocked side holds a beacon from its direction, so you hear your cage tighten.",
+        "es": "Una serpiente por audio. Guía a la serpiente hacia la comida de oído; cuanto más creces, más se vuelve tu propio cuerpo el laberinto que no debes morder. Cada lado bloqueado mantiene un faro desde su dirección, así que oyes cómo se cierra tu jaula."
+      }
+    },
+    {
+      "id": "space_invaders",
+      "path": "/space_invaders/",
+      "category": "arcade",
+      "name": {
+        "en": "Space Invaders!",
+        "es": "¡Invasores!"
+      },
+      "description": {
+        "en": "Hold the line. Identify the ship by ear; pick the matching weapon; fire on the centred target.",
+        "es": "Aguanta la línea. Identifica la nave por el oído, elige el arma adecuada y dispara cuando esté centrada."
+      }
+    },
+    {
+      "id": "deekout",
+      "path": "/deekout/",
+      "category": "arcade",
+      "name": {
+        "en": "Super Deekout",
+        "es": "Super Deekout"
+      },
+      "description": {
+        "en": "A fast, audio-first arcade chase.",
+        "es": "Una persecución arcade rápida y sonora."
+      }
+    },
+    {
+      "id": "tube",
+      "path": "/tube/",
+      "category": "arcade",
+      "name": {
+        "en": "Tempest Tube",
+        "es": "Tempest Tube"
+      },
+      "description": {
+        "en": "Audio-first electric tube shooter. Ride the rim, fire inward, and survive the lanes as the tube gets hotter.",
+        "es": "Disparos eléctricos audio-primero dentro de un tubo. Muévete por el borde, dispara hacia dentro y sobrevive cuando las calles se calienten."
+      }
+    },
+    {
+      "id": "fighters",
+      "path": "/fighters/",
+      "category": "action",
+      "name": {
+        "en": "BRAWL!",
+        "es": "BRAWL!"
+      },
+      "description": {
+        "en": "Audio melee. Top-down arena, fists and feet, gendered voices, no weapons.",
+        "es": "Pelea sonora. Arena cenital, puños y patadas, voces masculinas y femeninas, sin armas."
+      }
+    },
+    {
+      "id": "bumper",
+      "path": "/bumper/",
+      "category": "action",
+      "name": {
+        "en": "Bumper Cars",
+        "es": "Coches de choque"
+      },
+      "description": {
+        "en": "An audio dodgem arena. Ram the others, survive the last hit — with pickups and mines in arcade mode.",
+        "es": "Una pista de coches de choque sonora. Embiste a los demás y sobrevive al último golpe, con objetos y minas en el modo arcade."
+      }
+    },
+    {
+      "id": "fire",
+      "path": "/fire/",
+      "category": "action",
+      "name": {
+        "en": "FIRE!",
+        "es": "¡FUEGO!"
+      },
+      "description": {
+        "en": "Aim the hose left and right and put out the fires spreading along a row of burning buildings.",
+        "es": "Apunta la manguera a izquierda y derecha y apaga los incendios que se extienden por una hilera de edificios."
+      }
+    },
+    {
+      "id": "rescue_mission",
+      "path": "/rescue_mission/",
+      "category": "action",
+      "name": {
+        "en": "Rescue Mission",
+        "es": "Misión de rescate"
+      },
+      "description": {
+        "en": "An audio rescue-chopper run. Fly out to stranded survivors, hover to winch them aboard, and ferry them home to base — while ground tanks shell you from below. Save them all, wave after wave.",
+        "es": "Una carrera de helicóptero de rescate por audio. Vuela hasta los supervivientes varados, sobrevuela para izarlos a bordo y llévalos a la base — mientras los tanques te disparan desde abajo. Sálvalos a todos, oleada tras oleada."
+      }
+    },
+    {
+      "id": "vfb",
+      "path": "/vfb/",
+      "category": "action",
+      "name": {
+        "en": "Villains from Beyond",
+        "es": "Villanos del Más Allá"
+      },
+      "description": {
+        "en": "Fly out against the villains from beyond — zapper beam, bombs, and the roar of your engine.",
+        "es": "Vuela contra los villanos del más allá: rayo zapper, bombas y el rugido de tu motor."
+      }
+    },
+    {
+      "id": "decant",
+      "path": "/decant/",
+      "category": "puzzle",
+      "name": {
+        "en": "Decant",
+        "es": "Decant"
+      },
+      "description": {
+        "en": "A water-sort puzzle for the ears. Pour the vials until each holds a single sound.",
+        "es": "Un puzle de ordenar líquidos para el oído. Trasvasa los frascos hasta que cada uno tenga un solo sonido."
+      }
+    },
+    {
+      "id": "drawing_board",
+      "path": "/drawing_board/",
+      "category": "puzzle",
+      "name": {
+        "en": "Drawing board",
+        "es": "Tabla de dibujos"
+      },
+      "description": {
+        "en": "Audio nonogram. Read the number clues and fill the hidden picture, cell by cell.",
+        "es": "Nonograma sonoro. Lee las pistas numéricas y rellena el dibujo oculto, casilla a casilla."
+      }
+    },
+    {
+      "id": "marble",
+      "path": "/marble/",
+      "category": "puzzle",
+      "name": {
+        "en": "Marble",
+        "es": "Canica"
+      },
+      "description": {
+        "en": "Tilt the maze. Reach the exit. Don't fall in.",
+        "es": "Inclina el laberinto. Llega a la salida. No te caigas."
+      }
+    },
+    {
+      "id": "tone48",
+      "path": "/tone48/",
+      "category": "puzzle",
+      "name": {
+        "en": "tone48",
+        "es": "tone48"
+      },
+      "description": {
+        "en": "Slide the tones together; equal tones meld into one a step higher. Build the highest tone you can.",
+        "es": "Desliza los tonos juntos; tonos iguales se funden en uno un paso más alto. Construye el tono más alto que puedas."
+      }
+    },
+    {
+      "id": "circulocos",
+      "path": "/circulocos/",
+      "category": "puzzle",
+      "name": {
+        "en": "Vault",
+        "es": "Vault"
+      },
+      "description": {
+        "en": "Audio peg solitaire. Jump pegs over each other to clear the board down to one.",
+        "es": "Solitario de fichas sonoro. Salta unas fichas sobre otras hasta dejar el tablero en una sola."
+      }
+    },
+    {
+      "id": "warehouse_shift",
+      "path": "/warehouse_shift/",
+      "category": "puzzle",
+      "name": {
+        "en": "Warehouse Shift",
+        "es": "Warehouse Shift"
+      },
+      "description": {
+        "en": "Audio-first Sokoban in a synth warehouse.",
+        "es": "Sokoban audio-first en un almacén de sintetizadores."
+      }
+    },
+    {
+      "id": "dynamic_beatstar",
+      "path": "/dynamic_beatstar/",
+      "category": "rhythm",
+      "name": {
+        "en": "beatstar",
+        "es": "beatstar"
+      },
+      "description": {
+        "en": "Listen, remember, repeat.",
+        "es": "Escucha, recuerda, repite."
+      }
+    },
+    {
+      "id": "craziest_ai_generated_rhythm_game_ever_warning_impossible_to_beat",
+      "path": "/craziest_ai_generated_rhythm_game_ever_warning_impossible_to_beat/",
+      "category": "rhythm",
+      "name": {
+        "en": "Cadence",
+        "es": "Cadence"
+      },
+      "description": {
+        "en": "A rhythm-action spy thriller, played by ear.",
+        "es": "Un thriller de espías rítmico, jugado de oído."
+      }
+    },
+    {
+      "id": "echoes",
+      "path": "/echoes/",
+      "category": "rhythm",
+      "name": {
+        "en": "Echoes",
+        "es": "Echoes"
+      },
+      "description": {
+        "en": "A sound-memory game. Flip cells to hear hidden tones and match the pairs.",
+        "es": "Un juego de memoria sonora. Voltea celdas para oír tonos ocultos y empareja."
+      }
+    },
+    {
+      "id": "mathstar",
+      "path": "/mathstar/",
+      "category": "rhythm",
+      "name": {
+        "en": "Mathstar",
+        "es": "Mathstar"
+      },
+      "description": {
+        "en": "Solve the operation before the music ends.",
+        "es": "Resuelve la operación antes de que termine la música."
+      }
+    },
+    {
+      "id": "air_hockey",
+      "path": "/air_hockey/",
+      "category": "sports",
+      "name": {
+        "en": "Air Hockey",
+        "es": "Hockey de aire"
+      },
+      "description": {
+        "en": "Defend your goal, score in theirs.",
+        "es": "Defiende tu portería y marca en la suya."
+      }
+    },
+    {
+      "id": "pinball",
+      "path": "/pinball/",
+      "category": "sports",
+      "name": {
+        "en": "Audio Pinball",
+        "es": "Audio Pinball"
+      },
+      "description": {
+        "en": "Space Cadet, by ear.",
+        "es": "Space Cadet, de oído."
+      }
+    },
+    {
+      "id": "tennis",
+      "path": "/tennis/",
+      "category": "sports",
+      "name": {
+        "en": "Audio Tennis",
+        "es": "Tenis de Audio"
+      },
+      "description": {
+        "en": "Audio tennis on a full singles court, solo against the AI or one-on-one online.",
+        "es": "Tenis por audio en una pista individual completa, en solitario contra la máquina o uno contra uno en línea."
+      }
+    },
+    {
+      "id": "neverStop",
+      "path": "/neverStop/",
+      "category": "driving",
+      "name": {
+        "en": "neverStop",
+        "es": "neverStop"
+      },
+      "description": {
+        "en": "An audio driving game with one rule: if the car ever comes to a stop, the run is over.",
+        "es": "Un juego de conducción sonoro con una regla: si el coche llega a pararse, se acabó la partida."
+      }
+    },
+    {
+      "id": "roadsplat",
+      "path": "/roadsplat/",
+      "category": "driving",
+      "name": {
+        "en": "roadsplat",
+        "es": "roadsplat"
+      },
+      "description": {
+        "en": "Cross the traffic on foot. Every car announces itself — pick your gap and run.",
+        "es": "Cruza el tráfico a pie. Cada coche se anuncia: elige tu hueco y corre."
+      }
+    },
+    {
+      "id": "curb",
+      "path": "/curb/",
+      "category": "driving",
+      "name": {
+        "en": "The Curb Game",
+        "es": "El Juego del Bordillo"
+      },
+      "description": {
+        "en": "Cross the road by ear.",
+        "es": "Cruza la calle de oído."
+      }
+    },
+    {
+      "id": "racing",
+      "path": "/racing/",
+      "category": "driving",
+      "name": {
+        "en": "Wheels of Claudo",
+        "es": "Wheels of Claudo"
+      },
+      "description": {
+        "en": "Anti-gravity racing, F-Zero style — hold your line through the curves at speed.",
+        "es": "Carreras antigravedad al estilo F-Zero: aguanta la trazada en las curvas a toda velocidad."
+      }
+    },
+    {
+      "id": "plane_control",
+      "path": "/plane_control/",
+      "category": "strategy",
+      "name": {
+        "en": "Plane Control",
+        "es": "Plane Control"
+      },
+      "description": {
+        "en": "Air-traffic control by ear. Vector every flight home before it runs dry — and never let two get too close.",
+        "es": "Control aéreo de oído. Lleva cada vuelo a tierra antes de que se quede sin combustible, y que nunca se acerquen dos demasiado."
+      }
+    },
+    {
+      "id": "cup_tap",
+      "path": "/cup_tap/",
+      "category": "strategy",
+      "name": {
+        "en": "TAPPER!",
+        "es": "¡TAPPER!"
+      },
+      "description": {
+        "en": "Bartender lane management. Use your ears.",
+        "es": "Camarero de barra. Usa los oídos."
+      }
+    },
+    {
+      "id": "delve",
+      "path": "/delve/",
+      "category": "dev",
+      "name": {
+        "en": "Delve",
+        "es": "Delve"
+      },
+      "description": {
+        "en": "An audio dungeon crawl. Shoot the monsters streaming from their generators, grab food to fight the draining health clock, and find the way down — deeper and deeper, until your health runs out.",
+        "es": "Una mazmorra por audio. Dispara a los monstruos que salen de sus generadores, recoge comida para luchar contra el reloj de salud que se agota, y encuentra la bajada — cada vez más hondo, hasta que tu salud se acabe."
+      }
+    },
+    {
+      "id": "fuse",
+      "path": "/fuse/",
+      "category": "dev",
+      "name": {
+        "en": "Fuse",
+        "es": "Fuse"
+      },
+      "description": {
+        "en": "An audio bomb-maze. Roam the maze, plant bombs to blow up soft walls and roaming enemies — and flee your own cross-blast before the fuse runs out.",
+        "es": "Un laberinto de bombas por audio. Recorre el laberinto, planta bombas para volar muros blandos y enemigos errantes, y huye de tu propia explosión en cruz antes de que se acabe la mecha."
+      }
+    },
+    {
+      "id": "hush",
+      "path": "/hush/",
+      "category": "dev",
+      "name": {
+        "en": "Hush",
+        "es": "Silencio"
+      },
+      "description": {
+        "en": "A grid of humming cells. Toggle them in plus-shapes until every cell falls silent.",
+        "es": "Una cuadrícula de celdas que zumban. Alterna en forma de cruz hasta que todas callen."
+      }
+    },
+    {
+      "id": "killingSpree",
+      "path": "/killingSpree/",
+      "category": "dev",
+      "name": {
+        "en": "Killing Spree",
+        "es": "Killing Spree"
+      },
+      "description": {
+        "en": "Keep the car in the middle. Take the curves. Run them down.",
+        "es": "Mantén el coche en el centro. Toma las curvas. Atropéllalos."
+      }
+    },
+    {
+      "id": "lucky",
+      "path": "/lucky/",
+      "category": "dev",
+      "name": {
+        "en": "Lucky Strike",
+        "es": "Suerte de Muerte"
+      },
+      "description": {
+        "en": "An audio arcade shooter. The more you shoot, the likelier you explode.",
+        "es": "Un arcade de audio. Cuanto más disparas, más fácil es que explotes."
+      }
+    },
+    {
+      "id": "minefield",
+      "path": "/minefield/",
+      "category": "dev",
+      "name": {
+        "en": "Minefield",
+        "es": "Campo Minado"
+      },
+      "description": {
+        "en": "An audio minesweeper. Deduce where the mines are and clear the field.",
+        "es": "Un buscaminas sonoro. Deduce dónde están las minas y despeja el campo."
+      }
+    },
+    {
+      "id": "night_chase",
+      "path": "/night_chase/",
+      "category": "dev",
+      "name": {
+        "en": "Night Chase",
+        "es": "Night Chase"
+      },
+      "description": {
+        "en": "Audio-first street pursuit racing.",
+        "es": "Carreras de persecución audio-first."
+      }
+    },
+    {
+      "id": "ohshit",
+      "path": "/ohshit/",
+      "category": "dev",
+      "name": {
+        "en": "Oh Shit!",
+        "es": "Oh Shit!"
+      },
+      "description": {
+        "en": "Collect items, dodge falling rocks, jump cannonballs, and mind the crumbling floor. See how long you can stay alive.",
+        "es": "Recoge objetos, esquiva rocas, salta balas de cañón y cuidado con el suelo que se desmorona. A ver cuánto sobrevives."
+      }
+    },
+    {
+      "id": "pipe",
+      "path": "/pipe/",
+      "category": "dev",
+      "name": {
+        "en": "Pipe",
+        "es": "Pipe"
+      },
+      "description": {
+        "en": "Plumber Joe fits leaking pipes against a draining timer, dodging bees, bats and the dog.",
+        "es": "El fontanero Joe encaja tuberías con fugas contra un cronómetro que se vacía, esquivando abejas, murciélagos y al perro."
+      }
+    },
+    {
+      "id": "pizza",
+      "path": "/pizza/",
+      "category": "dev",
+      "name": {
+        "en": "Pizza!",
+        "es": "¡Pizza!"
+      },
+      "description": {
+        "en": "Deliver pizzas across the city. Don't lose your tip.",
+        "es": "Reparte pizzas por la ciudad. Que no se te escape la propina."
+      }
+    },
+    {
+      "id": "quartet",
+      "path": "/quartet/",
+      "category": "dev",
+      "name": {
+        "en": "Quartet",
+        "es": "Cuarteto"
+      },
+      "description": {
+        "en": "Audio four-in-a-row. Drop sounding discs and align four before the machine does.",
+        "es": "Cuatro en raya sonoro. Deja caer discos que suenan y alinea cuatro antes que la máquina."
+      }
+    },
+    {
+      "id": "tempobeat",
+      "path": "/tempobeat/",
+      "category": "dev",
+      "name": {
+        "en": "RITMO!",
+        "es": "¡RITMO!"
+      },
+      "description": {
+        "en": "Press Enter on every beat as the ping bounces left and right. Three misses and the song stops.",
+        "es": "Pulsa Intro en cada pulso mientras el pin rebota de izquierda a derecha. Tres fallos y se acabó."
+      }
+    },
+    {
+      "id": "rivet",
+      "path": "/rivet/",
+      "category": "dev",
+      "name": {
+        "en": "Rivet",
+        "es": "Rivet"
+      },
+      "description": {
+        "en": "An audio girder climb. Scale the scaffold to the top, jumping the barrels that tumble down at you and out-climbing the fireball that hunts you up the ladders.",
+        "es": "Una escalada de vigas por audio. Sube el andamio hasta la cima, salta los barriles que caen rodando hacia ti y escapa del bola de fuego que te persigue por las escaleras."
+      }
+    },
+    {
+      "id": "rover",
+      "path": "/rover/",
+      "category": "dev",
+      "name": {
+        "en": "Rover",
+        "es": "Rover"
+      },
+      "description": {
+        "en": "An audio moon-buggy run. Your rover rolls across the surface; jump the craters, shoot the rocks and UFOs, and see how far you get before you wreck.",
+        "es": "Una carrera en buggy lunar por audio. Tu rover avanza por la superficie; salta los cráteres, dispara a las rocas y los OVNIs, y mira hasta dónde llegas antes de estrellarte."
+      }
+    },
+    {
+      "id": "salvo",
+      "path": "/salvo/",
+      "category": "dev",
+      "name": {
+        "en": "Salvo",
+        "es": "Salvo"
+      },
+      "description": {
+        "en": "A last-stand turret shooter. Hold the centre and gun down the swarm closing in from every direction.",
+        "es": "Un shooter de torreta a la última. Defiende el centro y abate al enjambre que se cierra desde todas las direcciones."
+      }
+    },
+    {
+      "id": "sigil",
+      "path": "/sigil/",
+      "category": "dev",
+      "name": {
+        "en": "Sigil",
+        "es": "Sigilo"
+      },
+      "description": {
+        "en": "Crack the hidden sigil: place the right tone at each point of the compass by deduction.",
+        "es": "Descifra el sigilo oculto: coloca el tono correcto en cada punto de la brújula por deducción."
+      }
+    },
+    {
+      "id": "signal_heist",
+      "path": "/signal_heist/",
+      "category": "dev",
+      "name": {
+        "en": "Signal Heist",
+        "es": "Signal Heist"
+      },
+      "description": {
+        "en": "Steal the data, read the room by ear, and leave before security closes in.",
+        "es": "Roba los datos, lee la sala de oído y sal antes de que cierre seguridad."
+      }
+    },
+    {
+      "id": "skeet",
+      "path": "/skeet/",
+      "category": "dev",
+      "name": {
+        "en": "Skeet",
+        "es": "Skeet"
+      },
+      "description": {
+        "en": "An audio clay-shooting gallery. Clays streak across the sky — track each one by ear with your swept gun and shoot it before it gets away.",
+        "es": "Una galería de tiro al plato por audio. Los platos cruzan el cielo: sigue cada uno de oído con tu escopeta y derríbalo antes de que escape."
+      }
+    },
+    {
+      "id": "skitter",
+      "path": "/skitter/",
+      "category": "dev",
+      "name": {
+        "en": "Skitter",
+        "es": "Skitter"
+      },
+      "description": {
+        "en": "An audio Centipede. A segmented creature winds down toward your line — slide your gun and shoot up its column to break it apart before it reaches you.",
+        "es": "Un Centipede de audio. Una criatura segmentada serpentea hacia tu línea: desliza tu cañón y dispara por su columna para despedazarla antes de que te alcance."
+      }
+    },
+    {
+      "id": "smasher",
+      "path": "/smasher/",
+      "category": "dev",
+      "name": {
+        "en": "Smasher",
+        "es": "Smasher"
+      },
+      "description": {
+        "en": "Throw balls, smash things, beat the clock.",
+        "es": "Lanza bolas, rompe cosas, corre contra el reloj."
+      }
+    },
+    {
+      "id": "sow",
+      "path": "/sow/",
+      "category": "dev",
+      "name": {
+        "en": "Sow",
+        "es": "Sow"
+      },
+      "description": {
+        "en": "Audio mancala. Sow seeds around the pits and bank more than the machine.",
+        "es": "Mancala sonoro. Siembra semillas por los hoyos y guarda más que la máquina."
+      }
+    },
+    {
+      "id": "span",
+      "path": "/span/",
+      "category": "dev",
+      "name": {
+        "en": "Span",
+        "es": "Span"
+      },
+      "description": {
+        "en": "Audio bridges. Connect every island into one network so each island carries exactly its number of bridges.",
+        "es": "Puentes sonoros. Conecta todas las islas en una sola red para que cada isla lleve exactamente su número de puentes."
+      }
+    },
+    {
+      "id": "strafe",
+      "path": "/strafe/",
+      "category": "dev",
+      "name": {
+        "en": "Strafe",
+        "es": "Strafe"
+      },
+      "description": {
+        "en": "An audio run-and-gun. Hold the line: gun down the foes charging in from ahead — low on the ground, high in the air — and duck the shells they lob. Clear each sector to push deeper.",
+        "es": "Un run-and-gun por audio. Aguanta la línea: abate a los enemigos que cargan de frente —bajos por el suelo, altos por el aire— y agáchate ante los proyectiles que lanzan. Limpia cada sector para avanzar."
+      }
+    },
+    {
+      "id": "talon",
+      "path": "/talon/",
+      "category": "dev",
+      "name": {
+        "en": "Talon",
+        "es": "Talon"
+      },
+      "description": {
+        "en": "An audio joust in the sky. Flap to fight gravity and steer your altitude; unseat each rider by meeting it at its own height when it reaches you.",
+        "es": "Una justa aérea por audio. Aletea para luchar contra la gravedad y gobernar tu altura; derriba a cada jinete encontrándolo a su propia altura cuando te alcanza."
+      }
+    },
+    {
+      "id": "tread",
+      "path": "/tread/",
+      "category": "dev",
+      "name": {
+        "en": "Tread",
+        "es": "Tread"
+      },
+      "description": {
+        "en": "An audio tank battle. Drive a tank on a grid: line up with the enemy tanks and fire, dodge their telegraphed return fire, and stop them from breaking through to your base.",
+        "es": "Una batalla de tanques por audio. Conduce un tanque por una cuadrícula: alinéate con los tanques enemigos y dispara, esquiva su fuego telegrafiado y evita que rompan hasta tu base."
+      }
+    },
+    {
+      "id": "weave",
+      "path": "/weave/",
+      "category": "dev",
+      "name": {
+        "en": "Weave",
+        "es": "Telar"
+      },
+      "description": {
+        "en": "Connect each pair of matching threads across the loom — and fill every cell.",
+        "es": "Conecta cada par de hilos iguales por el telar — y cubre todas las celdas."
+      }
+    },
+    {
+      "id": "whack",
+      "path": "/whack/",
+      "category": "dev",
+      "name": {
+        "en": "Whack",
+        "es": "Whack"
+      },
+      "description": {
+        "en": "An audio-first whack-a-mole. Nine burrows around you — smack the one you hear before it ducks, but never the decoy.",
+        "es": "Un golpea-topos sonoro. Nueve madrigueras a tu alrededor: golpea la que oigas antes de que se esconda, pero nunca el señuelo."
+      }
+    }
+  ]
+}
